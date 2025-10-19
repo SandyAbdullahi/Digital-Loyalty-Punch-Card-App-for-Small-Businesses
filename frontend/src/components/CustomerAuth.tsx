@@ -67,8 +67,7 @@ const CustomerAuth: React.FC<CustomerAuthProps> = ({ onAuthSuccess }) => {
         </button>
       </form>
       <p>
-        {isRegistering ? 'Already have an account?' : 'Don't have an account?'}{' '}
-        <button type="button" onClick={() => setIsRegistering(!isRegistering)}>
+        {isRegistering ? 'Already have an account?' : 'Don\'t have an account?'}{' '}        <button type="button" onClick={() => setIsRegistering(!isRegistering)}>
           {isRegistering ? 'Login' : 'Register'}
         </button>
       </p>
