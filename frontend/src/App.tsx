@@ -7,17 +7,20 @@ import CustomerDashboard from './components/CustomerDashboard'
 
 function App() {
   const [isMerchantLoggedIn, setIsMerchantLoggedIn] = useState(false); // Placeholder for merchant authentication
+  const [merchantId, setMerchantId] = useState<string | null>(null); // New state for logged-in merchant ID
   const [customer, setCustomer] = useState<{ id: string; email: string } | null>(null); // Placeholder for customer authentication
   const [showMerchantSignup, setShowMerchantSignup] = useState(false); // New state to control merchant signup form visibility
 
   const handleCustomerAuthSuccess = (customerData: { id: string; email: string }) => {
     setCustomer(customerData);
     setIsMerchantLoggedIn(false); // Ensure merchant view is off when customer logs in
+    setMerchantId(null); // Clear merchant ID
     setShowMerchantSignup(false); // Hide merchant signup if customer logs in
   };
 
-  const handleMerchantLoginSuccess = () => {
+  const handleMerchantLoginSuccess = (id: string) => {
     setIsMerchantLoggedIn(true);
+    setMerchantId(id); // Set the logged-in merchant ID
     setCustomer(null); // Ensure customer view is off when merchant logs in
     setShowMerchantSignup(false); // Hide merchant signup if merchant logs in
   };
@@ -28,12 +31,12 @@ function App() {
 
       {/* Simple navigation/toggle for now */}
       <div>
-        <button onClick={() => { setIsMerchantLoggedIn(true); setCustomer(null); setShowMerchantSignup(false); }}>Merchant View</button>
-        <button onClick={() => { setIsMerchantLoggedIn(false); setCustomer(null); setShowMerchantSignup(false); }}>Customer View</button>
+        <button onClick={() => { setIsMerchantLoggedIn(true); setMerchantId(null); setCustomer(null); setShowMerchantSignup(false); }}>Merchant View</button>
+        <button onClick={() => { setIsMerchantLoggedIn(false); setMerchantId(null); setCustomer(null); setShowMerchantSignup(false); }}>Customer View</button>
       </div>
 
-      {isMerchantLoggedIn ? (
-        <MerchantDashboard />
+      {isMerchantLoggedIn && merchantId ? (
+        <MerchantDashboard merchantId={merchantId} />
       ) : customer ? (
         <CustomerDashboard customerId={customer.id} />
       ) : showMerchantSignup ? (

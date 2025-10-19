@@ -3,6 +3,10 @@ import axios from 'axios';
 import LoyaltyProgramForm from './LoyaltyProgramForm';
 import IssueStampForm from './IssueStampForm';
 
+interface MerchantDashboardProps {
+  merchantId: string;
+}
+
 interface Merchant {
   id: string;
   name: string;
@@ -30,7 +34,7 @@ interface AnalyticsData {
   rewardsRedeemed: number;
 }
 
-const MerchantDashboard: React.FC = () => {
+const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => {
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [loyaltyPrograms, setLoyaltyPrograms] = useState<LoyaltyProgram[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -38,12 +42,8 @@ const MerchantDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editingProgram, setEditingProgram] = useState<LoyaltyProgram | null>(null);
 
-  // In a real application, the merchant ID would come from authentication context
-  // For now, we'll assume a hardcoded ID or fetch the last created merchant
-  const merchantId = 'REPLACE_WITH_ACTUAL_MERCHANT_ID'; 
-
   const fetchMerchantData = async () => {
-    if (merchantId === 'REPLACE_WITH_ACTUAL_MERCHANT_ID') {
+    if (!merchantId) {
       setLoading(false);
       setError('Merchant ID not available. Please sign up or log in.');
       return;

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 interface MerchantSignupProps {
-  onSignupSuccess: () => void;
+  onSignupSuccess: (merchantId: string) => void;
 }
 
 const MerchantSignup: React.FC<MerchantSignupProps> = ({ onSignupSuccess }) => {
@@ -28,7 +28,7 @@ const MerchantSignup: React.FC<MerchantSignupProps> = ({ onSignupSuccess }) => {
         contact 
       });
       console.log('Merchant created:', response.data);
-      onSignupSuccess(); // Call onSignupSuccess after successful signup
+      onSignupSuccess(response.data.id); // Pass merchant ID to onSignupSuccess
     } catch (error) {
       console.error('Failed to create merchant:', error);
     }
