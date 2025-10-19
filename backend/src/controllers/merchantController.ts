@@ -14,3 +14,48 @@ export const createMerchant = async (req: Request, res: Response) => {
     }
   }
 };
+
+export const updateMerchant = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const merchant = await merchantService.updateMerchant(id, req.body);
+    res.status(200).json(merchant);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to update merchant', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update merchant', details: 'An unknown error occurred' });
+    }
+  }
+};
+
+export const getMerchantById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const merchant = await merchantService.getMerchantById(id);
+    if (merchant) {
+      res.status(200).json(merchant);
+    } else {
+      res.status(404).json({ error: 'Merchant not found' });
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to fetch merchant', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch merchant', details: 'An unknown error occurred' });
+    }
+  }
+};
+
+export const getAllMerchants = async (req: Request, res: Response) => {
+  try {
+    const merchants = await merchantService.getAllMerchants();
+    res.status(200).json(merchants);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to fetch merchants', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch merchants', details: 'An unknown error occurred' });
+    }
+  }
+};

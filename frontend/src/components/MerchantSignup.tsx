@@ -6,11 +6,23 @@ const MerchantSignup: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [location, setLocation] = useState('');
+  const [contact, setContact] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/merchants', { name, email, password });
+      const response = await axios.post('/api/merchants', { 
+        name, 
+        email, 
+        password, 
+        businessName, 
+        businessType, 
+        location, 
+        contact 
+      });
       console.log('Merchant created:', response.data);
     } catch (error) {
       console.error('Failed to create merchant:', error);
@@ -31,6 +43,22 @@ const MerchantSignup: React.FC = () => {
       <div>
         <label>Password:</label>
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+      </div>
+      <div>
+        <label>Business Name:</label>
+        <input type="text" value={businessName} onChange={(e) => setBusinessName(e.target.value)} required />
+      </div>
+      <div>
+        <label>Business Type:</label>
+        <input type="text" value={businessType} onChange={(e) => setBusinessType(e.target.value)} required />
+      </div>
+      <div>
+        <label>Location:</label>
+        <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+      </div>
+      <div>
+        <label>Contact:</label>
+        <input type="text" value={contact} onChange={(e) => setContact(e.target.value)} />
       </div>
       <button type="submit">Signup</button>
     </form>

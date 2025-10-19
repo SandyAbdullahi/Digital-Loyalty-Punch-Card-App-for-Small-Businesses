@@ -11,16 +11,39 @@ datasource db {
 }
 
 model Merchant {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  logo      String?
-  theme     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  stamps    Stamp[]
-  rewards   Reward[]
+
+  id           String    @id @default(cuid())
+
+  name         String
+
+  email        String    @unique
+
+  password     String
+
+  businessName String
+
+  businessType String
+
+  location     String?
+
+  contact      String?
+
+  logo         String?
+
+  theme        String?
+
+  qrCodeLink   String?
+
+  createdAt    DateTime  @default(now())
+
+  updatedAt    DateTime  @updatedAt
+
+  stamps       Stamp[]
+
+  rewards      Reward[]
+
+  loyaltyPrograms LoyaltyProgram[]
+
 }
 
 model Customer {
@@ -51,4 +74,15 @@ model Reward {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   merchant    Merchant @relation(fields: [merchantId], references: [id])
+}
+
+model LoyaltyProgram {
+  id          String    @id @default(cuid())
+  merchantId  String
+  rewardName  String
+  threshold   Int
+  expiryDate  DateTime? // Optional expiry date for the reward
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  merchant    Merchant  @relation(fields: [merchantId], references: [id])
 }
