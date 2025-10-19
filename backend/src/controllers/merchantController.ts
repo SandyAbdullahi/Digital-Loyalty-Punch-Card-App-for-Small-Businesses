@@ -177,3 +177,20 @@ export const updateMerchantSubscription = async (req: Request, res: Response) =>
     }
   }
 };
+
+export const getNearbyMerchants = async (req: Request, res: Response) => {
+  try {
+    const { location } = req.query;
+    if (!location || typeof location !== 'string') {
+      return res.status(400).json({ error: 'Location query parameter is required.' });
+    }
+    const merchants = await merchantService.getNearbyMerchants(location);
+    res.status(200).json(merchants);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to fetch nearby merchants', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch nearby merchants', details: 'An unknown error occurred' });
+    }
+  }
+};

@@ -74,3 +74,14 @@ export const updateMerchantSubscription = async (id: string, subscriptionPlan: s
     data: { subscriptionPlan },
   });
 };
+
+export const getNearbyMerchants = async (location: string): Promise<Merchant[]> => {
+  return prisma.merchant.findMany({
+    where: {
+      location: {
+        contains: location, // Case-insensitive search for location
+        mode: 'insensitive', // For PostgreSQL, SQLite is case-insensitive by default
+      },
+    },
+  });
+};
