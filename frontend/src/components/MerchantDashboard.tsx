@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import LoyaltyProgramForm from './LoyaltyProgramForm';
+import IssueStampForm from './IssueStampForm';
 
 interface Merchant {
   id: string;
@@ -75,6 +76,10 @@ const MerchantDashboard: React.FC = () => {
     fetchMerchantData(); // Re-fetch data after creation/update
   };
 
+  const handleStampIssued = () => {
+    fetchMerchantData(); // Re-fetch data to update analytics and loyalty programs
+  };
+
   if (loading) {
     return <div>Loading merchant data...</div>;
   }
@@ -138,6 +143,8 @@ const MerchantDashboard: React.FC = () => {
           onProgramCreated={handleProgramChange} 
         />
       )}
+
+      <IssueStampForm merchantId={merchant.id} onStampIssued={handleStampIssued} />
     </div>
   );
 };

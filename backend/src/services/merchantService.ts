@@ -1,5 +1,5 @@
 
-import { PrismaClient, Prisma, Merchant } from '@prisma/client';
+import { PrismaClient, Prisma, Merchant, Stamp } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -31,4 +31,24 @@ export const getMerchantById = async (id: string): Promise<Merchant | null> => {
 
 export const getAllMerchants = async (): Promise<Merchant[]> => {
   return prisma.merchant.findMany();
+};
+
+export const issueStamp = async (merchantId: string, customerId: string): Promise<Stamp> => {
+  // Basic validation: check if merchant and customer exist
+  const merchantExists = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  const customerExists = await prisma.customer.findUnique({ where: { id: customerId } });
+
+  if (!merchantExists) {
+    throw new Error('Merchant not found.');
+  }
+  if (!customerExists) {
+    throw new Error('Customer not found.');
+  }
+
+  return prisma.stamp.create({
+    data: {
+      merchantId,
+      customerId,
+    },
+  });
 };
