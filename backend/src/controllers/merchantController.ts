@@ -148,3 +148,17 @@ export const issueStamp = async (req: Request, res: Response) => {
   }
 
 };
+
+export const getCustomersByMerchantId = async (req: Request, res: Response) => {
+  try {
+    const { merchantId } = req.params;
+    const customers = await merchantService.getCustomersByMerchantId(merchantId);
+    res.status(200).json(customers);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to fetch customers', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch customers', details: 'An unknown error occurred' });
+    }
+  }
+};

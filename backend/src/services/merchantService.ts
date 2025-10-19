@@ -1,5 +1,6 @@
 
 import { PrismaClient, Prisma, Merchant, Stamp } from '@prisma/client';
+import { sendNotification } from '../services/notificationService';
 
 const prisma = new PrismaClient();
 
@@ -45,10 +46,24 @@ export const issueStamp = async (merchantId: string, customerId: string): Promis
     throw new Error('Customer not found.');
   }
 
-  return prisma.stamp.create({
+  const stamp = await prisma.stamp.create({
     data: {
       merchantId,
       customerId,
     },
   });
+
+  // Send notification to customer
+  await sendNotification(customerId, 'You just earned a stamp!');
+
+  return stamp;
+};
+
+export const getCustomersByMerchantId = async (merchantId: string) => {
+  const customerStamps = await prisma.stamp.findMany({
+    where: { merchantId },
+    select: { customer: true },
+    distinct: ['customerId'],
+  });
+  return customerStamps.map(cs => cs.customer);
 };

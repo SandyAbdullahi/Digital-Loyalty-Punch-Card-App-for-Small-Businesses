@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma, Customer, Stamp } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { sendNotification } from '../services/notificationService';
 
 const prisma = new PrismaClient();
 
@@ -46,4 +47,42 @@ export const getCustomerStamps = async (customerId: string): Promise<Stamp[]> =>
   return prisma.stamp.findMany({
     where: { customerId },
   });
+};
+
+export const redeemReward = async (customerId: string, loyaltyProgramId: string) => {
+  const loyaltyProgram = await prisma.loyaltyProgram.findUnique({
+    where: { id: loyaltyProgramId },
+  });
+
+  if (!loyaltyProgram) {
+    throw new Error('Loyalty program not found.');
+  }
+
+  const customerStamps = await prisma.stamp.findMany({
+    where: {
+      customerId,
+      merchantId: loyaltyProgram.merchantId,
+    },
+  });
+
+  if (customerStamps.length < loyaltyProgram.threshold) {
+    throw new Error('Not enough stamps to redeem this reward.');
+  }
+
+  // Delete stamps used for redemption
+  const stampsToDelete = customerStamps.slice(0, loyaltyProgram.threshold);
+  await prisma.stamp.deleteMany({
+    where: {
+      id: {
+        in: stampsToDelete.map(stamp => stamp.id),
+      },
+    },
+  });
+
+  // Send notification to customer
+  await sendNotification(customerId, `Reward '${loyaltyProgram.rewardName}' redeemed successfully!`);
+
+  // In a real application, you might want to record the redemption in a separate table
+  // For now, we'll just return a success message.
+  return { message: `Reward '${loyaltyProgram.rewardName}' redeemed successfully!` };
 };

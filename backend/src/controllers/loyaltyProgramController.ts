@@ -1,9 +1,17 @@
 import { Request, Response } from 'express';
 import * as loyaltyProgramService from '../services/loyaltyProgramService';
+import { generateQrCode } from '../services/qrCodeService';
 
 export const createLoyaltyProgram = async (req: Request, res: Response) => {
   try {
-    const loyaltyProgram = await loyaltyProgramService.createLoyaltyProgram(req.body);
+    // For MVP, construct a simple join URL. In a real app, this would be more robust.
+    const joinUrl = `${process.env.FRONTEND_URL}/join/${req.body.merchantId}/${req.body.rewardName}`;
+    const qrCodeDataUrl = await generateQrCode(joinUrl);
+
+    const loyaltyProgram = await loyaltyProgramService.createLoyaltyProgram({
+      ...req.body,
+      qrCodeDataUrl,
+    });
     res.status(201).json(loyaltyProgram);
   } catch (error) {
     if (error instanceof Error) {

@@ -68,3 +68,18 @@ export const getCustomerStamps = async (req: Request, res: Response) => {
     }
   }
 };
+
+export const redeemReward = async (req: Request, res: Response) => {
+  try {
+    const { customerId } = req.params;
+    const { loyaltyProgramId } = req.body;
+    const result = await customerService.redeemReward(customerId, loyaltyProgramId);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to redeem reward', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to redeem reward', details: 'An unknown error occurred' });
+    }
+  }
+};

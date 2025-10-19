@@ -84,5 +84,6 @@ model LoyaltyProgram {
   expiryDate  DateTime? // Optional expiry date for the reward
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  qrCodeDataUrl String?
   merchant    Merchant  @relation(fields: [merchantId], references: [id])
 }
