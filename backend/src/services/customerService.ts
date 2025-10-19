@@ -91,3 +91,13 @@ export const redeemReward = async (customerId: string, loyaltyProgramId: string)
   // For now, we'll just return a success message.
   return { message: `Reward '${loyaltyProgram.rewardName}' redeemed successfully!` };
 };
+
+export const updateCustomerProfile = async (id: string, data: Prisma.CustomerUpdateInput): Promise<Customer> => {
+  if (data.password) {
+    data.password = await bcrypt.hash(data.password as string, 10);
+  }
+  return prisma.customer.update({
+    where: { id },
+    data,
+  });
+};
