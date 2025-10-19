@@ -11,7 +11,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 * Node.js
 * npm
-* A PostgreSQL database
+* A SQLite database (for development, configured via Prisma)
 
 ### Setup
 
@@ -30,11 +30,13 @@ These instructions will get you a copy of the project up and running on your loc
      ```sh
      npm install
      ```
-   - Create a `.env` file and add your `DATABASE_URL`:
+   - Create a `.env` file by copying `.env.example`:
      ```sh
      cp .env.example .env
-     # Open .env and add your PostgreSQL connection string
      ```
+   - Open the newly created `.env` file and configure the following:
+     - `DATABASE_URL`: (e.g., `file:./dev.db` for SQLite)
+     - `FRONTEND_URL`: The URL where your frontend application will be running (e.g., `http://localhost:5173`). This is used for QR code generation.
    - Run the database migrations:
      ```sh
      npx prisma migrate dev
