@@ -32,11 +32,13 @@ model Merchant {
 
   theme        String?
 
-  qrCodeLink   String?
+    qrCodeLink       String?
 
-  createdAt    DateTime  @default(now())
+    subscriptionPlan String?
 
-  updatedAt    DateTime  @updatedAt
+    createdAt        DateTime  @default(now())
+
+    updatedAt        DateTime  @updatedAt
 
   stamps       Stamp[]
 

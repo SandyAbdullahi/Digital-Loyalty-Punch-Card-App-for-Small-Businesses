@@ -67,3 +67,10 @@ export const getCustomersByMerchantId = async (merchantId: string) => {
   });
   return customerStamps.map(cs => cs.customer);
 };
+
+export const updateMerchantSubscription = async (id: string, subscriptionPlan: string): Promise<Merchant> => {
+  return prisma.merchant.update({
+    where: { id },
+    data: { subscriptionPlan },
+  });
+};

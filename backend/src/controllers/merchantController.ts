@@ -162,3 +162,18 @@ export const getCustomersByMerchantId = async (req: Request, res: Response) => {
     }
   }
 };
+
+export const updateMerchantSubscription = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { subscriptionPlan } = req.body;
+    const updatedMerchant = await merchantService.updateMerchantSubscription(id, subscriptionPlan);
+    res.status(200).json(updatedMerchant);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to update subscription plan', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update subscription plan', details: 'An unknown error occurred' });
+    }
+  }
+};
