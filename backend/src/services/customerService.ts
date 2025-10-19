@@ -6,9 +6,14 @@ const prisma = new PrismaClient();
 
 export const createCustomer = async (data: Prisma.CustomerCreateInput): Promise<Customer> => {
   const hashedPassword = await bcrypt.hash(data.password, 10);
-  return prisma.customer.create({
-    data: { ...data, password: hashedPassword },
-  });
+  try {
+    return prisma.customer.create({
+      data: { ...data, password: hashedPassword },
+    });
+  } catch (error) {
+    console.error('Error creating customer:', error);
+    throw error; // Re-throw the error after logging
+  }
 };
 
 export const findCustomerByEmail = async (email: string): Promise<Customer | null> => {
