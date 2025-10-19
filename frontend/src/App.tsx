@@ -8,9 +8,18 @@ import CustomerDashboard from './components/CustomerDashboard'
 function App() {
   const [isMerchantLoggedIn, setIsMerchantLoggedIn] = useState(false); // Placeholder for merchant authentication
   const [customer, setCustomer] = useState<{ id: string; email: string } | null>(null); // Placeholder for customer authentication
+  const [showMerchantSignup, setShowMerchantSignup] = useState(false); // New state to control merchant signup form visibility
 
   const handleCustomerAuthSuccess = (customerData: { id: string; email: string }) => {
     setCustomer(customerData);
+    setIsMerchantLoggedIn(false); // Ensure merchant view is off when customer logs in
+    setShowMerchantSignup(false); // Hide merchant signup if customer logs in
+  };
+
+  const handleMerchantLoginSuccess = () => {
+    setIsMerchantLoggedIn(true);
+    setCustomer(null); // Ensure customer view is off when merchant logs in
+    setShowMerchantSignup(false); // Hide merchant signup if merchant logs in
   };
 
   return (
@@ -19,18 +28,22 @@ function App() {
 
       {/* Simple navigation/toggle for now */}
       <div>
-        <button onClick={() => { setIsMerchantLoggedIn(true); setCustomer(null); }}>Merchant View</button>
-        <button onClick={() => { setIsMerchantLoggedIn(false); setCustomer(null); }}>Customer View</button>
+        <button onClick={() => { setIsMerchantLoggedIn(true); setCustomer(null); setShowMerchantSignup(false); }}>Merchant View</button>
+        <button onClick={() => { setIsMerchantLoggedIn(false); setCustomer(null); setShowMerchantSignup(false); }}>Customer View</button>
       </div>
 
       {isMerchantLoggedIn ? (
-        isMerchantLoggedIn ? <MerchantDashboard /> : <MerchantSignup /> // Merchant signup/dashboard
+        <MerchantDashboard />
+      ) : customer ? (
+        <CustomerDashboard customerId={customer.id} />
+      ) : showMerchantSignup ? (
+        <MerchantSignup onSignupSuccess={handleMerchantLoginSuccess} />
       ) : (
-        customer ? (
-          <CustomerDashboard customerId={customer.id} />
-        ) : (
+        // Default view when neither is logged in and not in merchant signup mode
+        <>
           <CustomerAuth onAuthSuccess={handleCustomerAuthSuccess} />
-        )
+          <p>Are you a merchant? <button onClick={() => setShowMerchantSignup(true)}>Sign Up Here</button></p>
+        </>
       )}
     </>
   )

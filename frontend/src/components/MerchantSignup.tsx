@@ -2,7 +2,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const MerchantSignup: React.FC = () => {
+interface MerchantSignupProps {
+  onSignupSuccess: () => void;
+}
+
+const MerchantSignup: React.FC<MerchantSignupProps> = ({ onSignupSuccess }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,6 +28,7 @@ const MerchantSignup: React.FC = () => {
         contact 
       });
       console.log('Merchant created:', response.data);
+      onSignupSuccess(); // Call onSignupSuccess after successful signup
     } catch (error) {
       console.error('Failed to create merchant:', error);
     }
