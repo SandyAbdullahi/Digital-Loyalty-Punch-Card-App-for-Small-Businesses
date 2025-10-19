@@ -7,6 +7,10 @@ export const createMerchant = async (req: Request, res: Response) => {
     const merchant = await merchantService.createMerchant(req.body);
     res.status(201).json(merchant);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create merchant' });
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to create merchant', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to create merchant', details: 'An unknown error occurred' });
+    }
   }
 };
