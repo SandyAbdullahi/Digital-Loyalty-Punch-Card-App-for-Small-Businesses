@@ -52,7 +52,11 @@ export const joinLoyaltyProgram = async (req: Request, res: Response) => {
     res.status(200).json({ message: 'Successfully joined loyalty program', stamp });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(500).json({ error: 'Failed to join loyalty program', details: error.message });
+      if (error.message.includes('Invalid program identifier')) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Failed to join loyalty program', details: error.message });
+      }
     } else {
       res.status(500).json({ error: 'Failed to join loyalty program', details: 'An unknown error occurred' });
     }
