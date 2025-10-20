@@ -5,6 +5,7 @@ const router = Router();
 
 router.post('/register', registerCustomer);
 router.post('/login', loginCustomer);
+router.get('/:id', getCustomerById); // New route to fetch customer by ID
 router.post('/join-program', joinLoyaltyProgram);
 router.get('/:customerId/stamps', getCustomerStamps);
 router.post('/:customerId/redeem-reward', redeemReward);

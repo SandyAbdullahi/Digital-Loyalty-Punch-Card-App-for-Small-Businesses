@@ -134,6 +134,24 @@ export const updateCustomerProfile = async (req: Request, res: Response) => {
   }
 };
 
+export const getCustomerById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const customer = await customerService.getCustomerById(id);
+    if (customer) {
+      res.status(200).json(customer);
+    } else {
+      res.status(404).json({ error: 'Customer not found' });
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to fetch customer', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch customer', details: 'An unknown error occurred' });
+    }
+  }
+};
+
 export const getCustomersByMerchantId = async (req: Request, res: Response) => {
   try {
     const { merchantId } = req.params;

@@ -186,6 +186,12 @@ export const updateCustomerProfile = async (id: string, data: Prisma.CustomerUpd
   });
 };
 
+export const getCustomerById = async (id: string): Promise<Customer | null> => {
+  return prisma.customer.findUnique({
+    where: { id },
+  });
+};
+
 export const getCustomersByMerchantId = async (merchantId: string): Promise<CustomerListItem[]> => {
   // Find all unique customer IDs that have stamps with this merchant
   const customerStamps = await prisma.stamp.findMany({
