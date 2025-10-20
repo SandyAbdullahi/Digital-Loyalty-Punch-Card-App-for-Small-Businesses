@@ -94,9 +94,12 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
     fetchMerchantData();
   }, [merchantId]);
 
-  const handleProgramChange = () => {
+  const handleProgramChange = (newProgramId?: string) => {
     setEditingProgram(null);
     fetchMerchantData();
+    if (newProgramId) {
+      setActiveTab('qrCode'); // Optionally switch to QR code tab after creating a new program
+    }
   };
 
   const handleStampIssued = () => {

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Paper, Text, Button, Group, Image, Loader, Alert, CopyButton, Tooltip, rem } from '@mantine/core';
+import { IconCheck, IconCopy, IconAlertCircle } from '@tabler/icons-react';
 
 interface QrCodeGeneratorProps {
   loyaltyProgramId: string;
@@ -9,7 +11,6 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({ loyaltyProgramId }) =
   const [qrCodeLink, setQrCodeLink] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [copySuccess, setCopySuccess] = useState<string>('');
 
   useEffect(() => {
     const fetchQrCode = async () => {
@@ -31,45 +32,49 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({ loyaltyProgramId }) =
     }
   }, [loyaltyProgramId]);
 
-  const handleCopyClick = () => {
-    if (qrCodeLink) {
-      navigator.clipboard.writeText(qrCodeLink)
-        .then(() => {
-          setCopySuccess('Copied!');
-          setTimeout(() => setCopySuccess(''), 2000);
-        })
-        .catch(() => {
-          setCopySuccess('Failed to copy!');
-        });
-    }
-  };
-
   if (loading) {
-    return <div>Loading QR code...</div>;
+    return <Loader size="sm" />;
   }
 
   if (error) {
-    return <div style={{ color: 'red' }}>Error: {error}</div>;
+    return <Alert icon={<IconAlertCircle size="1rem" />} title="Error" color="red">{error}</Alert>;
   }
 
   if (!qrCodeLink) {
-    return <div>No QR code available for this program.</div>;
+    return <Text c="dimmed">No QR code available for this program.</Text>;
   }
 
   return (
-    <div>
-      <h4>Loyalty Program QR Code</h4>
-      <p>Share this link or QR code with your customers to join this loyalty program.</p>
-      <div>
-        <img src={qrCodeLink} alt="QR Code" style={{ maxWidth: '200px', height: 'auto' }} />
-      </div>
-      <p>
-        <strong>Link:</strong> <a href={qrCodeLink} target="_blank" rel="noopener noreferrer">{qrCodeLink}</a>
-        <button onClick={handleCopyClick} style={{ marginLeft: '10px' }}>Copy Link</button>
-        {copySuccess && <span style={{ marginLeft: '10px', color: 'green' }}>{copySuccess}</span>}
-      </p>
-    </div>
+    <Paper withBorder radius="md" p="md" mt="md">
+      <Text fw={700} mb="xs">Loyalty Program QR Code</Text>
+      <Text size="sm" c="dimmed" mb="md">Share this link or QR code with your customers to join this loyalty program.</Text>
+      
+      <Group position="center" mb="md">
+        <Image
+          src={qrCodeLink}
+          alt="QR Code"
+          style={{ maxWidth: rem(200), height: 'auto' }}
+        />
+      </Group>
+
+      <Group justify="center">
+        <CopyButton value={qrCodeLink} timeout={2000}>
+          {({ copied, copy }) => (
+            <Tooltip label={copied ? 'Copied' : 'Copy link'} withArrow position="right">
+              <Button color={copied ? 'teal' : 'blue'} onClick={copy} leftSection={copied ? <IconCheck size="1rem" /> : <IconCopy size="1rem" />}>
+                {copied ? 'Link Copied' : 'Copy Link'}
+              </Button>
+            </Tooltip>
+          )}
+        </CopyButton>
+        <Button component="a" href={qrCodeLink} target="_blank" rel="noopener noreferrer" variant="outline">
+          Open Link
+        </Button>
+      </Group>
+    </Paper>
   );
 };
+
+export default QrCodeGenerator;
 
 export default QrCodeGenerator;

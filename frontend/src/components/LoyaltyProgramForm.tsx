@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { TextInput, NumberInput, Button, Group, Text, Alert, Box, DateInput } from '@mantine/core';
+import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 
 interface LoyaltyProgramFormProps {
   merchantId: string;
-  onProgramCreated?: () => void;
+  onProgramCreated?: (programId: string) => void; // Modified to pass programId
   onProgramUpdated?: () => void;
   existingProgram?: LoyaltyProgram;
 }
@@ -24,7 +26,7 @@ const LoyaltyProgramForm: React.FC<LoyaltyProgramFormProps> = ({
 }) => {
   const [rewardName, setRewardName] = useState(existingProgram?.rewardName || '');
   const [threshold, setThreshold] = useState(existingProgram?.threshold || 0);
-  const [expiryDate, setExpiryDate] = useState(existingProgram?.expiryDate ? existingProgram.expiryDate.split('T')[0] : '');
+  const [expiryDate, setExpiryDate] = useState<Date | null>(existingProgram?.expiryDate ? new Date(existingProgram.expiryDate) : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -33,7 +35,7 @@ const LoyaltyProgramForm: React.FC<LoyaltyProgramFormProps> = ({
     if (existingProgram) {
       setRewardName(existingProgram.rewardName);
       setThreshold(existingProgram.threshold);
-      setExpiryDate(existingProgram.expiryDate ? existingProgram.expiryDate.split('T')[0] : '');
+      setExpiryDate(existingProgram.expiryDate ? new Date(existingProgram.expiryDate) : null);
     }
   }, [existingProgram]);
 
@@ -43,11 +45,11 @@ const LoyaltyProgramForm: React.FC<LoyaltyProgramFormProps> = ({
     setError(null);
     setSuccess(null);
 
-    const programData: LoyaltyProgram = {
+    const programData = {
       merchantId,
       rewardName,
       threshold,
-      ...(expiryDate && { expiryDate: new Date(expiryDate).toISOString() }),
+      ...(expiryDate && { expiryDate: expiryDate.toISOString() }),
     };
 
     try {
@@ -56,13 +58,13 @@ const LoyaltyProgramForm: React.FC<LoyaltyProgramFormProps> = ({
         setSuccess('Loyalty program updated successfully!');
         onProgramUpdated?.();
       } else {
-        await axios.post('/api/loyalty-programs', programData);
+        const response = await axios.post('/api/loyalty-programs', programData);
         setSuccess('Loyalty program created successfully!');
-        onProgramCreated?.();
+        onProgramCreated?.(response.data.id); // Pass the new program ID
         // Clear form after creation
         setRewardName('');
         setThreshold(0);
-        setExpiryDate('');
+        setExpiryDate(null);
       }
     } catch (err) {
       setError('Failed to save loyalty program.');
@@ -73,42 +75,43 @@ const LoyaltyProgramForm: React.FC<LoyaltyProgramFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3>{existingProgram ? 'Edit Loyalty Program' : 'Create New Loyalty Program'}</h3>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
-      <div>
-        <label>Reward Name:</label>
-        <input 
-          type="text" 
-          value={rewardName} 
-          onChange={(e) => setRewardName(e.target.value)} 
-          required 
-        />
-      </div>
-      <div>
-        <label>Threshold (Stamps needed):</label>
-        <input 
-          type="number" 
-          value={threshold} 
-          onChange={(e) => setThreshold(parseInt(e.target.value))} 
-          required 
-          min="1"
-        />
-      </div>
-      <div>
-        <label>Expiry Date (Optional):</label>
-        <input 
-          type="date" 
-          value={expiryDate} 
-          onChange={(e) => setExpiryDate(e.target.value)} 
-        />
-      </div>
-      <button type="submit" disabled={loading}>
+    <Box component="form" onSubmit={handleSubmit}>
+      <Title order={4}>{existingProgram ? 'Edit Loyalty Program' : 'Create New Loyalty Program'}</Title>
+      {error && <Alert icon={<IconAlertCircle size="1rem" />} title="Error" color="red" mt="md">{error}</Alert>}
+      {success && <Alert icon={<IconCheck size="1rem" />} title="Success" color="green" mt="md">{success}</Alert>}
+
+      <TextInput
+        label="Reward Name"
+        placeholder="e.g., Free Coffee, 10% Off"
+        value={rewardName}
+        onChange={(event) => setRewardName(event.currentTarget.value)}
+        required
+        mt="md"
+      />
+
+      <NumberInput
+        label="Threshold (Stamps needed)"
+        placeholder="e.g., 10"
+        value={threshold}
+        onChange={(value) => setThreshold(value as number)}
+        required
+        min={1}
+        mt="md"
+      />
+
+      <DateInput
+        label="Expiry Date (Optional)"
+        placeholder="Pick date"
+        value={expiryDate}
+        onChange={setExpiryDate}
+        minDate={new Date()}
+        mt="md"
+      />
+
+      <Button type="submit" loading={loading} mt="xl">
         {loading ? 'Saving...' : (existingProgram ? 'Update Program' : 'Create Program')}
-      </button>
-    </form>
+      </Button>
+    </Box>
   );
 };
-
 export default LoyaltyProgramForm;
