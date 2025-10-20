@@ -4,6 +4,7 @@ import MerchantDashboardLayout from './components/MerchantDashboardLayout';
 import MerchantSignup from './components/MerchantSignup'
 import MerchantDashboard from './components/MerchantDashboard'
 import CustomerAuth from './components/CustomerAuth'
+import CustomerAppLayout from './components/CustomerAppLayout';
 import CustomerApp from './components/CustomerApp'
 
 function App() {
@@ -35,7 +36,9 @@ function App() {
           <MerchantDashboard merchantId={merchantId} />
         </MerchantDashboardLayout>
       ) : customer ? (
-        <CustomerApp customerId={customer.id} />
+        <CustomerAppLayout customerId={customer.id}>
+          <CustomerApp customerId={customer.id} />
+        </CustomerAppLayout>
       ) : showMerchantSignup ? (
         <MerchantSignup onAuthSuccess={handleMerchantLoginSuccess} />
       ) : (
