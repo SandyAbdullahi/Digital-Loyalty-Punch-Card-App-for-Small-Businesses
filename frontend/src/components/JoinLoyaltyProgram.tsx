@@ -25,7 +25,7 @@ const JoinLoyaltyProgram: React.FC<JoinLoyaltyProgramProps> = ({ customerId, onP
     try {
       // Assuming the programIdentifier can be either a program ID or a full link
       // The backend should be able to parse this.
-      await axios.post(`/api/customers/${customerId}/join-program`, { programIdentifier });
+      await axios.post(`/api/customers/join-program`, { customerId, programIdentifier });
       setSuccess('Successfully joined loyalty program!');
       setProgramIdentifier('');
       onProgramJoined?.();
