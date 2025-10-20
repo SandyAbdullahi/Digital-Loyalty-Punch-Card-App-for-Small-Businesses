@@ -76,7 +76,6 @@ function MerchantDashboardLayout({ merchantId, children }: MerchantDashboardLayo
 
           <Tabs.Panel value="overview" pt="xs">
             <Card shadow="md" radius="md" p="xl">
-              <Text size="lg" fw={600}>Overview Content</Text>
               {children}
             </Card>
           </Tabs.Panel>
