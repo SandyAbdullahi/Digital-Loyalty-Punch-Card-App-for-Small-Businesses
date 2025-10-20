@@ -76,5 +76,3 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({ loyaltyProgramId }) =
 };
 
 export default QrCodeGenerator;
-
-export default QrCodeGenerator;
