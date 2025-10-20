@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { AppShell, Burger, Group, NavLink, Stack, Text, ActionIcon, Menu, Avatar, useMantineColorScheme, useMantineTheme, Tabs, Card } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconGauge, IconUsers, IconGift, IconAward, IconBellRinging, IconChevronRight, IconSettings, IconLogout, IconSun, IconMoonStars } from '@tabler/icons-react';
-import { ColorSchemeToggle } from './ColorSchemeToggle';
+import { IconGauge, IconUsers, IconGift, IconAward, IconBellRinging, IconChevronRight, IconSettings, IconLogout } from '@tabler/icons-react';
+import AppNavbar from './AppNavbar';
 
 interface MerchantDashboardLayoutProps {
   merchantId: string;
   children: React.ReactNode;
+  onLogoutClick: () => void;
 }
 
-function MerchantDashboardLayout({ merchantId, children }: MerchantDashboardLayoutProps) {
+function MerchantDashboardLayout({ merchantId, children, onLogoutClick }: MerchantDashboardLayoutProps) {
   const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
   const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
@@ -22,38 +23,14 @@ function MerchantDashboardLayout({ merchantId, children }: MerchantDashboardLayo
       padding="md"
     >
       <AppShell.Header>
-        <Group h="100%" px="md">
-          <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
-          <Burger opened={desktopOpened} onClick={toggleDesktop} visibleFrom="sm" size="sm" />
-          {/* Merchant Logo */}
-          <Group>
-            <img src="/vite.svg" alt="Merchant Logo" style={{ height: rem(30) }} />
-            <Text fw={700}>My Business</Text>
-          </Group>
-          <Group ml="auto" gap="md">
-            {/* Notifications Icon */}
-            <ActionIcon variant="default" size="lg" aria-label="Notifications">
-              <IconBellRinging style={{ width: rem(20), height: rem(20) }} stroke={1.5} />
-            </ActionIcon>
-            {/* Profile Menu */}
-            <Menu shadow="md" width={200}>
-              <Menu.Target>
-                <Avatar radius="xl" style={{ cursor: 'pointer' }}>
-                  {merchantId.substring(0, 2).toUpperCase()}
-                </Avatar>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Item leftSection={<IconSettings style={{ width: rem(14), height: rem(14) }} />}>
-                  Settings
-                </Menu.Item>
-                <Menu.Item leftSection={<IconLogout style={{ width: rem(14), height: rem(14) }} />}>
-                  Logout
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-            <ColorSchemeToggle />
-          </Group>
-        </Group>
+        <AppNavbar
+          isLoggedIn={true}
+          isMerchant={true}
+          userName={merchantId} // Use merchantId as a placeholder for userName
+          onLoginClick={() => { /* Not applicable here */ }}
+          onRegisterClick={() => { /* Not applicable here */ }}
+          onLogoutClick={onLogoutClick}
+        />
       </AppShell.Header>
 
       <AppShell.Navbar p="md">

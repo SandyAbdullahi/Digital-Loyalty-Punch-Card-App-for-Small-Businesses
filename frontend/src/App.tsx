@@ -7,14 +7,15 @@ import CustomerAuth from './components/CustomerAuth'
 import CustomerAppLayout from './components/CustomerAppLayout';
 import CustomerApp from './components/CustomerApp'
 import LandingPage from './components/LandingPage';
+import AppNavbar from './components/AppNavbar';
 
 function App() {
-  const [isMerchantLoggedIn, setIsMerchantLoggedIn] = useState(false); // Placeholder for merchant authentication
-  const [merchantId, setMerchantId] = useState<string | null>(null); // New state for logged-in merchant ID
-  const [customer, setCustomer] = useState<{ id: string; email: string } | null>(null); // Placeholder for customer authentication
-  const [showMerchantSignup, setShowMerchantSignup] = useState(false); // New state to control merchant signup form visibility
-  const [showLandingPage, setShowLandingPage] = useState(true); // New state to control landing page visibility
-  const [showCustomerAuth, setShowCustomerAuth] = useState(false); // New state to control customer auth visibility
+  const [isMerchantLoggedIn, setIsMerchantLoggedIn] = useState(false);
+  const [merchantId, setMerchantId] = useState<string | null>(null);
+  const [customer, setCustomer] = useState<{ id: string; email: string } | null>(null);
+  const [showMerchantSignup, setShowMerchantSignup] = useState(false);
+  const [showLandingPage, setShowLandingPage] = useState(true);
+  const [showCustomerAuth, setShowCustomerAuth] = useState(false);
 
   const handleCustomerAuthSuccess = (customerData: { id: string; email: string }) => {
     setCustomer(customerData);
@@ -46,28 +47,47 @@ function App() {
     setShowCustomerAuth(false);
   };
 
-  return (
-    <>
-      {showLandingPage ? (
-        <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />
-      ) : isMerchantLoggedIn && merchantId ? (
-        <MerchantDashboardLayout merchantId={merchantId}>
+  const handleLogout = () => {
+    setIsMerchantLoggedIn(false);
+    setMerchantId(null);
+    setCustomer(null);
+    setShowLandingPage(true);
+    setShowCustomerAuth(false);
+    setShowMerchantSignup(false);
+  };
+
+  const renderContent = () => {
+    if (showLandingPage) {
+      return <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />;
+    } else if (isMerchantLoggedIn && merchantId) {
+      return (
+        <MerchantDashboardLayout merchantId={merchantId} onLogoutClick={handleLogout}>
           <MerchantDashboard merchantId={merchantId} />
         </MerchantDashboardLayout>
-      ) : customer ? (
-        <CustomerAppLayout customerId={customer.id}>
+      );
+    } else if (customer) {
+      return (
+        <CustomerAppLayout customerId={customer.id} onLogoutClick={handleLogout}>
           <CustomerApp customerId={customer.id} />
         </CustomerAppLayout>
-      ) : showMerchantSignup ? (
-        <MerchantSignup onAuthSuccess={handleMerchantLoginSuccess} />
-      ) : showCustomerAuth ? (
-        <CustomerAuth onAuthSuccess={handleCustomerAuthSuccess} />
-      ) : (
-        // Fallback if somehow no state is active, should ideally not happen
-        <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />
-      )}
+      );
+    } else if (showMerchantSignup) {
+      return <MerchantSignup onAuthSuccess={handleMerchantLoginSuccess} />;
+    } else if (showCustomerAuth) {
+      return <CustomerAuth onAuthSuccess={handleCustomerAuthSuccess} />;
+    } else {
+      // Fallback to landing page if no specific state is active
+      return <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />;
+    }
+  };
+
+  return (
+    <>
+      {renderContent()}
     </>
   )
 }
+
+export default App
 
 export default App

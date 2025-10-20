@@ -1,7 +1,6 @@
 import React from 'react';
-import { AppShell, Group, Burger, Button, Text, Container, Title, Space } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { ColorSchemeToggle } from './ColorSchemeToggle';
+import { AppShell, Container, Title, Space, Button, Text } from '@mantine/core';
+import AppNavbar from './AppNavbar';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -9,27 +8,19 @@ interface LandingPageProps {
 }
 
 function LandingPage({ onLoginClick, onRegisterClick }: LandingPageProps) {
-  const [opened, { toggle }] = useDisclosure();
-
   return (
     <AppShell
       header={{ height: 60 }}
       padding="md"
     >
       <AppShell.Header>
-        <Group h="100%" px="md">
-          <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-          <Text size="xl" fw={700}>LoyaltyApp</Text>
-          <Group h="100%" gap={0} visibleFrom="sm">
-            <Button variant="subtle">About</Button>
-            <Button variant="subtle">Contact</Button>
-            <Button variant="subtle">Pricing</Button>
-          </Group>
-          <Group ml="auto">
-            <Button variant="default" onClick={onLoginClick}>Login</Button>
-            <ColorSchemeToggle />
-          </Group>
-        </Group>
+        <AppNavbar
+          isLoggedIn={false}
+          isMerchant={false}
+          onLoginClick={onLoginClick}
+          onRegisterClick={onRegisterClick}
+          onLogoutClick={() => { /* Not applicable for landing page */ }}
+        />
       </AppShell.Header>
 
       <AppShell.Main>

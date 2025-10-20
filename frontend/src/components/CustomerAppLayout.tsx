@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { AppShell, Group, Text, ActionIcon, useMantineColorScheme, useMantineTheme, Tabs } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { IconHome, IconCreditCard, IconGift, IconUser, IconArrowLeft, IconSun, IconMoonStars } from '@tabler/icons-react';
-import { ColorSchemeToggle } from './ColorSchemeToggle';
+import { IconHome, IconCreditCard, IconGift, IconUser, IconArrowLeft } from '@tabler/icons-react';
+import AppNavbar from './AppNavbar';
 
 interface CustomerAppLayoutProps {
   customerId: string;
   children: React.ReactNode;
+  onLogoutClick: () => void;
 }
 
-function CustomerAppLayout({ customerId, children }: CustomerAppLayoutProps) {
+function CustomerAppLayout({ customerId, children, onLogoutClick }: CustomerAppLayoutProps) {
   const [activeTab, setActiveTab] = useState<string | null>('home');
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const theme = useMantineTheme();
@@ -21,15 +21,14 @@ function CustomerAppLayout({ customerId, children }: CustomerAppLayoutProps) {
       padding="md"
     >
       <AppShell.Header>
-        <Group h="100%" px="md">
-          <ActionIcon variant="transparent" aria-label="Go back">
-            <IconArrowLeft style={{ width: '70%', height: '70%' }} stroke={1.5} />
-          </ActionIcon>
-          <Text fw={600}>Page Title</Text>
-          <Group ml="auto">
-            <ColorSchemeToggle />
-          </Group>
-        </Group>
+        <AppNavbar
+          isLoggedIn={true}
+          isMerchant={false}
+          userName={customerId} // Use customerId as a placeholder for userName
+          onLoginClick={() => { /* Not applicable here */ }}
+          onRegisterClick={() => { /* Not applicable here */ }}
+          onLogoutClick={onLogoutClick}
+        />
       </AppShell.Header>
 
       <AppShell.Main>
