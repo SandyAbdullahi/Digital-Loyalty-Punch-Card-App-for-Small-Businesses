@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { SimpleGrid, Paper, Group, ThemeIcon, Text, rem } from '@mantine/core';
+import { IconUsers, IconAward, IconGift } from '@tabler/icons-react';
 
 interface AnalyticsDashboardProps {
   merchantId: string;
@@ -56,25 +58,73 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ merchantId }) =
   }
 
   return (
-    <div>
-      <h3>Detailed Analytics</h3>
-      <p>Total Customers Joined: {analytics.customersJoined}</p>
-      <p>Total Stamps Issued: {analytics.stampsIssued}</p>
-      <p>Total Rewards Redeemed: {analytics.rewardsRedeemed}</p>
+    <>
+      <Text size="lg" fw={600} mb="md">Key Metrics</Text>
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+        <Paper withBorder radius="md" p="md">
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed" fw={700}>
+              CUSTOMERS JOINED
+            </Text>
+            <ThemeIcon color="blue" variant="light" size="lg" radius="md">
+              <IconUsers style={{ width: rem(22), height: rem(22) }} />
+            </ThemeIcon>
+          </Group>
+          <Group align="flex-end" gap="xs" mt="sm">
+            <Text size="xl" fw={700}>
+              {analytics.customersJoined}
+            </Text>
+          </Group>
+        </Paper>
+
+        <Paper withBorder radius="md" p="md">
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed" fw={700}>
+              STAMPS ISSUED
+            </Text>
+            <ThemeIcon color="teal" variant="light" size="lg" radius="md">
+              <IconAward style={{ width: rem(22), height: rem(22) }} />
+            </ThemeIcon>
+          </Group>
+          <Group align="flex-end" gap="xs" mt="sm">
+            <Text size="xl" fw={700}>
+              {analytics.stampsIssued}
+            </Text>
+          </Group>
+        </Paper>
+
+        <Paper withBorder radius="md" p="md">
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed" fw={700}>
+              REWARDS REDEEMED
+            </Text>
+            <ThemeIcon color="grape" variant="light" size="lg" radius="md">
+              <IconGift style={{ width: rem(22), height: rem(22) }} />
+            </ThemeIcon>
+          </Group>
+          <Group align="flex-end" gap="xs" mt="sm">
+            <Text size="xl" fw={700}>
+              {analytics.rewardsRedeemed}
+            </Text>
+          </Group>
+        </Paper>
+      </SimpleGrid>
 
       {analytics.loyaltyProgramStats && analytics.loyaltyProgramStats.length > 0 && (
-        <div>
-          <h4>Loyalty Program Breakdown</h4>
-          <ul>
+        <>
+          <Text size="lg" fw={600} mb="md" mt="xl">Loyalty Program Breakdown</Text>
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             {analytics.loyaltyProgramStats.map((program) => (
-              <li key={program.programId}>
-                <strong>{program.programName}:</strong> Stamps Issued: {program.stampsIssued}, Rewards Redeemed: {program.rewardsRedeemed}
-              </li>
+              <Paper key={program.programId} withBorder radius="md" p="md">
+                <Text fw={700}>{program.programName}</Text>
+                <Text size="sm" c="dimmed">Stamps Issued: {program.stampsIssued}</Text>
+                <Text size="sm" c="dimmed">Rewards Redeemed: {program.rewardsRedeemed}</Text>
+              </Paper>
             ))}
-          </ul>
-        </div>
+          </SimpleGrid>
+        </>
       )}
-    </div>
+    </>
   );
 };
 
