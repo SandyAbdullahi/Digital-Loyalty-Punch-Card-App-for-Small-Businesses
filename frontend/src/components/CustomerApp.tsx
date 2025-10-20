@@ -10,6 +10,7 @@ import JoinLoyaltyProgram from './JoinLoyaltyProgram';
 import RewardRedemption from './RewardRedemption';
 import MerchantSearch from './MerchantSearch';
 import LoyaltyCardView from './LoyaltyCardView'; // Will create this component
+import CustomerHomeContent from './CustomerHomeContent';
 
 interface CustomerAppProps {
   customerId: string;
@@ -51,6 +52,7 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
   const [loyaltyCards, setLoyaltyCards] = useState<CustomerLoyaltyCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
 
   const handleLogout = () => {
     localStorage.removeItem('customerId');
@@ -74,6 +76,10 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
       const customerStampsResponse = await axios.get(`/api/customers/${customerId}/stamps`);
       const customerStamps: Stamp[] = customerStampsResponse.data;
 
+      // Fetch customer details to get email
+      const customerResponse = await axios.get(`/api/customers/${customerId}`);
+      setCustomerEmail(customerResponse.data.email);
+
       const cards: CustomerLoyaltyCard[] = [];
 
       for (const merchant of allMerchants) {
@@ -95,9 +101,9 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
       }
       setLoyaltyCards(cards);
     } catch (err) {
-      setError('Failed to fetch loyalty cards.');
+      setError('Failed to fetch loyalty cards or customer data.');
       console.error(err);
-      addNotification('Failed to fetch loyalty cards.', 'error');
+      addNotification('Failed to fetch loyalty cards or customer data.', 'error');
     } finally {
       setLoading(false);
     }
@@ -136,7 +142,7 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
             <Menu.Target>
               <UnstyledButton>
                 <Group gap="xs">
-                  <Avatar color="primaryTeal" radius="xl">{customerId.charAt(0)}</Avatar>
+                  <Avatar color="primaryTeal" radius="xl">{customerEmail ? customerEmail.charAt(0).toUpperCase() : ''}</Avatar>
                 </Group>
               </UnstyledButton>
             </Menu.Target>
@@ -157,19 +163,22 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
         <Tabs value={activeTab} onChange={setActiveTab} keepMounted={false}>
           <Tabs.Panel value="home">
             <Container>
-              <Title order={2} mb="md">Welcome, Customer!</Title>
-              <MerchantSearch />
+              <Title order={2} mb="md">Welcome, {customerEmail || 'Customer'}!</Title>
+              <Text size="lg" c="dimmed" mb="xl">Your loyalty journey starts here. Discover new merchants or check your progress.</Text>
+              
+              <CustomerHomeContent />
+
               <Box mt="xl">
                 <Title order={3} mb="md">Your Loyalty Programs</Title>
                 {loyaltyCards.length === 0 ? (
-                  <Text>You haven't joined any loyalty programs yet.</Text>
+                  <Text>You haven't joined any loyalty programs yet. Join one below!</Text>
                 ) : (
                   <Stack>
                     {loyaltyCards.map(card => (
                       <Card key={card.merchant.id} withBorder radius="md" p="md" mb="sm">
                         <Group justify="space-between" align="center">
                           <Group>
-                            {card.merchant.logo && <Avatar src={card.merchant.logo} alt="Merchant Logo" radius="sm" />}
+                            {card.merchant.logo && <Avatar src={card.merchant.logo} alt="Merchant Logo" radius="sm" />} 
                             <Text fw={600}>{card.merchant.businessName}</Text>
                           </Group>
                           {card.rewardReady && <Badge color="accentMint" variant="filled">Reward Ready!</Badge>}
@@ -232,6 +241,7 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
             <Container>
               <Title order={2} mb="md">Profile</Title>
               <Text>Customer ID: {customerId}</Text>
+              <Text>Email: {customerEmail}</Text>
               <ColorSchemeToggle />
               <Button mt="md" color="red" onClick={handleLogout}>Logout</Button>
             </Container>
@@ -254,3 +264,4 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
 };
 
 export default CustomerApp;
+
