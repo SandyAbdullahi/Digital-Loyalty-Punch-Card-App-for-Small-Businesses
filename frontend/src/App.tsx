@@ -121,7 +121,8 @@ function App() {
     } else if (merchantAuthMode) {
       return <MerchantSignup onAuthSuccess={handleMerchantLoginSuccess} onLoginClick={showCustomerLogin} onRegisterClick={showMerchantRegister} onHomeClick={handleHomeClick} initialIsRegistering={merchantAuthMode === 'register'} />;
     } else if (customerAuthMode) {
-      return <CustomerAuth onAuthSuccess={handleCustomerAuthSuccess} onLoginClick={showCustomerLogin} onRegisterClick={showMerchantLogin} onHomeClick={handleHomeClick} initialIsRegistering={customerAuthMode === 'register'} />; else {
+      return <CustomerAuth onAuthSuccess={handleCustomerAuthSuccess} onLoginClick={showCustomerLogin} onRegisterClick={showMerchantLogin} onHomeClick={handleHomeClick} initialIsRegistering={customerAuthMode === 'register'} />;
+    } else {
       // Fallback to landing page if no specific state is active
       return <LandingPage onLoginClick={showCustomerLogin} onRegisterClick={showMerchantRegister} onHomeClick={handleHomeClick} />;
     }
