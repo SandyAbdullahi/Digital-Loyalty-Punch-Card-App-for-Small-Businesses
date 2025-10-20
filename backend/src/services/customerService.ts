@@ -1,6 +1,6 @@
 import { PrismaClient, Prisma, Customer, Stamp } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { sendNotification } from '../services/notificationService';
+import { sendPushNotification } from '../services/notificationService';
 
 const prisma = new PrismaClient();
 
@@ -85,7 +85,7 @@ export const redeemReward = async (customerId: string, loyaltyProgramId: string)
   });
 
   // Send notification to customer
-  await sendNotification(customerId, `Reward '${loyaltyProgram.rewardName}' redeemed successfully!`);
+  await sendPushNotification({ customerId, title: 'Reward Redeemed!', body: `Reward '${loyaltyProgram.rewardName}' redeemed successfully!` });
 
   // In a real application, you might want to record the redemption in a separate table
   // For now, we'll just return a success message.

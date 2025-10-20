@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import JoinLoyaltyProgram from './JoinLoyaltyProgram';
+import RewardRedemption from './RewardRedemption';
+import MerchantSearch from './MerchantSearch';
 
 interface CustomerDashboardProps {
   customerId: string;
@@ -38,6 +41,28 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerId }) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<{ id: number; message: string; type: 'success' | 'error' | 'info' }[]>([]);
+  const [notificationIdCounter, setNotificationIdCounter] = useState(0);
+
+  const handleLogout = () => {
+    localStorage.removeItem('customerId'); // Assuming customerId is stored in localStorage
+    window.location.reload(); // Reload to go back to login/home page
+  };
+
+  const addNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setNotificationIdCounter(prev => prev + 1);
+    setNotifications(prev => [...prev, { id: notificationIdCounter, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notificationIdCounter));
+    }, 5000); // Notifications disappear after 5 seconds
+  };
+
+  // Example of how a notification might be triggered (e.g., after earning a stamp)
+  // useEffect(() => {
+  //   if (someConditionForNewStamp) {
+  //     addNotification("You earned a new stamp!", "success");
+  //   }
+  // }, [someConditionForNewStamp]);
 
   const fetchLoyaltyCards = async () => {
     setLoading(true);
@@ -119,6 +144,24 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerId }) => 
 
   return (
     <div>
+      <div style={{ position: 'fixed', top: '10px', right: '10px', zIndex: 1000 }}>
+        {notifications.map(notification => (
+          <div 
+            key={notification.id} 
+            style={{
+              padding: '10px',
+              margin: '5px 0',
+              backgroundColor: notification.type === 'success' ? '#d4edda' : notification.type === 'error' ? '#f8d7da' : '#cfe2ff',
+              color: notification.type === 'success' ? '#155724' : notification.type === 'error' ? '#721c24' : '#055160',
+              border: `1px solid ${notification.type === 'success' ? '#c3e6cb' : notification.type === 'error' ? '#f5c6cb' : '#b6d4fe'}`,
+              borderRadius: '5px',
+            }}
+          >
+            {notification.message}
+          </div>
+        ))}
+      </div>
+      <button onClick={handleLogout} style={{ position: 'absolute', top: '10px', left: '10px' }}>Logout</button>
       <h2>Your Loyalty Cards</h2>
       {loyaltyCards.length === 0 ? (
         <p>You haven't joined any loyalty programs yet.</p>
@@ -135,24 +178,17 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ customerId }) => 
               ) : (
                 <p>No loyalty program configured by this merchant.</p>
               )}
+              {card.rewardReady && card.loyaltyProgram && (
+                <RewardRedemption customerId={customerId} loyaltyProgramId={card.loyaltyProgram.id} />
+              )}
             </div>
           ))}
         </div>
       )}
 
-      <h3>Join a New Loyalty Program</h3>
-      {success && <p style={{ color: 'green' }}>{success}</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleJoinProgram}>
-        <label>Merchant ID (from QR code link):</label>
-        <input 
-          type="text" 
-          value={merchantIdInput} 
-          onChange={(e) => setMerchantIdInput(e.target.value)} 
-          required 
-        />
-        <button type="submit" disabled={loading}>Join Program</button>
-      </form>
+      <JoinLoyaltyProgram customerId={customerId} onProgramJoined={fetchLoyaltyCards} />
+
+      <MerchantSearch />
     </div>
   );
 };

@@ -81,3 +81,32 @@ export const deleteLoyaltyProgram = async (req: Request, res: Response) => {
     }
   }
 };
+
+export const getLoyaltyProgramQrCode = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const loyaltyProgram = await loyaltyProgramService.getLoyaltyProgramById(id);
+
+    if (!loyaltyProgram) {
+      return res.status(404).json({ error: 'Loyalty program not found' });
+    }
+
+    if (!loyaltyProgram.qrCodeDataUrl) {
+      // If QR code wasn't generated during creation, generate it now
+      // This might happen if the program was created before QR code generation was implemented
+      const joinUrl = `${process.env.FRONTEND_URL}/join/${loyaltyProgram.merchantId}/${loyaltyProgram.id}`;
+      const qrCodeDataUrl = await generateQrCode(joinUrl);
+      // Optionally, save the generated QR code back to the database
+      await loyaltyProgramService.updateLoyaltyProgram(id, { qrCodeDataUrl });
+      return res.status(200).json({ qrCodeLink: qrCodeDataUrl });
+    }
+
+    res.status(200).json({ qrCodeLink: loyaltyProgram.qrCodeDataUrl });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to retrieve QR code', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to retrieve QR code', details: 'An unknown error occurred' });
+    }
+  }
+};

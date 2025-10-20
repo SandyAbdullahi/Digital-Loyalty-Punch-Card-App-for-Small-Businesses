@@ -44,9 +44,35 @@ model Merchant {
 
   rewards      Reward[]
 
-  loyaltyPrograms LoyaltyProgram[]
+      loyaltyPrograms LoyaltyProgram[]
 
-}
+      subscriptions   Subscription[]
+
+    }
+
+  
+
+  model Subscription {
+
+    id          String    @id @default(cuid())
+
+    merchantId  String    @unique
+
+    merchant    Merchant  @relation(fields: [merchantId], references: [id])
+
+    plan        String
+
+    status      String    // e.g., 'active', 'cancelled', 'trialing'
+
+    startDate   DateTime
+
+    endDate     DateTime?
+
+    createdAt   DateTime  @default(now())
+
+    updatedAt   DateTime  @updatedAt
+
+  }
 
 model Customer {
   id        String   @id @default(cuid())

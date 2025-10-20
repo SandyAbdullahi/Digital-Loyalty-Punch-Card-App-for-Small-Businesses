@@ -1,0 +1,32 @@
+.icon {
+  width: rem(22px);
+  height: rem(22px);
+}
+
+.light {
+  opacity: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  .light {
+    opacity: 1;
+  }
+}
+
+.dark {
+  opacity: 1;
+}
+
+@media (prefers-color-scheme: light) {
+  .dark {
+    opacity: 0;
+  }
+}
+
+[data-mantine-color-scheme="dark"] .light {
+  opacity: 1;
+}
+
+[data-mantine-color-scheme="dark"] .dark {
+  opacity: 0;
+}

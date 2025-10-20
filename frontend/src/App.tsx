@@ -3,7 +3,7 @@ import './App.css'
 import MerchantSignup from './components/MerchantSignup'
 import MerchantDashboard from './components/MerchantDashboard'
 import CustomerAuth from './components/CustomerAuth'
-import CustomerDashboard from './components/CustomerDashboard'
+import CustomerApp from './components/CustomerApp'
 
 function App() {
   const [isMerchantLoggedIn, setIsMerchantLoggedIn] = useState(false); // Placeholder for merchant authentication
@@ -18,29 +18,23 @@ function App() {
     setShowMerchantSignup(false); // Hide merchant signup if customer logs in
   };
 
-  const handleMerchantLoginSuccess = (id: string) => {
+  const handleMerchantLoginSuccess = (merchantData: { id: string; email: string }) => {
     setIsMerchantLoggedIn(true);
-    setMerchantId(id); // Set the logged-in merchant ID
+    setMerchantId(merchantData.id); // Set the logged-in merchant ID
     setCustomer(null); // Ensure customer view is off when merchant logs in
     setShowMerchantSignup(false); // Hide merchant signup if merchant logs in
   };
 
   return (
     <>
-      <h1>Digital Loyalty App</h1>
 
-      {/* Simple navigation/toggle for now */}
-      <div>
-        <button onClick={() => { setIsMerchantLoggedIn(true); setMerchantId(null); setCustomer(null); setShowMerchantSignup(false); }}>Merchant View</button>
-        <button onClick={() => { setIsMerchantLoggedIn(false); setMerchantId(null); setCustomer(null); setShowMerchantSignup(false); }}>Customer View</button>
-      </div>
 
       {isMerchantLoggedIn && merchantId ? (
         <MerchantDashboard merchantId={merchantId} />
       ) : customer ? (
-        <CustomerDashboard customerId={customer.id} />
+        <CustomerApp customerId={customer.id} />
       ) : showMerchantSignup ? (
-        <MerchantSignup onSignupSuccess={handleMerchantLoginSuccess} />
+        <MerchantSignup onAuthSuccess={handleMerchantLoginSuccess} />
       ) : (
         // Default view when neither is logged in and not in merchant signup mode
         <>

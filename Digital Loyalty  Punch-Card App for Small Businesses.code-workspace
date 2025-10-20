@@ -1,8 +1,20 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "chat.mcp.servers": {
+      "filesystem": {
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-filesystem",
+          "C:\\Users\\aabdu\\Documents\\CODE\\Digital Loyalty Punch-Card App for Small Businesses"
+        ]
+      }
+    }
+  }
 }

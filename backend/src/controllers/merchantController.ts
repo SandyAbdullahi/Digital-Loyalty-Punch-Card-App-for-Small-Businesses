@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 
 import * as merchantService from '../services/merchantService';
+import { sendOnboardingEmail } from '../services/emailService';
 
 
 
@@ -9,9 +10,11 @@ export const createMerchant = async (req: Request, res: Response) => {
 
   try {
 
-    const merchant = await merchantService.createMerchant(req.body);
+        const merchant = await merchantService.createMerchant(req.body);
 
-    res.status(201).json(merchant);
+        await sendOnboardingEmail({ email: merchant.email, businessName: merchant.businessName });
+
+        res.status(201).json(merchant);
 
   } catch (error) {
 
@@ -191,6 +194,53 @@ export const getNearbyMerchants = async (req: Request, res: Response) => {
       res.status(500).json({ error: 'Failed to fetch nearby merchants', details: error.message });
     } else {
       res.status(500).json({ error: 'Failed to fetch nearby merchants', details: 'An unknown error occurred' });
+    }
+  }
+};
+
+export const loginMerchant = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    const merchant = await merchantService.loginMerchant(email, password);
+    res.status(200).json({ message: 'Merchant logged in successfully', merchant: { id: merchant.id, email: merchant.email } });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred during login' });
+    }
+  }
+};
+
+interface MulterRequest extends Request {
+  file?: Express.Multer.File; // to accommodate multer file, made optional
+}
+
+export const updateMerchantBranding = async (req: MulterRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { theme } = req.body;
+    let logoPath: string | undefined;
+
+    if (req.file) {
+      logoPath = `/uploads/${req.file.filename}`; // Store path relative to server
+    }
+
+    const updatedData: { logo?: string; theme?: string } = {};
+    if (logoPath) {
+      updatedData.logo = logoPath;
+    }
+    if (theme) {
+      updatedData.theme = theme;
+    }
+
+    const updatedMerchant = await merchantService.updateMerchant(id, updatedData);
+    res.status(200).json(updatedMerchant);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to update merchant branding', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update merchant branding', details: 'An unknown error occurred' });
     }
   }
 };

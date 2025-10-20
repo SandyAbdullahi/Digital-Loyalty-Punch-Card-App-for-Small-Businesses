@@ -1,12 +1,14 @@
 
 import { PrismaClient, Prisma, Merchant, Stamp } from '@prisma/client';
-import { sendNotification } from '../services/notificationService';
+import bcrypt from 'bcryptjs';
+import { sendPushNotification } from '../services/notificationService';
 
 const prisma = new PrismaClient();
 
 export const createMerchant = async (data: Prisma.MerchantCreateInput): Promise<Merchant> => {
+  const hashedPassword = await bcrypt.hash(data.password, 10);
   const merchant = await prisma.merchant.create({
-    data,
+    data: { ...data, password: hashedPassword },
   });
   
   // Generate QR code link after merchant creation
@@ -15,6 +17,24 @@ export const createMerchant = async (data: Prisma.MerchantCreateInput): Promise<
     where: { id: merchant.id },
     data: { qrCodeLink },
   });
+};
+
+export const loginMerchant = async (email: string, password: string): Promise<Merchant> => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { email },
+  });
+
+  if (!merchant) {
+    throw new Error('Invalid credentials');
+  }
+
+  const isValidPassword = await bcrypt.compare(password, merchant.password);
+
+  if (!isValidPassword) {
+    throw new Error('Invalid credentials');
+  }
+
+  return merchant;
 };
 
 export const updateMerchant = async (id: string, data: Prisma.MerchantUpdateInput): Promise<Merchant> => {
@@ -54,7 +74,7 @@ export const issueStamp = async (merchantId: string, customerId: string): Promis
   });
 
   // Send notification to customer
-  await sendNotification(customerId, 'You just earned a stamp!');
+  await sendPushNotification({ customerId, title: 'Stamp Earned!', body: 'You just earned a stamp!' });
 
   return stamp;
 };
@@ -80,7 +100,6 @@ export const getNearbyMerchants = async (location: string): Promise<Merchant[]> 
     where: {
       location: {
         contains: location, // Case-insensitive search for location
-        mode: 'insensitive', // For PostgreSQL, SQLite is case-insensitive by default
       },
     },
   });

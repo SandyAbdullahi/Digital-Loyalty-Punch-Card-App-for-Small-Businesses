@@ -1,7 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { AppShell, Navbar, Header, Group, ActionIcon, Text, Avatar, UnstyledButton, Menu, Tabs, Card, Box, Stack, rem, useMantineTheme, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
+import { IconBellRinging, IconSettings, IconLogout, IconGauge, IconPuzzle, IconGift, IconUsers, IconQrcode, IconBuildingStore, IconCreditCard, IconPalette } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
+import { ColorSchemeToggle } from './ColorSchemeToggle';
+
 import LoyaltyProgramForm from './LoyaltyProgramForm';
 import IssueStampForm from './IssueStampForm';
+import QrCodeGenerator from './QrCodeGenerator';
+import SubscriptionManager from './SubscriptionManager';
+import CustomerListView from './CustomerListView';
+import AnalyticsDashboard from './AnalyticsDashboard';
+import MerchantBrandingSettings from './MerchantBrandingSettings';
 
 interface MerchantDashboardProps {
   merchantId: string;
@@ -16,6 +26,9 @@ interface Merchant {
   location?: string;
   contact?: string;
   qrCodeLink?: string;
+  subscriptionPlan: string;
+  logo?: string;
+  theme?: string;
 }
 
 interface LoyaltyProgram {
@@ -35,12 +48,23 @@ interface AnalyticsData {
 }
 
 const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => {
+  const theme = useMantineTheme();
+  const { setColorScheme } = useMantineColorScheme();
+  const computedColorScheme = useComputedColorScheme('light');
+  const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [loyaltyPrograms, setLoyaltyPrograms] = useState<LoyaltyProgram[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [editingProgram, setEditingProgram] = useState<LoyaltyProgram | null>(null);
+  const [activeTab, setActiveTab] = useState<string | null>('overview');
+
+  const handleLogout = () => {
+    localStorage.removeItem('merchantId');
+    window.location.reload();
+  };
 
   const fetchMerchantData = async () => {
     if (!merchantId) {
@@ -50,7 +74,7 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
     }
 
     try {
-      const merchantResponse = await axios.get(`/api/merchants/${merchantId}`); 
+      const merchantResponse = await axios.get(`/api/merchants/${merchantId}`);
       setMerchant(merchantResponse.data);
 
       const programsResponse = await axios.get(`/api/loyalty-programs/merchant/${merchantId}`);
@@ -73,11 +97,11 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
 
   const handleProgramChange = () => {
     setEditingProgram(null);
-    fetchMerchantData(); // Re-fetch data after creation/update
+    fetchMerchantData();
   };
 
   const handleStampIssued = () => {
-    fetchMerchantData(); // Re-fetch data to update analytics and loyalty programs
+    fetchMerchantData();
   };
 
   if (loading) {
@@ -93,59 +117,197 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
   }
 
   return (
-    <div>
-      <h2>Merchant Dashboard</h2>
-      <p><strong>Name:</strong> {merchant.name}</p>
-      <p><strong>Email:</strong> {merchant.email}</p>
-      <p><strong>Business Name:</strong> {merchant.businessName}</p>
-      <p><strong>Business Type:</strong> {merchant.businessType}</p>
-      {merchant.location && <p><strong>Location:</strong> {merchant.location}</p>}
-      {merchant.contact && <p><strong>Contact:</strong> {merchant.contact}</p>}
-      {merchant.qrCodeLink && (
-        <p><strong>QR Code Link:</strong> <a href={merchant.qrCodeLink}>{merchant.qrCodeLink}</a></p>
-      )}
+    <AppShell
+      header={{ height: 60 }}
+      navbar={{ width: isMobile ? 0 : 200, breakpoint: 'sm', collapsed: { mobile: true } }}
+      padding="md"
+    >
+      <AppShell.Header>
+        <Group h="100%" px="md" justify="space-between">
+          <Group>
+            {/* Merchant Logo */}
+            {merchant.logo ? (
+              <img src={merchant.logo} alt="Merchant Logo" style={{ height: rem(40) }} />
+            ) : (
+              <Text fw={700} size="lg">{merchant.businessName || 'Merchant Dashboard'}</Text>
+            )}
+          </Group>
+          <Group>
+            <ActionIcon variant="default" size="lg" aria-label="Notifications">
+              <IconBellRinging style={{ width: rem(22), height: rem(22) }} stroke={1.5} />
+            </ActionIcon>
+            <ColorSchemeToggle />
+            <Menu shadow="md" width={200}>
+              <Menu.Target>
+                <UnstyledButton>
+                  <Group gap="xs">
+                    <Avatar color="primaryTeal" radius="xl">{merchant.name.charAt(0)}</Avatar>
+                    <Text size="sm" fw={500}>{merchant.name}</Text>
+                  </Group>
+                </UnstyledButton>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<IconSettings style={{ width: rem(14), height: rem(14) }} />}>
+                  Settings
+                </Menu.Item>
+                <Menu.Item leftSection={<IconLogout style={{ width: rem(14), height: rem(14) }} />} onClick={handleLogout}>
+                  Logout
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
+        </Group>
+      </AppShell.Header>
 
-      <h3>Analytics</h3>
-      {analytics ? (
-        <div>
-          <p>Customers Joined: {analytics.customersJoined}</p>
-          <p>Stamps Issued: {analytics.stampsIssued}</p>
-          <p>Rewards Redeemed: {analytics.rewardsRedeemed}</p>
-        </div>
-      ) : (
-        <p>Loading analytics...</p>
-      )}
+      <AppShell.Navbar p="md">
+        <Stack>
+          <UnstyledButton onClick={() => setActiveTab('overview')}>
+            <Group>
+              <IconGauge style={{ width: rem(20), height: rem(20) }} stroke={1.5} />
+              <Text size="sm">Overview</Text>
+            </Group>
+          </UnstyledButton>
+          <UnstyledButton onClick={() => setActiveTab('loyaltyPrograms')}>
+            <Group>
+              <IconPuzzle style={{ width: rem(20), height: rem(20) }} stroke={1.5} />
+              <Text size="sm">Loyalty Programs</Text>
+            </Group>
+          </UnstyledButton>
+          <UnstyledButton onClick={() => setActiveTab('issueStamps')}>
+            <Group>
+              <IconGift style={{ width: rem(20), height: rem(20) }} stroke={1.5} />
+              <Text size="sm">Issue Stamps</Text>
+            </Group>
+          </UnstyledButton>
+          <UnstyledButton onClick={() => setActiveTab('customers')}>
+            <Group>
+              <IconUsers style={{ width: rem(20), height: rem(20) }} stroke={1.5} />
+              <Text size="sm">Customers</Text>
+            </Group>
+          </UnstyledButton>
+          <UnstyledButton onClick={() => setActiveTab('qrCode')}>
+            <Group>
+              <IconQrcode style={{ width: rem(20), height: rem(20) }} stroke={1.5} />
+              <Text size="sm">QR Code</Text>
+            </Group>
+          </UnstyledButton>
+          <UnstyledButton onClick={() => setActiveTab('branding')}>
+            <Group>
+              <IconPalette style={{ width: rem(20), height: rem(20) }} stroke={1.5} />
+              <Text size="sm">Branding</Text>
+            </Group>
+          </UnstyledButton>
+          <UnstyledButton onClick={() => setActiveTab('subscription')}>
+            <Group>
+              <IconCreditCard style={{ width: rem(20), height: rem(20) }} stroke={1.5} />
+              <Text size="sm">Subscription</Text>
+            </Group>
+          </UnstyledButton>
+        </Stack>
+      </AppShell.Navbar>
 
-      <h3>Loyalty Programs</h3>
-      {loyaltyPrograms.length === 0 ? (
-        <p>No loyalty programs configured yet.</p>
-      ) : (
-        <ul>
-          {loyaltyPrograms.map((program) => (
-            <li key={program.id}>
-              {program.rewardName} ({program.threshold} stamps) 
-              {program.expiryDate && ` - Expires: ${new Date(program.expiryDate).toLocaleDateString()}`}
-              <button onClick={() => setEditingProgram(program)}>Edit</button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <AppShell.Main>
+        <Tabs value={activeTab} onChange={setActiveTab} keepMounted={false}>
+          <Tabs.List>
+            <Tabs.Tab value="overview">Overview</Tabs.Tab>
+            <Tabs.Tab value="loyaltyPrograms">Loyalty Programs</Tabs.Tab>
+            <Tabs.Tab value="issueStamps">Issue Stamps</Tabs.Tab>
+            <Tabs.Tab value="customers">Customers</Tabs.Tab>
+            <Tabs.Tab value="qrCode">QR Code</Tabs.Tab>
+            <Tabs.Tab value="branding">Branding</Tabs.Tab>
+            <Tabs.Tab value="subscription">Subscription</Tabs.Tab>
+          </Tabs.List>
 
-      {editingProgram ? (
-        <LoyaltyProgramForm 
-          merchantId={merchant.id} 
-          existingProgram={editingProgram} 
-          onProgramUpdated={handleProgramChange} 
-        />
-      ) : (
-        <LoyaltyProgramForm 
-          merchantId={merchant.id} 
-          onProgramCreated={handleProgramChange} 
-        />
-      )}
+          <Box mt="md">
+            <Tabs.Panel value="overview">
+              <Card withBorder radius="md" p="lg">
+                <AnalyticsDashboard merchantId={merchant.id} />
+              </Card>
+            </Tabs.Panel>
 
-      <IssueStampForm merchantId={merchant.id} onStampIssued={handleStampIssued} />
-    </div>
+            <Tabs.Panel value="loyaltyPrograms">
+              <Card withBorder radius="md" p="lg">
+                <Text size="lg" fw={600} mb="md">Loyalty Programs</Text>
+                {loyaltyPrograms.length === 0 ? (
+                  <Text>No loyalty programs configured yet.</Text>
+                ) : (
+                  <Stack>
+                    {loyaltyPrograms.map((program) => (
+                      <Card key={program.id} withBorder radius="md" p="md">
+                        <Group justify="space-between">
+                          <Text>{program.rewardName} ({program.threshold} stamps)</Text>
+                          <Group>
+                            {program.expiryDate && <Text size="sm" c="dimmed">Expires: {new Date(program.expiryDate).toLocaleDateString()}</Text>}
+                            <ActionIcon variant="default" onClick={() => setEditingProgram(program)}>
+                              <IconSettings style={{ width: rem(16), height: rem(16) }} stroke={1.5} />
+                            </ActionIcon>
+                          </Group>
+                        </Group>
+                        <QrCodeGenerator loyaltyProgramId={program.id} />
+                      </Card>
+                    ))}
+                  </Stack>
+                )}
+                <Box mt="md">
+                  {editingProgram ? (
+                    <LoyaltyProgramForm
+                      merchantId={merchant.id}
+                      existingProgram={editingProgram}
+                      onProgramUpdated={handleProgramChange}
+                    />
+                  ) : (
+                    <LoyaltyProgramForm
+                      merchantId={merchant.id}
+                      onProgramCreated={handleProgramChange}
+                    />
+                  )}
+                </Box>
+              </Card>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="issueStamps">
+              <Card withBorder radius="md" p="lg">
+                <IssueStampForm merchantId={merchant.id} onStampIssued={handleStampIssued} />
+              </Card>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="customers">
+              <Card withBorder radius="md" p="lg">
+                <CustomerListView merchantId={merchant.id} />
+              </Card>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="qrCode">
+              <Card withBorder radius="md" p="lg">
+                <Text size="lg" fw={600} mb="md">Generate QR Code</Text>
+                {loyaltyPrograms.length > 0 ? (
+                  <QrCodeGenerator loyaltyProgramId={loyaltyPrograms[0].id} /> // Assuming the first program for now
+                ) : (
+                  <Text>Please create a loyalty program first to generate a QR code.</Text>
+                )}
+              </Card>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="branding">
+              <Card withBorder radius="md" p="lg">
+                <MerchantBrandingSettings
+                  merchantId={merchant.id}
+                  currentLogo={merchant.logo}
+                  currentTheme={merchant.theme}
+                  onSettingsSaved={fetchMerchantData}
+                />
+              </Card>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="subscription">
+              <Card withBorder radius="md" p="lg">
+                <SubscriptionManager merchantId={merchant.id} currentPlan={merchant.subscriptionPlan} />
+              </Card>
+            </Tabs.Panel>
+          </Box>
+        </Tabs>
+      </AppShell.Main>
+    </AppShell>
   );
 };
 
