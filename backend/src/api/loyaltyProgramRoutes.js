@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const loyaltyProgramController_1 = require("../controllers/loyaltyProgramController");
+const router = (0, express_1.Router)();
+router.post('/', loyaltyProgramController_1.createLoyaltyProgram);
+router.get('/merchant/:merchantId', loyaltyProgramController_1.getLoyaltyProgramsByMerchantId);
+router.get('/:id', loyaltyProgramController_1.getLoyaltyProgramById);
+router.put('/:id', loyaltyProgramController_1.updateLoyaltyProgram);
+router.delete('/:id', loyaltyProgramController_1.deleteLoyaltyProgram);
+router.get('/:id/qrcode', loyaltyProgramController_1.getLoyaltyProgramQrCode);
+router.post('/join', loyaltyProgramController_1.joinLoyaltyProgram);
+exports.default = router;

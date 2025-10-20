@@ -49,7 +49,35 @@ describe('LoyaltyProgram API', () => {
     expect(response.status).toBe(201);
     expect(response.body.rewardName).toBe(newLoyaltyProgram.rewardName);
     expect(response.body.threshold).toBe(newLoyaltyProgram.threshold);
+    expect(response.body.joinUrl).toMatch(new RegExp(`\\/join\\/${response.body.id}$`));
     loyaltyProgram = response.body;
+  });
+
+  it('should reject loyalty program creation with invalid threshold', async () => {
+    const response = await request(app)
+      .post('/api/loyalty-programs')
+      .send({
+        merchantId: merchant.id,
+        rewardName: 'Invalid Threshold',
+        threshold: 0,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('threshold must be a positive number.');
+  });
+
+  it('should reject loyalty program creation with invalid expiry date', async () => {
+    const response = await request(app)
+      .post('/api/loyalty-programs')
+      .send({
+        merchantId: merchant.id,
+        rewardName: 'Invalid Expiry',
+        threshold: 5,
+        expiryDate: 'not-a-date',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('expiryDate is invalid.');
   });
 
   it('should fetch loyalty programs by merchant ID', async () => {

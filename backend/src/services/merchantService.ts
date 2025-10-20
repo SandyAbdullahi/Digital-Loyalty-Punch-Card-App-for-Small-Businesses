@@ -6,13 +6,17 @@ import { sendPushNotification } from '../services/notificationService';
 const prisma = new PrismaClient();
 
 export const createMerchant = async (data: Prisma.MerchantCreateInput): Promise<Merchant> => {
+  console.log('Service: createMerchant called with data:', data);
   const hashedPassword = await bcrypt.hash(data.password, 10);
+  console.log('Service: Password hashed.');
   const merchant = await prisma.merchant.create({
     data: { ...data, password: hashedPassword },
   });
+  console.log('Service: Merchant created in DB:', merchant);
   
   // Generate QR code link after merchant creation
   const qrCodeLink = `/join/${merchant.id}`;
+  console.log('Service: QR Code Link generated:', qrCodeLink);
   return prisma.merchant.update({
     where: { id: merchant.id },
     data: { qrCodeLink },

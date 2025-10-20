@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma, LoyaltyProgram } from '@prisma/client';
+import { PrismaClient, Prisma, LoyaltyProgram, CustomerLoyaltyProgram } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -48,4 +48,46 @@ export const deleteLoyaltyProgram = async (id: string): Promise<LoyaltyProgram> 
   return prisma.loyaltyProgram.delete({
     where: { id },
   });
+};
+
+export const joinLoyaltyProgram = async (customerId: string, loyaltyProgramId: string) => {
+  // Check if loyalty program exists
+  const loyaltyProgram = await prisma.loyaltyProgram.findUnique({
+    where: { id: loyaltyProgramId },
+  });
+
+  if (!loyaltyProgram) {
+    throw new Error('Loyalty program not found.');
+  }
+
+  // Check if customer exists
+  const customer = await prisma.customer.findUnique({
+    where: { id: customerId },
+  });
+
+  if (!customer) {
+    throw new Error('Customer not found.');
+  }
+
+  // Check if customer has already joined this loyalty program
+  const existingEntry = await prisma.customerLoyaltyProgram.findUnique({
+    where: {
+      customerId_loyaltyProgramId: {
+        customerId,
+        loyaltyProgramId,
+      },
+    },
+  });
+
+  if (existingEntry) {
+    throw new Error('Customer already joined this loyalty program.');
+  }
+
+  const newEntry = await prisma.customerLoyaltyProgram.create({
+    data: {
+      customerId,
+      loyaltyProgramId,
+    },
+  });
+  return newEntry;
 };

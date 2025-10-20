@@ -240,8 +240,8 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
       </AppShell.Main>
 
       <AppShell.Footer>
-        <Tabs value={activeTab} onChange={setActiveTab} variant="unstyled" grow>
-          <Tabs.List>
+        <Tabs value={activeTab} onChange={setActiveTab} variant="unstyled">
+          <Tabs.List grow>
             <Tabs.Tab value="home" leftSection={<IconHome2 style={{ width: rem(20), height: rem(20) }} stroke={1.5} />}>Home</Tabs.Tab>
             <Tabs.Tab value="card" leftSection={<IconCreditCard style={{ width: rem(20), height: rem(20) }} stroke={1.5} />}>Card</Tabs.Tab>
             <Tabs.Tab value="rewards" leftSection={<IconGift style={{ width: rem(20), height: rem(20) }} stroke={1.5} />}>Rewards</Tabs.Tab>

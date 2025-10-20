@@ -52,8 +52,8 @@ function CustomerAppLayout({ customerId, children, onLogoutClick, onHomeClick }:
       </AppShell.Main>
 
       <AppShell.Footer>
-        <Tabs value={activeTab} onChange={setActiveTab} grow variant="unstyled">
-          <Tabs.List>
+        <Tabs value={activeTab} onChange={setActiveTab} variant="unstyled">
+          <Tabs.List grow>
             <Tabs.Tab value="home" leftSection={<IconHome style={{ width: '70%', height: '70%' }} stroke={1.5} />}>
               Home
             </Tabs.Tab>

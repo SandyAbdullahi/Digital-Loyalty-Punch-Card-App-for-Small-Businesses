@@ -35,32 +35,32 @@ describe('Analytics API', () => {
     // Create a loyalty program for the merchant
     loyaltyProgram = await prisma.loyaltyProgram.create({
       data: {
-        merchantId: merchant.id,
         rewardName: 'Free Coffee',
         threshold: 5,
+        merchant: { connect: { id: merchant.id } },
       },
     });
 
     // Issue some stamps to the customer from this merchant
     await prisma.stamp.create({
       data: {
-        customerId: customer.id,
-        merchantId: merchant.id,
+        customer: { connect: { id: customer.id } },
+        merchant: { connect: { id: merchant.id } },
       },
     });
     await prisma.stamp.create({
       data: {
-        customerId: customer.id,
-        merchantId: merchant.id,
+        customer: { connect: { id: customer.id } },
+        merchant: { connect: { id: merchant.id } },
       },
     });
 
     // Create a reward for the merchant (for counting redeemed rewards)
     await prisma.reward.create({
       data: {
-        merchantId: merchant.id,
         name: 'Free Drink',
         points: 5,
+        merchant: { connect: { id: merchant.id } },
       },
     });
   });

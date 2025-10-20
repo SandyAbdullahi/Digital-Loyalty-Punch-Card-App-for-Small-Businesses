@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Paper, Text, Button, Group, Image, Loader, Alert, CopyButton, Tooltip, rem } from '@mantine/core';
+import { Paper, Text, Button, Group, Image, Loader, Alert, CopyButton, Tooltip, Stack, rem } from '@mantine/core';
 import { IconCheck, IconCopy, IconAlertCircle } from '@tabler/icons-react';
 
 interface QrCodeGeneratorProps {
@@ -8,7 +8,8 @@ interface QrCodeGeneratorProps {
 }
 
 const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({ loyaltyProgramId }) => {
-  const [qrCodeLink, setQrCodeLink] = useState<string | null>(null);
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+  const [joinUrl, setJoinUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +19,9 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({ loyaltyProgramId }) =
         setLoading(true);
         setError(null);
         const response = await axios.get(`/api/loyalty-programs/${loyaltyProgramId}/qrcode`);
-        setQrCodeLink(response.data.qrCodeLink);
+        const { qrCodeImage, qrCodeLink, joinUrl } = response.data;
+        setQrCodeImage(qrCodeImage || qrCodeLink || null);
+        setJoinUrl(joinUrl || qrCodeLink || null);
       } catch (err) {
         setError('Failed to fetch QR code.');
         console.error(err);
@@ -40,7 +43,7 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({ loyaltyProgramId }) =
     return <Alert icon={<IconAlertCircle size="1rem" />} title="Error" color="red">{error}</Alert>;
   }
 
-  if (!qrCodeLink) {
+  if (!qrCodeImage || !joinUrl) {
     return <Text c="dimmed">No QR code available for this program.</Text>;
   }
 
@@ -50,19 +53,23 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({ loyaltyProgramId }) =
       <Text size="sm" c="dimmed" mb="md">Share this link or QR code with your customers to join this loyalty program.</Text>
       
       <Group position="center" mb="md">
-        <Image
-          src={qrCodeLink}
-          alt="QR Code"
-          style={{ maxWidth: rem(200), height: 'auto' }}
-        />
+        <Image src={qrCodeImage} alt="QR Code" style={{ maxWidth: rem(200), height: 'auto' }} mx="auto" />
       </Group>
 
-      <Text ta="center" size="sm" c="dimmed" mb="md">
-        Loyalty Program ID: <Text span fw={700}>{loyaltyProgramId}</Text>
-      </Text>
+      <Stack gap="xs" mb="md">
+        <Text ta="center" size="sm" c="dimmed">
+          Loyalty Program ID: <Text span fw={700}>{loyaltyProgramId}</Text>
+        </Text>
+        <Text ta="center" size="sm" c="dimmed">
+          Shareable Join Link:{' '}
+          <Text span fw={700} c="primary">
+            {joinUrl}
+          </Text>
+        </Text>
+      </Stack>
 
       <Group justify="center">
-        <CopyButton value={qrCodeLink} timeout={2000}>
+        <CopyButton value={joinUrl} timeout={2000}>
           {({ copied, copy }) => (
             <Tooltip label={copied ? 'Copied' : 'Copy link'} withArrow position="right">
               <Button color={copied ? 'teal' : 'blue'} onClick={copy} leftSection={copied ? <IconCheck size="1rem" /> : <IconCopy size="1rem" />}>
@@ -71,7 +78,7 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({ loyaltyProgramId }) =
             </Tooltip>
           )}
         </CopyButton>
-        <Button component="a" href={qrCodeLink} target="_blank" rel="noopener noreferrer" variant="outline">
+        <Button component="a" href={joinUrl} target="_blank" rel="noopener noreferrer" variant="outline">
           Open Link
         </Button>
       </Group>

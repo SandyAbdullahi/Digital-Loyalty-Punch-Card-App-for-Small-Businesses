@@ -23,14 +23,26 @@ const JoinLoyaltyProgram: React.FC<JoinLoyaltyProgramProps> = ({ customerId, onP
     setSuccess(null);
 
     try {
-      // Assuming the programIdentifier can be either a program ID or a full link
-      // The backend should be able to parse this.
+      console.log('[JoinLoyaltyProgram] sending join request', {
+        customerId,
+        programIdentifier,
+      });
       await axios.post(`/api/customers/join-program`, { customerId, programIdentifier });
+      console.log('[JoinLoyaltyProgram] join request succeeded');
       setSuccess('Successfully joined loyalty program!');
       setProgramIdentifier('');
       onProgramJoined?.();
     } catch (err) {
-      setError('Failed to join loyalty program. Please check the link/ID.');
+      if (axios.isAxiosError(err) && err.response) {
+        console.log('[JoinLoyaltyProgram] join request failed', {
+          status: err.response.status,
+          data: err.response.data,
+        });
+        setError(err.response.data.error || err.response.data.details || 'Failed to join loyalty program. Please check the link/ID.');
+      } else {
+        console.log('[JoinLoyaltyProgram] join request failed with unknown error', err);
+        setError('Failed to join loyalty program. Please check the link/ID.');
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -40,16 +52,20 @@ const JoinLoyaltyProgram: React.FC<JoinLoyaltyProgramProps> = ({ customerId, onP
   return (
     <div>
       <h3>Join a Loyalty Program</h3>
+      <p style={{ fontSize: '0.9rem', color: '#666' }}>
+        Paste the shareable join link or loyalty program ID provided by the merchant. Links look like
+        <code style={{ marginLeft: '4px' }}>https://your-app.com/join/PROGRAM_ID</code>.
+      </p>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {success && <p style={{ color: 'green' }}>{success}</p>}
       <div>
-        <label htmlFor="programIdentifier">Enter Program Link or ID:</label>
+        <label htmlFor="programIdentifier">Program Link or ID:</label>
         <input
           type="text"
           id="programIdentifier"
           value={programIdentifier}
           onChange={(e) => setProgramIdentifier(e.target.value)}
-          placeholder="e.g., program-id-123 or full-program-link"
+          placeholder="e.g., https://app.com/join/abc123"
         />
       </div>
       <button onClick={handleJoinProgram} disabled={loading}>

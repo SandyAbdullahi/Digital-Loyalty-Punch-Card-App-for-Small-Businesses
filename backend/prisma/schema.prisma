@@ -81,6 +81,7 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   stamps    Stamp[]
+  customerLoyaltyPrograms CustomerLoyaltyProgram[]
 }
 
 model Stamp {
@@ -114,4 +115,18 @@ model LoyaltyProgram {
   updatedAt   DateTime  @updatedAt
   qrCodeDataUrl String?
   merchant    Merchant  @relation(fields: [merchantId], references: [id])
+  customerLoyaltyPrograms CustomerLoyaltyProgram[]
+}
+
+model CustomerLoyaltyProgram {
+  id              String   @id @default(cuid())
+  customerId      String
+  loyaltyProgramId String
+  stampsEarned    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  customer        Customer @relation(fields: [customerId], references: [id])
+  loyaltyProgram  LoyaltyProgram @relation(fields: [loyaltyProgramId], references: [id])
+
+  @@unique([customerId, loyaltyProgramId])
 }

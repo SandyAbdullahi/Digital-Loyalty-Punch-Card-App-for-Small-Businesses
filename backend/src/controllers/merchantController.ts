@@ -8,27 +8,71 @@ import { sendOnboardingEmail } from '../services/emailService';
 
 export const createMerchant = async (req: Request, res: Response) => {
 
+
+
   try {
 
-        const merchant = await merchantService.createMerchant(req.body);
 
-        await sendOnboardingEmail({ email: merchant.email, businessName: merchant.businessName });
 
-        res.status(201).json(merchant);
+    console.log('Received create merchant request:', req.body);
+
+
+
+    const merchant = await merchantService.createMerchant(req.body);
+
+
+
+    console.log('Merchant created:', merchant);
+
+
+
+    await sendOnboardingEmail({ email: merchant.email, businessName: merchant.businessName });
+
+
+
+    console.log('Onboarding email sent.');
+
+
+
+    res.status(201).json(merchant);
+
+
 
   } catch (error) {
 
+
+
     if (error instanceof Error) {
+
+
+
+      console.error('Error creating merchant:', error.message);
+
+
 
       res.status(500).json({ error: 'Failed to create merchant', details: error.message });
 
+
+
     } else {
+
+
+
+      console.error('Unknown error creating merchant:', error);
+
+
 
       res.status(500).json({ error: 'Failed to create merchant', details: 'An unknown error occurred' });
 
+
+
     }
 
+
+
   }
+
+
 
 };
 

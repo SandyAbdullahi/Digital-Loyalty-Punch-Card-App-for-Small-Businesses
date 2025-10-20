@@ -32,38 +32,100 @@ export const validatePassword = async (password: string, hashedPassword: string)
   return bcrypt.compare(password, hashedPassword);
 };
 
-export const joinMerchantLoyaltyProgram = async (customerId: string, merchantId: string) => {
+export const joinMerchantLoyaltyProgram = async (
+  customerId: string,
+  merchantId: string,
+  loyaltyProgramId?: string
+) => {
+  console.log('[customerService.joinMerchantLoyaltyProgram] Start', {
+    customerId,
+    merchantId,
+    loyaltyProgramId,
+  });
   // Validate customer and merchant existence
   const customer = await prisma.customer.findUnique({ where: { id: customerId } });
   if (!customer) {
+    console.log('[customerService.joinMerchantLoyaltyProgram] Customer not found', { customerId });
     throw new Error('Customer not found.');
   }
 
   const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
   if (!merchant) {
+    console.log('[customerService.joinMerchantLoyaltyProgram] Merchant not found', { merchantId });
     throw new Error('Merchant not found.');
   }
 
-  // Check if the customer has already joined this merchant's program
   const existingStamp = await prisma.stamp.findFirst({
     where: {
-      customerId: customerId,
-      merchantId: merchantId,
+      customerId,
+      merchantId,
     },
   });
 
-  if (existingStamp) {
+  if (loyaltyProgramId) {
+    const loyaltyProgram = await prisma.loyaltyProgram.findUnique({
+      where: { id: loyaltyProgramId },
+      select: { id: true, merchantId: true },
+    });
+
+    if (!loyaltyProgram || loyaltyProgram.merchantId !== merchantId) {
+      console.log('[customerService.joinMerchantLoyaltyProgram] Loyalty program mismatch', {
+        loyaltyProgramId,
+        merchantId,
+        loyaltyProgramMerchantId: loyaltyProgram?.merchantId,
+      });
+      throw new Error('Loyalty program not found for this merchant.');
+    }
+
+    const existingMembership = await prisma.customerLoyaltyProgram.findUnique({
+      where: {
+        customerId_loyaltyProgramId: {
+          customerId,
+          loyaltyProgramId,
+        },
+      },
+    });
+
+    if (existingMembership) {
+      console.log('[customerService.joinMerchantLoyaltyProgram] Already joined loyalty program', {
+        customerId,
+        loyaltyProgramId,
+      });
+      throw new Error('Customer already joined this loyalty program.');
+    }
+
+    await prisma.customerLoyaltyProgram.create({
+      data: {
+        customerId,
+        loyaltyProgramId,
+      },
+    });
+
+    if (existingStamp) {
+      console.log('[customerService.joinMerchantLoyaltyProgram] Using existing stamp record', {
+        stampId: existingStamp.id,
+      });
+      return existingStamp;
+    }
+  } else if (existingStamp) {
+    console.log('[customerService.joinMerchantLoyaltyProgram] Already joined merchant program via stamp', {
+      stampId: existingStamp.id,
+    });
     throw new Error(`Customer has already joined this merchant's loyalty program.`);
   }
 
   // Create an initial stamp entry to signify joining
   try {
-    return prisma.stamp.create({
+    const stamp = await prisma.stamp.create({
       data: {
-        customerId: customerId,
-        merchantId: merchantId,
+        customer: { connect: { id: customerId } },
+        merchant: { connect: { id: merchantId } },
       },
     });
+    console.log('[customerService.joinMerchantLoyaltyProgram] Created new stamp entry', {
+      stampId: stamp.id,
+    });
+    return stamp;
   } catch (error) {
     console.error('Error creating stamp:', error);
     throw new Error('Failed to create stamp entry for loyalty program.');
@@ -145,27 +207,102 @@ export const getCustomersByMerchantId = async (merchantId: string): Promise<Cust
   });
 };
 
-export const resolveProgramIdentifierToMerchantId = async (programIdentifier: string): Promise<string> => {
-  // First, try to find a LoyaltyProgram with the given ID
-  const loyaltyProgram = await prisma.loyaltyProgram.findUnique({
-    where: { id: programIdentifier },
-    select: { merchantId: true },
-  });
+interface ProgramResolution {
+  merchantId: string;
+  loyaltyProgramId?: string;
+}
 
-  if (loyaltyProgram) {
-    return loyaltyProgram.merchantId;
+export const resolveProgramIdentifier = async (programIdentifier: string): Promise<ProgramResolution> => {
+  if (!programIdentifier || !programIdentifier.trim()) {
+    console.log('[customerService.resolveProgramIdentifier] Empty identifier');
+    throw new Error('Invalid program identifier: No value provided.');
   }
 
-  // If not a LoyaltyProgram ID, try to find a Merchant with the given ID
-  const merchant = await prisma.merchant.findUnique({
-    where: { id: programIdentifier },
-    select: { id: true },
-  });
+  console.log('[customerService.resolveProgramIdentifier] Resolving identifier', { programIdentifier });
 
-  if (merchant) {
-    return merchant.id;
+  const tryResolveCandidate = async (candidate: string): Promise<ProgramResolution | null> => {
+    const trimmed = candidate.trim().replace(/^\/+|\/+$/g, '');
+
+    if (!trimmed || trimmed.toLowerCase() === 'join') {
+      return null;
+    }
+
+    const loyaltyProgram = await prisma.loyaltyProgram.findUnique({
+      where: { id: trimmed },
+      select: { merchantId: true, id: true },
+    });
+
+    if (loyaltyProgram) {
+      return {
+        merchantId: loyaltyProgram.merchantId,
+        loyaltyProgramId: trimmed,
+      };
+    }
+
+    const merchant = await prisma.merchant.findUnique({
+      where: { id: trimmed },
+      select: { id: true },
+    });
+
+    if (merchant) {
+      return { merchantId: merchant.id };
+    }
+
+    return null;
+  };
+
+  const attemptQueue: string[] = [];
+
+  const pushCandidate = (value: string | null | undefined) => {
+    if (value === null || value === undefined) {
+      return;
+    }
+    let decoded = value;
+    try {
+      decoded = decodeURIComponent(value);
+    } catch {
+      decoded = value;
+    }
+    if (!decoded.trim()) {
+      return;
+    }
+    attemptQueue.push(decoded);
+  };
+
+  pushCandidate(programIdentifier);
+
+  try {
+    const parsedUrl = new URL(programIdentifier);
+    pushCandidate(parsedUrl.pathname);
+    pushCandidate(parsedUrl.pathname.split('/').filter(Boolean).join('/'));
+    parsedUrl.pathname
+      .split('/')
+      .filter(Boolean)
+      .forEach((segment) => pushCandidate(segment));
+  } catch {
+    // Not a valid URL, treat as a raw identifier or path
+    programIdentifier
+      .split('/')
+      .filter(Boolean)
+      .forEach((segment) => pushCandidate(segment));
   }
 
+  const visited = new Set<string>();
+
+  for (const candidate of attemptQueue) {
+    if (visited.has(candidate)) {
+      continue;
+    }
+    visited.add(candidate);
+    console.log('[customerService.resolveProgramIdentifier] Trying candidate', { candidate });
+    const resolved = await tryResolveCandidate(candidate);
+    if (resolved) {
+      console.log('[customerService.resolveProgramIdentifier] Resolved candidate', resolved);
+      return resolved;
+    }
+  }
+
+  console.log('[customerService.resolveProgramIdentifier] Failed to resolve identifier');
   throw new Error('Invalid program identifier: No matching loyalty program or merchant found.');
 };
 

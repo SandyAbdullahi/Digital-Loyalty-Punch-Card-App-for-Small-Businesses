@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const customerController_1 = require("../controllers/customerController");
+const router = (0, express_1.Router)();
+router.post('/register', customerController_1.registerCustomer);
+router.post('/login', customerController_1.loginCustomer);
+router.post('/join-program', customerController_1.joinLoyaltyProgram);
+router.get('/:customerId/stamps', customerController_1.getCustomerStamps);
+router.post('/:customerId/redeem-reward', customerController_1.redeemReward);
+router.put('/:id', customerController_1.updateCustomerProfile);
+router.get('/merchant/:merchantId/customers', customerController_1.getCustomersByMerchantId);
+router.delete('/merchant/:merchantId/customer/:customerId', customerController_1.deleteCustomerStampsForMerchant);
+router.get('/merchant/:merchantId/customer/:customerId/history', customerController_1.getCustomerHistoryForMerchant);
+exports.default = router;

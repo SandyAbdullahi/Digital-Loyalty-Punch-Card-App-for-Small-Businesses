@@ -1,0 +1,17 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const merchantController_1 = require("../controllers/merchantController");
+const multerConfig_1 = require("../config/multerConfig");
+const router = (0, express_1.Router)();
+router.post('/', merchantController_1.createMerchant);
+router.post('/login', merchantController_1.loginMerchant);
+router.get('/', merchantController_1.getAllMerchants);
+router.put('/:id', merchantController_1.updateMerchant);
+router.get('/:id', merchantController_1.getMerchantById);
+router.post('/:merchantId/issue-stamp', merchantController_1.issueStamp);
+router.get('/:merchantId/customers', merchantController_1.getCustomersByMerchantId);
+router.put('/:id/subscribe', merchantController_1.updateMerchantSubscription);
+router.get('/nearby', merchantController_1.getNearbyMerchants);
+router.put('/:id/branding', multerConfig_1.upload.single('logo'), merchantController_1.updateMerchantBranding);
+exports.default = router;

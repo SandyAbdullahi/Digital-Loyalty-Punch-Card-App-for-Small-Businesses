@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { TextInput, NumberInput, Button, Group, Text, Alert, Box, Title } from '@mantine/core';
+import { TextInput, NumberInput, Button, Group, Text, Alert, Box, Title, rem } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 
@@ -46,11 +46,18 @@ const LoyaltyProgramForm: React.FC<LoyaltyProgramFormProps> = ({
     setError(null);
     setSuccess(null);
 
+    let formattedExpiryDate = null;
+    if (expiryDate) {
+      // If expiryDate is a string, convert it to a Date object
+      const dateObject = typeof expiryDate === 'string' ? new Date(expiryDate) : expiryDate;
+      formattedExpiryDate = dateObject.toISOString();
+    }
+
     const programData = {
       merchantId,
       rewardName,
       threshold,
-      ...(expiryDate && { expiryDate: expiryDate.toISOString() }),
+      ...(formattedExpiryDate && { expiryDate: formattedExpiryDate }),
     };
 
     try {
@@ -107,6 +114,7 @@ const LoyaltyProgramForm: React.FC<LoyaltyProgramFormProps> = ({
         onChange={setExpiryDate}
         minDate={new Date()}
         mt="md"
+        size="sm"
       />
 
       <Button type="submit" loading={loading} mt="xl">

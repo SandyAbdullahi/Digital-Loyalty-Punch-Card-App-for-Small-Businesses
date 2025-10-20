@@ -44,16 +44,44 @@ export const loginCustomer = async (req: Request, res: Response) => {
 export const joinLoyaltyProgram = async (req: Request, res: Response) => {
   try {
     const { customerId, programIdentifier } = req.body;
+    console.log('[CustomerController.joinLoyaltyProgram] Incoming request', {
+      customerId,
+      programIdentifier,
+    });
     if (!programIdentifier) {
+      console.log('[CustomerController.joinLoyaltyProgram] Missing programIdentifier');
       return res.status(400).json({ error: 'Program identifier is required.' });
     }
-    const merchantId = await customerService.resolveProgramIdentifierToMerchantId(programIdentifier);
-    const stamp = await customerService.joinMerchantLoyaltyProgram(customerId, merchantId);
-    res.status(200).json({ message: 'Successfully joined loyalty program', stamp });
+    const { merchantId, loyaltyProgramId } = await customerService.resolveProgramIdentifier(programIdentifier);
+    console.log('[CustomerController.joinLoyaltyProgram] Resolved identifier', {
+      merchantId,
+      loyaltyProgramId,
+    });
+    const stamp = await customerService.joinMerchantLoyaltyProgram(customerId, merchantId, loyaltyProgramId);
+    console.log('[CustomerController.joinLoyaltyProgram] Join succeeded', {
+      stampId: stamp.id,
+      merchantId: stamp.merchantId,
+      loyaltyProgramId,
+    });
+    res.status(200).json({ message: 'Successfully joined loyalty program', stamp, loyaltyProgramId });
   } catch (error) {
     if (error instanceof Error) {
+      console.log('[CustomerController.joinLoyaltyProgram] Join failed', {
+        error: error.message,
+        stack: error.stack,
+      });
       if (error.message.includes('Invalid program identifier')) {
         res.status(400).json({ error: error.message });
+      } else if (error.message.includes('already joined this merchant')) {
+        res.status(409).json({ error: error.message });
+      } else if (error.message.includes('already joined this loyalty program')) {
+        res.status(409).json({ error: error.message });
+      } else if (error.message.includes('Customer not found')) {
+        res.status(404).json({ error: error.message });
+      } else if (error.message.includes('Merchant not found')) {
+        res.status(404).json({ error: error.message });
+      } else if (error.message.includes('Loyalty program not found')) {
+        res.status(404).json({ error: error.message });
       } else {
         res.status(500).json({ error: 'Failed to join loyalty program', details: error.message });
       }

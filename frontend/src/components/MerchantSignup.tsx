@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
-import { AppShell, Container, Title, Paper, TextInput, PasswordInput, Button, Group, Anchor, Space } from '@mantine/core';
+import { AppShell, Container, Title, Paper, TextInput, PasswordInput, Button, Group, Anchor, Text } from '@mantine/core';
 import AppNavbar from './AppNavbar';
 
 interface MerchantSignupProps {

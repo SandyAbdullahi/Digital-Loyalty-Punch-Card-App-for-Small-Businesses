@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Group, ActionIcon, Text, Avatar, UnstyledButton, Menu, Tabs, Card, Box, Stack, rem, useMantineTheme, useMantineColorScheme, useComputedColorScheme, Button } from '@mantine/core';
+import { Group, ActionIcon, Text, Avatar, UnstyledButton, Menu, Tabs, Card, Box, Stack, rem, useMantineTheme, useMantineColorScheme, useComputedColorScheme, Button, Alert } from '@mantine/core';
 import { IconBellRinging, IconSettings, IconLogout, IconGauge, IconPuzzle, IconGift, IconUsers, IconQrcode, IconBuildingStore, IconCreditCard, IconPalette } from '@tabler/icons-react';
 import { useMediaQuery } from '@mantine/hooks';
 
