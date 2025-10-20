@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { registerCustomer, loginCustomer, joinLoyaltyProgram, getCustomerStamps, redeemReward, updateCustomerProfile, getCustomersByMerchantId } from '../controllers/customerController';
+import { registerCustomer, loginCustomer, joinLoyaltyProgram, getCustomerStamps, redeemReward, updateCustomerProfile, getCustomersByMerchantId, deleteCustomerStampsForMerchant } from '../controllers/customerController';
 
 const router = Router();
 
@@ -10,5 +10,6 @@ router.get('/:customerId/stamps', getCustomerStamps);
 router.post('/:customerId/redeem-reward', redeemReward);
 router.put('/:id', updateCustomerProfile);
 router.get('/merchant/:merchantId/customers', getCustomersByMerchantId);
+router.delete('/merchant/:merchantId/customer/:customerId', deleteCustomerStampsForMerchant);
 
 export default router;

@@ -146,3 +146,12 @@ export const resolveProgramIdentifierToMerchantId = async (programIdentifier: st
 
   throw new Error('Invalid program identifier: No matching loyalty program or merchant found.');
 };
+
+export const deleteCustomerStampsForMerchant = async (merchantId: string, customerId: string): Promise<void> => {
+  await prisma.stamp.deleteMany({
+    where: {
+      merchantId: merchantId,
+      customerId: customerId,
+    },
+  });
+};

@@ -17,6 +17,8 @@ const MerchantCustomerList: React.FC<MerchantCustomerListProps> = ({ merchantId 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null); // Stores customerId being deleted
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchCustomers = async () => {
     try {
@@ -29,6 +31,24 @@ const MerchantCustomerList: React.FC<MerchantCustomerListProps> = ({ merchantId 
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteCustomer = async (customerId: string) => {
+    if (!window.confirm('Are you sure you want to remove this customer from your loyalty program?')) {
+      return;
+    }
+
+    setDeleteLoading(customerId);
+    setDeleteError(null);
+    try {
+      await axios.delete(`/api/customers/merchant/${merchantId}/customer/${customerId}`);
+      setDeleteLoading(null);
+      fetchCustomers(); // Refresh the list
+    } catch (err) {
+      setDeleteError('Failed to remove customer.');
+      console.error(err);
+      setDeleteLoading(null);
     }
   };
 
@@ -49,6 +69,7 @@ const MerchantCustomerList: React.FC<MerchantCustomerListProps> = ({ merchantId 
   return (
     <Paper withBorder radius="md" p="md" mt="md">
       <Text fw={700} mb="md">Customers in Your Loyalty Programs</Text>
+      {deleteError && <Alert icon={<IconAlertCircle size="1rem" />} title="Error" color="red" mb="md">{deleteError}</Alert>}
       {customers.length === 0 ? (
         <Text c="dimmed">No customers have joined your loyalty programs yet.</Text>
       ) : (
@@ -69,7 +90,15 @@ const MerchantCustomerList: React.FC<MerchantCustomerListProps> = ({ merchantId 
                 <Table.Td>{new Date(customer.createdAt).toLocaleDateString()}</Table.Td>
                 <Table.Td>
                   <Group>
-                    <Button variant="outline" color="red" size="xs">Delete</Button>
+                    <Button
+                      variant="outline"
+                      color="red"
+                      size="xs"
+                      onClick={() => handleDeleteCustomer(customer.id)}
+                      loading={deleteLoading === customer.id}
+                    >
+                      Delete
+                    </Button>
                     <Button variant="outline" size="xs">View History</Button>
                   </Group>
                 </Table.Td>

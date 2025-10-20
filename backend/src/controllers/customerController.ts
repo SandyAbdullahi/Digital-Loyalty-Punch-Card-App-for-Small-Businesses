@@ -111,7 +111,20 @@ export const getCustomersByMerchantId = async (req: Request, res: Response) => {
     if (error instanceof Error) {
       res.status(500).json({ error: 'Failed to fetch customers for merchant', details: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to fetch customers for merchant', details: 'An unknown error occurred' });
+    }
+  }
+};
+
+export const deleteCustomerStampsForMerchant = async (req: Request, res: Response) => {
+  try {
+    const { merchantId, customerId } = req.params;
+    await customerService.deleteCustomerStampsForMerchant(merchantId, customerId);
+    res.status(200).json({ message: 'Customer successfully disassociated from loyalty program.' });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to disassociate customer', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to disassociate customer', details: 'An unknown error occurred' });
     }
   }
 };
