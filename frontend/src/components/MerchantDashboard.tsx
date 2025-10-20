@@ -151,7 +151,8 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
                           <IconSettings style={{ width: rem(16), height: rem(16) }} stroke={1.5} />
                         </ActionIcon>
                       </Group>
-                    </Card>
+                    </Group>
+                    <QrCodeGenerator loyaltyProgramId={program.id} />
                   </Card>
                 ))}
               </Stack>
