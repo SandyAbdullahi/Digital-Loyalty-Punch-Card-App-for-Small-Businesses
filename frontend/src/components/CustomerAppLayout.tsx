@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppShell, Group, Text, ActionIcon, useMantineColorScheme, useMantineTheme, Tabs } from '@mantine/core';
 import { IconHome, IconCreditCard, IconGift, IconUser, IconArrowLeft } from '@tabler/icons-react';
 import AppNavbar from './AppNavbar';
+import CustomerHomeContent from './CustomerHomeContent';
 
 interface CustomerAppLayoutProps {
   customerId: string;
@@ -34,7 +35,7 @@ function CustomerAppLayout({ customerId, children, onLogoutClick }: CustomerAppL
       <AppShell.Main>
         <Tabs value={activeTab}>
           <Tabs.Panel value="home">
-            <Text size="lg" fw={600}>Home Content (Merchants Near You)</Text>
+            <CustomerHomeContent />
           </Tabs.Panel>
           <Tabs.Panel value="card">
             {children}
