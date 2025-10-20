@@ -11,6 +11,7 @@ import SubscriptionManager from './SubscriptionManager';
 import CustomerListView from './CustomerListView';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import MerchantBrandingSettings from './MerchantBrandingSettings';
+import MerchantCustomerList from './MerchantCustomerList';
 
 interface MerchantDashboardProps {
   merchantId: string;
@@ -185,7 +186,7 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
 
         <Tabs.Panel value="customers">
           <Card withBorder radius="md" p="lg">
-            <CustomerListView merchantId={merchant.id} />
+            <MerchantCustomerList merchantId={merchant.id} />
           </Card>
         </Tabs.Panel>
 
