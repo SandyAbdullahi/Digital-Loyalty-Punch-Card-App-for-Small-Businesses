@@ -33,6 +33,17 @@ export const validatePassword = async (password: string, hashedPassword: string)
 };
 
 export const joinMerchantLoyaltyProgram = async (customerId: string, merchantId: string) => {
+  // Validate customer and merchant existence
+  const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+  if (!customer) {
+    throw new Error('Customer not found.');
+  }
+
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) {
+    throw new Error('Merchant not found.');
+  }
+
   // Check if the customer has already joined this merchant's program
   const existingStamp = await prisma.stamp.findFirst({
     where: {
@@ -46,12 +57,17 @@ export const joinMerchantLoyaltyProgram = async (customerId: string, merchantId:
   }
 
   // Create an initial stamp entry to signify joining
-  return prisma.stamp.create({
-    data: {
-      customerId: customerId,
-      merchantId: merchantId,
-    },
-  });
+  try {
+    return prisma.stamp.create({
+      data: {
+        customerId: customerId,
+        merchantId: merchantId,
+      },
+    });
+  } catch (error) {
+    console.error('Error creating stamp:', error);
+    throw new Error('Failed to create stamp entry for loyalty program.');
+  }
 };
 
 export const getCustomerStamps = async (customerId: string): Promise<Stamp[]> => {
