@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import MerchantDashboardLayout from './components/MerchantDashboardLayout';
 import MerchantSignup from './components/MerchantSignup'
@@ -17,7 +17,29 @@ function App() {
   const [showLandingPage, setShowLandingPage] = useState(true);
   const [showCustomerAuth, setShowCustomerAuth] = useState(false);
 
+  useEffect(() => {
+    const merchantToken = localStorage.getItem('merchantToken');
+    const customerToken = localStorage.getItem('customerToken');
+    const storedMerchantId = localStorage.getItem('merchantId');
+    const storedCustomerId = localStorage.getItem('customerId');
+    const storedCustomerEmail = localStorage.getItem('customerEmail');
+
+    if (merchantToken && storedMerchantId) {
+      setIsMerchantLoggedIn(true);
+      setMerchantId(storedMerchantId);
+      setShowLandingPage(false);
+    } else if (customerToken && storedCustomerId && storedCustomerEmail) {
+      setCustomer({ id: storedCustomerId, email: storedCustomerEmail });
+      setShowLandingPage(false);
+    } else {
+      setShowLandingPage(true);
+    }
+  }, []);
+
   const handleCustomerAuthSuccess = (customerData: { id: string; email: string }) => {
+    localStorage.setItem('customerToken', 'some-customer-token'); // Replace with actual token
+    localStorage.setItem('customerId', customerData.id);
+    localStorage.setItem('customerEmail', customerData.email);
     setCustomer(customerData);
     setIsMerchantLoggedIn(false);
     setMerchantId(null);
@@ -27,6 +49,8 @@ function App() {
   };
 
   const handleMerchantLoginSuccess = (merchantData: { id: string; email: string }) => {
+    localStorage.setItem('merchantToken', 'some-merchant-token'); // Replace with actual token
+    localStorage.setItem('merchantId', merchantData.id);
     setIsMerchantLoggedIn(true);
     setMerchantId(merchantData.id);
     setCustomer(null);
@@ -48,6 +72,11 @@ function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('merchantToken');
+    localStorage.removeItem('customerToken');
+    localStorage.removeItem('merchantId');
+    localStorage.removeItem('customerId');
+    localStorage.removeItem('customerEmail');
     setIsMerchantLoggedIn(false);
     setMerchantId(null);
     setCustomer(null);

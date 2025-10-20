@@ -1,5 +1,6 @@
 import React from 'react';
-import { AppShell, Container, Title, Space, Button, Text, SimpleGrid, Card, Image, Group } from '@mantine/core';
+import { AppShell, Container, Title, Space, Button, Text, SimpleGrid, Card, Image, Group, List, ThemeIcon, rem } from '@mantine/core';
+import { IconCircleCheck } from '@tabler/icons-react';
 import AppNavbar from './AppNavbar';
 
 interface LandingPageProps {
@@ -12,6 +13,7 @@ function LandingPage({ onLoginClick, onRegisterClick, onHomeClick }: LandingPage
   return (
     <AppShell
       header={{ height: 60 }}
+      footer={{ height: 60 }} // Add footer height
       padding="md"
     >
       <AppShell.Header>
@@ -37,7 +39,7 @@ function LandingPage({ onLoginClick, onRegisterClick, onHomeClick }: LandingPage
           <Space h="xl" />
           <Group justify="center">
             <Button size="lg" onClick={onRegisterClick}>Merchant Sign Up</Button>
-            <Button size="lg" variant="outline" onClick={onLoginClick}>Customer Login</Button>
+            <Button size="lg" variant="outline" onClick={onLoginClick}>Customer Registration</Button>
           </Group>
         </Container>
 
@@ -82,7 +84,56 @@ function LandingPage({ onLoginClick, onRegisterClick, onHomeClick }: LandingPage
             </Card>
           </SimpleGrid>
         </Container>
+
+        <Container size="lg" py="xl">
+          <Title order={2} ta="center" mt="xl">How It Works</Title>
+          <Space h="xl" />
+          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
+            <div>
+              <Title order={3}>For Merchants</Title>
+              <List
+                spacing="xs"
+                size="sm"
+                center
+                icon={
+                  <ThemeIcon color="primary" size={24} radius="xl">
+                    <IconCircleCheck style={{ width: rem(16), height: rem(16) }} />
+                  </ThemeIcon>
+                }
+              >
+                <List.Item>Sign up and customize your loyalty program in minutes.</List.Item>
+                <List.Item>Generate unique QR codes for customers to join and earn stamps.</List.Item>
+                <List.Item>Track customer activity and reward redemption from your dashboard.</List.Item>
+                <List.Item>Increase repeat business and customer loyalty effortlessly.</List.Item>
+              </List>
+            </div>
+            <div>
+              <Title order={3}>For Customers</Title>
+              <List
+                spacing="xs"
+                size="sm"
+                center
+                icon={
+                  <ThemeIcon color="accent" size={24} radius="xl">
+                    <IconCircleCheck style={{ width: rem(16), height: rem(16) }} />
+                  </ThemeIcon>
+                }
+              >
+                <List.Item>Join your favorite local businesses' loyalty programs via QR code.</List.Item>
+                <List.Item>Collect digital stamps with every purchase.</List.Item>
+                <List.Item>Redeem exciting rewards directly from your phone.</List.Item>
+                <List.Item>Receive notifications about new stamps and available rewards.</List.Item>
+              </List>
+            </div>
+          </SimpleGrid>
+        </Container>
       </AppShell.Main>
+
+      <AppShell.Footer p="md">
+        <Text ta="center" c="dimmed" size="sm">
+          © {new Date().getFullYear()} LoyaltyApp. All rights reserved.
+        </Text>
+      </AppShell.Footer>
     </AppShell>
   );
 }
