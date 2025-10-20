@@ -30,7 +30,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ merchantId }) =
       try {
         setLoading(true);
         setError(null);
-        const response = await axios.get(`/api/analytics/merchant/${merchantId}/detailed`); // Assuming a more detailed analytics endpoint
+        const response = await axios.get(`/api/analytics/merchant/${merchantId}`);
         setAnalytics(response.data);
       } catch (err) {
         setError('Failed to fetch analytics data.');
