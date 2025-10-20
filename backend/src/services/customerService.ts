@@ -155,3 +155,17 @@ export const deleteCustomerStampsForMerchant = async (merchantId: string, custom
     },
   });
 };
+
+export const getCustomerHistoryForMerchant = async (merchantId: string, customerId: string) => {
+  const stamps = await prisma.stamp.findMany({
+    where: {
+      merchantId: merchantId,
+      customerId: customerId,
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  // In a more complete system, you would also fetch reward redemptions here
+  // For now, we only return stamps.
+  return { stamps };
+};
