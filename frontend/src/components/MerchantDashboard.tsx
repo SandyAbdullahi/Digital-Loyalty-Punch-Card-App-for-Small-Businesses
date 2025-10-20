@@ -60,6 +60,8 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
   const [error, setError] = useState<string | null>(null);
   const [editingProgram, setEditingProgram] = useState<LoyaltyProgram | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>('overview');
+  const [deleteProgramLoading, setDeleteProgramLoading] = useState<string | null>(null);
+  const [deleteProgramError, setDeleteProgramError] = useState<string | null>(null);
 
   const handleLogout = () => {
     localStorage.removeItem('merchantId');
@@ -88,6 +90,24 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteLoyaltyProgram = async (programId: string) => {
+    if (!window.confirm('Are you sure you want to delete this loyalty program? All associated stamps will also be deleted.')) {
+      return;
+    }
+
+    setDeleteProgramLoading(programId);
+    setDeleteProgramError(null);
+    try {
+      await axios.delete(`/api/loyalty-programs/${programId}`);
+      setDeleteProgramLoading(null);
+      fetchMerchantData(); // Refresh the list
+    } catch (err) {
+      setDeleteProgramError('Failed to delete loyalty program.');
+      console.error(err);
+      setDeleteProgramLoading(null);
     }
   };
 
@@ -141,6 +161,7 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
         <Tabs.Panel value="loyaltyPrograms">
           <Card withBorder radius="md" p="lg">
             <Text size="lg" fw={600} mb="md">Loyalty Programs</Text>
+            {deleteProgramError && <Alert icon={<IconAlertCircle size="1rem" />} title="Error" color="red" mb="md">{deleteProgramError}</Alert>}
             {loyaltyPrograms.length === 0 ? (
               <Text>No loyalty programs configured yet.</Text>
             ) : (
@@ -154,6 +175,15 @@ const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ merchantId }) => 
                         <ActionIcon variant="default" onClick={() => setEditingProgram(program)}>
                           <IconSettings style={{ width: rem(16), height: rem(16) }} stroke={1.5} />
                         </ActionIcon>
+                        <Button
+                          variant="outline"
+                          color="red"
+                          size="xs"
+                          onClick={() => handleDeleteLoyaltyProgram(program.id)}
+                          loading={deleteProgramLoading === program.id}
+                        >
+                          Delete
+                        </Button>
                       </Group>
                     </Group>
                     <QrCodeGenerator loyaltyProgramId={program.id} />
