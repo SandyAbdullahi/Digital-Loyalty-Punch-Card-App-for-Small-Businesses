@@ -11,16 +11,17 @@ interface AppNavbarProps {
   onLoginClick: () => void;
   onRegisterClick: () => void;
   onLogoutClick: () => void;
+  onHomeClick: () => void; // New prop for Home button
 }
 
-function AppNavbar({ isLoggedIn, isMerchant, userName, onLoginClick, onRegisterClick, onLogoutClick }: AppNavbarProps) {
+function AppNavbar({ isLoggedIn, isMerchant, userName, onLoginClick, onRegisterClick, onLogoutClick, onHomeClick }: AppNavbarProps) {
   const [opened, { toggle }] = useDisclosure();
   const { colorScheme } = useMantineColorScheme();
 
   return (
     <Group h="100%" px="md">
       <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-      <Text size="xl" fw={700}>LoyaltyApp</Text>
+      <Button variant="subtle" onClick={onHomeClick}><Text size="xl" fw={700}>LoyaltyApp</Text></Button>
 
       <Group h="100%" gap={0} visibleFrom="sm">
         <Button variant="subtle">About</Button>

@@ -8,9 +8,10 @@ interface MerchantDashboardLayoutProps {
   merchantId: string;
   children: React.ReactNode;
   onLogoutClick: () => void;
+  onHomeClick: () => void; // New prop for Home button
 }
 
-function MerchantDashboardLayout({ merchantId, children, onLogoutClick }: MerchantDashboardLayoutProps) {
+function MerchantDashboardLayout({ merchantId, children, onLogoutClick, onHomeClick }: MerchantDashboardLayoutProps) {
   const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
   const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
@@ -30,6 +31,7 @@ function MerchantDashboardLayout({ merchantId, children, onLogoutClick }: Mercha
           onLoginClick={() => { /* Not applicable here */ }}
           onRegisterClick={() => { /* Not applicable here */ }}
           onLogoutClick={onLogoutClick}
+          onHomeClick={onHomeClick}
         />
       </AppShell.Header>
 

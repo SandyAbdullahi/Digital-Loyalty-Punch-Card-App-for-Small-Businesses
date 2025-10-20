@@ -8,9 +8,10 @@ interface CustomerAppLayoutProps {
   customerId: string;
   children: React.ReactNode;
   onLogoutClick: () => void;
+  onHomeClick: () => void; // New prop for Home button
 }
 
-function CustomerAppLayout({ customerId, children, onLogoutClick }: CustomerAppLayoutProps) {
+function CustomerAppLayout({ customerId, children, onLogoutClick, onHomeClick }: CustomerAppLayoutProps) {
   const [activeTab, setActiveTab] = useState<string | null>('home');
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const theme = useMantineTheme();
@@ -29,6 +30,7 @@ function CustomerAppLayout({ customerId, children, onLogoutClick }: CustomerAppL
           onLoginClick={() => { /* Not applicable here */ }}
           onRegisterClick={() => { /* Not applicable here */ }}
           onLogoutClick={onLogoutClick}
+          onHomeClick={onHomeClick}
         />
       </AppShell.Header>
 

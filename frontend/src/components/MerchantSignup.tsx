@@ -8,9 +8,10 @@ interface MerchantSignupProps {
   onAuthSuccess: (merchant: { id: string; email: string }) => void;
   onLoginClick: () => void; // Added prop for navigation to login
   onRegisterClick: () => void; // Added prop for navigation to register
+  onHomeClick: () => void; // New prop for Home button
 }
 
-const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess, onLoginClick, onRegisterClick }) => {
+const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess, onLoginClick, onRegisterClick, onHomeClick }) => {
   const [isRegistering, setIsRegistering] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -67,6 +68,7 @@ const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess, onLoginC
           onLoginClick={onLoginClick}
           onRegisterClick={onRegisterClick}
           onLogoutClick={() => { /* Not applicable here */ }}
+          onHomeClick={onHomeClick}
         />
       </AppShell.Header>
       <AppShell.Main>

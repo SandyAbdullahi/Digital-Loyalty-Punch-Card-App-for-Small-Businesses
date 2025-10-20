@@ -56,28 +56,34 @@ function App() {
     setShowMerchantSignup(false);
   };
 
+  const handleHomeClick = () => {
+    setShowLandingPage(true);
+    setShowCustomerAuth(false);
+    setShowMerchantSignup(false);
+  };
+
   const renderContent = () => {
     if (showLandingPage) {
-      return <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />;
+      return <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} onHomeClick={handleHomeClick} />;
     } else if (isMerchantLoggedIn && merchantId) {
       return (
-        <MerchantDashboardLayout merchantId={merchantId} onLogoutClick={handleLogout}>
+        <MerchantDashboardLayout merchantId={merchantId} onLogoutClick={handleLogout} onHomeClick={handleHomeClick}>
           <MerchantDashboard merchantId={merchantId} />
         </MerchantDashboardLayout>
       );
     } else if (customer) {
       return (
-        <CustomerAppLayout customerId={customer.id} onLogoutClick={handleLogout}>
+        <CustomerAppLayout customerId={customer.id} onLogoutClick={handleLogout} onHomeClick={handleHomeClick}>
           <CustomerApp customerId={customer.id} />
         </CustomerAppLayout>
       );
     } else if (showMerchantSignup) {
-      return <MerchantSignup onAuthSuccess={handleMerchantLoginSuccess} />;
+      return <MerchantSignup onAuthSuccess={handleMerchantLoginSuccess} onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} onHomeClick={handleHomeClick} />;
     } else if (showCustomerAuth) {
-      return <CustomerAuth onAuthSuccess={handleCustomerAuthSuccess} />;
+      return <CustomerAuth onAuthSuccess={handleCustomerAuthSuccess} onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} onHomeClick={handleHomeClick} />;
     } else {
       // Fallback to landing page if no specific state is active
-      return <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />;
+      return <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} onHomeClick={handleHomeClick} />;
     }
   };
 
