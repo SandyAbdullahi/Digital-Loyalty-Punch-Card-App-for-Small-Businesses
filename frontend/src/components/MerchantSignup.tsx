@@ -1,12 +1,16 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
+import { AppShell, Container, Title, Paper, TextInput, PasswordInput, Button, Group, Anchor, Space } from '@mantine/core';
+import AppNavbar from './AppNavbar';
 
 interface MerchantSignupProps {
   onAuthSuccess: (merchant: { id: string; email: string }) => void;
+  onLoginClick: () => void; // Added prop for navigation to login
+  onRegisterClick: () => void; // Added prop for navigation to register
 }
 
-const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess }) => {
+const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess, onLoginClick, onRegisterClick }) => {
   const [isRegistering, setIsRegistering] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -55,53 +59,46 @@ const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div>
-      <h2>{isRegistering ? 'Merchant Signup' : 'Merchant Login'}</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        {isRegistering && (
-          <>
-            <div>
-              <label>Name:</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div>
-              <label>Business Name:</label>
-              <input type="text" value={businessName} onChange={(e) => setBusinessName(e.target.value)} required />
-            </div>
-            <div>
-              <label>Business Type:</label>
-              <input type="text" value={businessType} onChange={(e) => setBusinessType(e.target.value)} required />
-            </div>
-            <div>
-              <label>Location:</label>
-              <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
-            </div>
-            <div>
-              <label>Contact:</label>
-              <input type="text" value={contact} onChange={(e) => setContact(e.target.value)} />
-            </div>
-          </>
-        )}
-        <div>
-          <label>Email:</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        <button type="submit" disabled={loading}>
-          {loading ? 'Processing...' : (isRegistering ? 'Signup' : 'Login')}
-        </button>
-      </form>
-      <p>
-        {isRegistering ? 'Already have an account?' : 'Don\'t have an account?'}{' '}
-        <button type="button" onClick={() => setIsRegistering(!isRegistering)}>
-          {isRegistering ? 'Login' : 'Signup'}
-        </button>
-      </p>
-    </div>
+    <AppShell header={{ height: 60 }} padding="md">
+      <AppShell.Header>
+        <AppNavbar
+          isLoggedIn={false}
+          isMerchant={true} // Treat as merchant context for navbar display
+          onLoginClick={onLoginClick}
+          onRegisterClick={onRegisterClick}
+          onLogoutClick={() => { /* Not applicable here */ }}
+        />
+      </AppShell.Header>
+      <AppShell.Main>
+        <Container size={420} my={40}>
+          <Title ta="center">{isRegistering ? 'Merchant Signup' : 'Merchant Login'}</Title>
+          <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+            {error && <Text c="red" size="sm" mb="md">{error}</Text>}
+            <form onSubmit={handleSubmit}>
+              {isRegistering && (
+                <>
+                  <TextInput label="Name" placeholder="Your name" value={name} onChange={(event) => setName(event.currentTarget.value)} required />
+                  <TextInput label="Business Name" placeholder="Your business name" value={businessName} onChange={(event) => setBusinessName(event.currentTarget.value)} required mt="md" />
+                  <TextInput label="Business Type" placeholder="e.g., Cafe, Salon" value={businessType} onChange={(event) => setBusinessType(event.currentTarget.value)} required mt="md" />
+                  <TextInput label="Location" placeholder="Your business location" value={location} onChange={(event) => setLocation(event.currentTarget.value)} mt="md" />
+                  <TextInput label="Contact" placeholder="Your contact number" value={contact} onChange={(event) => setContact(event.currentTarget.value)} mt="md" />
+                </>
+              )}
+              <TextInput label="Email" placeholder="you@mantine.dev" value={email} onChange={(event) => setEmail(event.currentTarget.value)} required mt={isRegistering ? "md" : undefined} />
+              <PasswordInput label="Password" placeholder="Your password" value={password} onChange={(event) => setPassword(event.currentTarget.value)} required mt="md" />
+              <Button fullWidth mt="xl" type="submit" loading={loading}>
+                {isRegistering ? 'Sign up' : 'Login'}
+              </Button>
+            </form>
+            <Group justify="space-between" mt="md">
+              <Anchor component="button" type="button" c="dimmed" size="xs" onClick={() => setIsRegistering(!isRegistering)}>
+                {isRegistering ? 'Already have an account? Login' : 'Don\'t have an account? Register'}
+              </Anchor>
+            </Group>
+          </Paper>
+        </Container>
+      </AppShell.Main>
+    </AppShell>
   );
 };
 
