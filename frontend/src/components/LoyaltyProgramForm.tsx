@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { TextInput, NumberInput, Button, Group, Text, Alert, Box, DateInput } from '@mantine/core';
+import { TextInput, NumberInput, Button, Group, Text, Alert, Box, Title } from '@mantine/core';
+import { DateInput } from '@mantine/dates';
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 
 interface LoyaltyProgramFormProps {
