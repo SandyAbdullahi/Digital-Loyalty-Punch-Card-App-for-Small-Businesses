@@ -43,7 +43,11 @@ export const loginCustomer = async (req: Request, res: Response) => {
 
 export const joinLoyaltyProgram = async (req: Request, res: Response) => {
   try {
-    const { customerId, merchantId } = req.body;
+    const { customerId, programIdentifier } = req.body;
+    if (!programIdentifier) {
+      return res.status(400).json({ error: 'Program identifier is required.' });
+    }
+    const merchantId = await customerService.resolveProgramIdentifierToMerchantId(programIdentifier);
     const stamp = await customerService.joinMerchantLoyaltyProgram(customerId, merchantId);
     res.status(200).json({ message: 'Successfully joined loyalty program', stamp });
   } catch (error) {

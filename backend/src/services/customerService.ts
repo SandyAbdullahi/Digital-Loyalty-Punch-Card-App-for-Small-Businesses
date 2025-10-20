@@ -122,3 +122,27 @@ export const getCustomersByMerchantId = async (merchantId: string): Promise<Cust
     select: { id: true, email: true, createdAt: true }, // Select relevant customer fields
   });
 };
+
+export const resolveProgramIdentifierToMerchantId = async (programIdentifier: string): Promise<string> => {
+  // First, try to find a LoyaltyProgram with the given ID
+  const loyaltyProgram = await prisma.loyaltyProgram.findUnique({
+    where: { id: programIdentifier },
+    select: { merchantId: true },
+  });
+
+  if (loyaltyProgram) {
+    return loyaltyProgram.merchantId;
+  }
+
+  // If not a LoyaltyProgram ID, try to find a Merchant with the given ID
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: programIdentifier },
+    select: { id: true },
+  });
+
+  if (merchant) {
+    return merchant.id;
+  }
+
+  throw new Error('Invalid program identifier: No matching loyalty program or merchant found.');
+};
