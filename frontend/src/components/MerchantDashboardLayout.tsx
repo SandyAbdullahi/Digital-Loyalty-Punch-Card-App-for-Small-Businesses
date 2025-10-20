@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppShell, Burger, Group, NavLink, Stack, Text, ActionIcon, Menu, Avatar, useMantineColorScheme, useMantineTheme } from '@mantine/core';
+import { AppShell, Burger, Group, NavLink, Stack, Text, ActionIcon, Menu, Avatar, useMantineColorScheme, useMantineTheme, Tabs, Card } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconGauge, IconUsers, IconGift, IconAward, IconBellRinging, IconChevronRight, IconSettings, IconLogout, IconSun, IconMoonStars } from '@tabler/icons-react';
 import { ColorSchemeToggle } from './ColorSchemeToggle';
@@ -66,7 +66,39 @@ function MerchantDashboardLayout({ merchantId, children }: MerchantDashboardLayo
       </AppShell.Navbar>
 
       <AppShell.Main>
-        {children}
+        <Tabs defaultValue="overview">
+          <Tabs.List>
+            <Tabs.Tab value="overview">Overview</Tabs.Tab>
+            <Tabs.Tab value="stamps">Stamps</Tabs.Tab>
+            <Tabs.Tab value="rewards">Rewards</Tabs.Tab>
+            <Tabs.Tab value="customers">Customers</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="overview" pt="xs">
+            <Card shadow="md" radius="md" p="xl">
+              <Text size="lg" fw={600}>Overview Content</Text>
+              {children}
+            </Card>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="stamps" pt="xs">
+            <Card shadow="md" radius="md" p="xl">
+              <Text size="lg" fw={600}>Stamps Content</Text>
+            </Card>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="rewards" pt="xs">
+            <Card shadow="md" radius="md" p="xl">
+              <Text size="lg" fw={600}>Rewards Content</Text>
+            </Card>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="customers" pt="xs">
+            <Card shadow="md" radius="md" p="xl">
+              <Text size="lg" fw={600}>Customers Content</Text>
+            </Card>
+          </Tabs.Panel>
+        </Tabs>
       </AppShell.Main>
     </AppShell>
   );
