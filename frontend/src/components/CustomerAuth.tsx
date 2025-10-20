@@ -8,10 +8,11 @@ interface CustomerAuthProps {
   onLoginClick: () => void; // Added prop for navigation to login
   onRegisterClick: () => void; // Added prop for navigation to register
   onHomeClick: () => void; // New prop for Home button
+  initialIsRegistering?: boolean; // New prop to control initial state
 }
 
-const CustomerAuth: React.FC<CustomerAuthProps> = ({ onAuthSuccess, onLoginClick, onRegisterClick, onHomeClick }) => {
-  const [isRegistering, setIsRegistering] = useState(true);
+const CustomerAuth: React.FC<CustomerAuthProps> = ({ onAuthSuccess, onLoginClick, onRegisterClick, onHomeClick, initialIsRegistering = true }) => {
+  const [isRegistering, setIsRegistering] = useState(initialIsRegistering);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);

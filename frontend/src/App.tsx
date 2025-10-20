@@ -13,9 +13,9 @@ function App() {
   const [isMerchantLoggedIn, setIsMerchantLoggedIn] = useState(false);
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [customer, setCustomer] = useState<{ id: string; email: string } | null>(null);
-  const [showMerchantSignup, setShowMerchantSignup] = useState(false);
+  const [merchantAuthMode, setMerchantAuthMode] = useState<'login' | 'register' | null>(null);
+  const [customerAuthMode, setCustomerAuthMode] = useState<'login' | 'register' | null>(null);
   const [showLandingPage, setShowLandingPage] = useState(true);
-  const [showCustomerAuth, setShowCustomerAuth] = useState(false);
 
   useEffect(() => {
     const merchantToken = localStorage.getItem('merchantToken');
@@ -43,9 +43,9 @@ function App() {
     setCustomer(customerData);
     setIsMerchantLoggedIn(false);
     setMerchantId(null);
-    setShowMerchantSignup(false);
+    setMerchantAuthMode(null);
+    setCustomerAuthMode(null);
     setShowLandingPage(false);
-    setShowCustomerAuth(false);
   };
 
   const handleMerchantLoginSuccess = (merchantData: { id: string; email: string }) => {
@@ -54,21 +54,33 @@ function App() {
     setIsMerchantLoggedIn(true);
     setMerchantId(merchantData.id);
     setCustomer(null);
-    setShowMerchantSignup(false);
+    setMerchantAuthMode(null);
+    setCustomerAuthMode(null);
     setShowLandingPage(false);
-    setShowCustomerAuth(false);
   };
 
-  const handleLoginClick = () => {
+  const showMerchantLogin = () => {
     setShowLandingPage(false);
-    setShowCustomerAuth(true);
-    setShowMerchantSignup(false);
+    setCustomerAuthMode(null);
+    setMerchantAuthMode('login');
   };
 
-  const handleRegisterClick = () => {
+  const showMerchantRegister = () => {
     setShowLandingPage(false);
-    setShowMerchantSignup(true);
-    setShowCustomerAuth(false);
+    setCustomerAuthMode(null);
+    setMerchantAuthMode('register');
+  };
+
+  const showCustomerLogin = () => {
+    setShowLandingPage(false);
+    setMerchantAuthMode(null);
+    setCustomerAuthMode('login');
+  };
+
+  const showCustomerRegister = () => {
+    setShowLandingPage(false);
+    setMerchantAuthMode(null);
+    setCustomerAuthMode('register');
   };
 
   const handleLogout = () => {
@@ -80,20 +92,20 @@ function App() {
     setIsMerchantLoggedIn(false);
     setMerchantId(null);
     setCustomer(null);
+    setMerchantAuthMode(null);
+    setCustomerAuthMode(null);
     setShowLandingPage(true);
-    setShowCustomerAuth(false);
-    setShowMerchantSignup(false);
   };
 
   const handleHomeClick = () => {
     setShowLandingPage(true);
-    setShowCustomerAuth(false);
-    setShowMerchantSignup(false);
+    setMerchantAuthMode(null);
+    setCustomerAuthMode(null);
   };
 
   const renderContent = () => {
     if (showLandingPage) {
-      return <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} onHomeClick={handleHomeClick} />;
+      return <LandingPage onLoginClick={showCustomerLogin} onRegisterClick={showMerchantRegister} onHomeClick={handleHomeClick} />;
     } else if (isMerchantLoggedIn && merchantId) {
       return (
         <MerchantDashboardLayout merchantId={merchantId} onLogoutClick={handleLogout} onHomeClick={handleHomeClick}>
@@ -106,13 +118,13 @@ function App() {
           <CustomerApp customerId={customer.id} />
         </CustomerAppLayout>
       );
-    } else if (showMerchantSignup) {
-      return <MerchantSignup onAuthSuccess={handleMerchantLoginSuccess} onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} onHomeClick={handleHomeClick} />;
-    } else if (showCustomerAuth) {
-      return <CustomerAuth onAuthSuccess={handleCustomerAuthSuccess} onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} onHomeClick={handleHomeClick} />;
+    } else if (merchantAuthMode) {
+      return <MerchantSignup onAuthSuccess={handleMerchantLoginSuccess} onLoginClick={showCustomerLogin} onRegisterClick={showMerchantRegister} onHomeClick={handleHomeClick} initialIsRegistering={merchantAuthMode === 'register'} />;
+    } else if (customerAuthMode) {
+      return <CustomerAuth onAuthSuccess={handleCustomerAuthSuccess} onLoginClick={showCustomerLogin} onRegisterClick={showMerchantRegister} onHomeClick={handleHomeClick} initialIsRegistering={customerAuthMode === 'register'} />;
     } else {
       // Fallback to landing page if no specific state is active
-      return <LandingPage onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} onHomeClick={handleHomeClick} />;
+      return <LandingPage onLoginClick={showCustomerLogin} onRegisterClick={showMerchantRegister} onHomeClick={handleHomeClick} />;
     }
   };
 

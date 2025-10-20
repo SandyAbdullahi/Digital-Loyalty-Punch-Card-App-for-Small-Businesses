@@ -6,13 +6,14 @@ import AppNavbar from './AppNavbar';
 
 interface MerchantSignupProps {
   onAuthSuccess: (merchant: { id: string; email: string }) => void;
-  onLoginClick: () => void; // Added prop for navigation to login
-  onRegisterClick: () => void; // Added prop for navigation to register
+  onLoginClick: () => void; // Added prop for navigation to customer login
+  onRegisterClick: () => void; // Added prop for navigation to customer register
   onHomeClick: () => void; // New prop for Home button
+  initialIsRegistering?: boolean; // New prop to control initial state
 }
 
-const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess, onLoginClick, onRegisterClick, onHomeClick }) => {
-  const [isRegistering, setIsRegistering] = useState(true);
+const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess, onLoginClick, onRegisterClick, onHomeClick, initialIsRegistering = true }) => {
+  const [isRegistering, setIsRegistering] = useState(initialIsRegistering);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -89,7 +90,7 @@ const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess, onLoginC
               <TextInput label="Email" placeholder="you@mantine.dev" value={email} onChange={(event) => setEmail(event.currentTarget.value)} required mt={isRegistering ? "md" : undefined} />
               <PasswordInput label="Password" placeholder="Your password" value={password} onChange={(event) => setPassword(event.currentTarget.value)} required mt="md" />
               <Button fullWidth mt="xl" type="submit" loading={loading}>
-                {isRegistering ? 'Sign up' : 'Login'}
+                {loading ? 'Processing...' : (isRegistering ? 'Sign up' : 'Login')}
               </Button>
             </form>
             <Group justify="space-between" mt="md">
