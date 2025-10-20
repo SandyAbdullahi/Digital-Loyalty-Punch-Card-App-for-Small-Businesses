@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import MerchantDashboardLayout from './components/MerchantDashboardLayout';
 import MerchantSignup from './components/MerchantSignup'
 import MerchantDashboard from './components/MerchantDashboard'
 import CustomerAuth from './components/CustomerAuth'
@@ -30,7 +31,9 @@ function App() {
 
 
       {isMerchantLoggedIn && merchantId ? (
-        <MerchantDashboard merchantId={merchantId} />
+        <MerchantDashboardLayout merchantId={merchantId}>
+          <MerchantDashboard merchantId={merchantId} />
+        </MerchantDashboardLayout>
       ) : customer ? (
         <CustomerApp customerId={customer.id} />
       ) : showMerchantSignup ? (
