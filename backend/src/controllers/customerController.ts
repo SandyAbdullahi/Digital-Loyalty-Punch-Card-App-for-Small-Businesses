@@ -105,6 +105,23 @@ export const getCustomerStamps = async (req: Request, res: Response) => {
   }
 };
 
+export const getCustomerById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const customer = await customerService.getCustomerById(id);
+    if (!customer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    res.status(200).json({ id: customer.id, email: customer.email, createdAt: customer.createdAt });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to fetch customer', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch customer', details: 'An unknown error occurred' });
+    }
+  }
+};
+
 export const redeemReward = async (req: Request, res: Response) => {
   try {
     const { customerId } = req.params;

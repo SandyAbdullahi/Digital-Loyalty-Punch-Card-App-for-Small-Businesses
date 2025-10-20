@@ -138,6 +138,17 @@ export const getCustomerStamps = async (customerId: string): Promise<Stamp[]> =>
   });
 };
 
+export const getCustomerById = async (id: string): Promise<Customer | null> => {
+  return prisma.customer.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      createdAt: true,
+    },
+  });
+};
+
 export const redeemReward = async (customerId: string, loyaltyProgramId: string) => {
   const loyaltyProgram = await prisma.loyaltyProgram.findUnique({
     where: { id: loyaltyProgramId },

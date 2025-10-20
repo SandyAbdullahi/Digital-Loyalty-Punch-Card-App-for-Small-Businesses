@@ -77,7 +77,7 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
       const customerStamps: Stamp[] = customerStampsResponse.data;
 
       // Fetch customer details to get email
-      const customerResponse = await axios.get(`/api/customers/${customerId}`);
+      const customerResponse = await axios.get(`/api/customers/details/${customerId}`);
       setCustomerEmail(customerResponse.data.email);
 
       const cards: CustomerLoyaltyCard[] = [];
@@ -264,4 +264,3 @@ const CustomerApp: React.FC<CustomerAppProps> = ({ customerId }) => {
 };
 
 export default CustomerApp;
-
