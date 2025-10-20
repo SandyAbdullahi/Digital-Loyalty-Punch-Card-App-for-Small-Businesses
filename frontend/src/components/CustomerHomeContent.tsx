@@ -8,9 +8,9 @@ interface CustomerHomeContentProps {
 function CustomerHomeContent(props: CustomerHomeContentProps) {
   // Placeholder for fetching merchants near the customer
   const merchants = [
-    { id: '1', name: 'Coffee Corner', type: 'Cafe', location: 'Downtown', imageUrl: 'https://via.placeholder.com/150/00A3E8/FFFFFF?text=Coffee' },
-    { id: '2', name: 'Beauty Salon Deluxe', type: 'Salon', location: 'Uptown', imageUrl: 'https://via.placeholder.com/150/3EDC9D/FFFFFF?text=Salon' },
-    { id: '3', name: 'Book Nook', type: 'Bookstore', location: 'City Center', imageUrl: 'https://via.placeholder.com/150/2D2D2D/FFFFFF?text=Books' },
+    { id: '1', name: 'Coffee Corner', type: 'Cafe', location: 'Downtown', imageUrl: 'https://placehold.co/150x150/00A3E8/FFFFFF/png?text=Coffee' },
+    { id: '2', name: 'Beauty Salon Deluxe', type: 'Salon', location: 'Uptown', imageUrl: 'https://placehold.co/150x150/3EDC9D/FFFFFF/png?text=Salon' },
+    { id: '3', name: 'Book Nook', type: 'Bookstore', location: 'City Center', imageUrl: 'https://placehold.co/150x150/2D2D2D/FFFFFF/png?text=Books' },
   ];
 
   return (
