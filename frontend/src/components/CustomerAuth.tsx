@@ -72,6 +72,9 @@ const CustomerAuth: React.FC<CustomerAuthProps> = ({ onAuthSuccess, onLoginClick
               <Anchor component="button" type="button" c="dimmed" size="xs" onClick={() => setIsRegistering(!isRegistering)}>
                 {isRegistering ? 'Already have an account? Login' : 'Don\'t have an account? Register'}
               </Anchor>
+              <Anchor component="button" type="button" c="dimmed" size="xs" onClick={onRegisterClick}>
+                Are you a merchant? Login here
+              </Anchor>
             </Group>
           </Paper>
         </Container>

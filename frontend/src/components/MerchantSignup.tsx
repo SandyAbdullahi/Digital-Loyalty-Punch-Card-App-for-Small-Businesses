@@ -96,6 +96,9 @@ const MerchantSignup: React.FC<MerchantSignupProps> = ({ onAuthSuccess, onLoginC
               <Anchor component="button" type="button" c="dimmed" size="xs" onClick={() => setIsRegistering(!isRegistering)}>
                 {isRegistering ? 'Already have an account? Login' : 'Don\'t have an account? Register'}
               </Anchor>
+              <Anchor component="button" type="button" c="dimmed" size="xs" onClick={onLoginClick}>
+                Are you a customer? Login here
+              </Anchor>
             </Group>
           </Paper>
         </Container>
