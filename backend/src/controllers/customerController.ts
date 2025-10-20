@@ -124,6 +124,10 @@ export const deleteCustomerStampsForMerchant = async (req: Request, res: Respons
     if (error instanceof Error) {
       res.status(500).json({ error: 'Failed to disassociate customer', details: error.message });
     } else {
+      res.status(500).json({ error: 'Failed to disassociate customer', details: 'An unknown error occurred' });
+    }
+  }
+};
 
 export const getCustomerHistoryForMerchant = async (req: Request, res: Response) => {
   try {
