@@ -3,20 +3,21 @@ import { createRoot } from 'react-dom/client';
 import '@mantine/core/styles.css';
 import './index.css';
 import App from './App.tsx';
-import { MantineProvider, ColorSchemeProvider, ColorScheme } from '@mantine/core';
+import { MantineProvider, ColorSchemeScript } from '@mantine/core';
+import { useColorScheme } from '@mantine/hooks';
 import { theme } from './tokens';
 
 function Main() {
-  const [colorScheme, setColorScheme] = useState<ColorScheme>('light');
-  const toggleColorScheme = (value?: ColorScheme) =>
-    setColorScheme(value || (colorScheme === 'dark' ? 'light' : 'dark'));
+  const preferredColorScheme = useColorScheme();
+  const [colorScheme, setColorScheme] = useState<'light' | 'dark'>(preferredColorScheme);
+  const toggleColorScheme = () =>
+    setColorScheme((current) => (current === 'dark' ? 'light' : 'dark'));
 
   return (
-    <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
-      <MantineProvider theme={theme} withGlobalStyles withNormalizeCSS>
-        <App />
-      </MantineProvider>
-    </ColorSchemeProvider>
+    <MantineProvider theme={theme} defaultColorScheme={colorScheme}>
+      <ColorSchemeScript defaultColorScheme={colorScheme} />
+      <App />
+    </MantineProvider>
   );
 }
 
