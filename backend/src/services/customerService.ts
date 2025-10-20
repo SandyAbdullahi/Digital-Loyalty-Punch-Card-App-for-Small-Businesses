@@ -4,6 +4,12 @@ import { sendPushNotification } from '../services/notificationService';
 
 const prisma = new PrismaClient();
 
+interface CustomerListItem {
+  id: string;
+  email: string;
+  createdAt: Date;
+}
+
 export const createCustomer = async (data: Prisma.CustomerCreateInput): Promise<Customer> => {
   const hashedPassword = await bcrypt.hash(data.password, 10);
   try {
@@ -102,7 +108,7 @@ export const updateCustomerProfile = async (id: string, data: Prisma.CustomerUpd
   });
 };
 
-export const getCustomersByMerchantId = async (merchantId: string): Promise<Customer[]> => {
+export const getCustomersByMerchantId = async (merchantId: string): Promise<CustomerListItem[]> => {
   // Find all unique customer IDs that have stamps with this merchant
   const customerStamps = await prisma.stamp.findMany({
     where: { merchantId },
