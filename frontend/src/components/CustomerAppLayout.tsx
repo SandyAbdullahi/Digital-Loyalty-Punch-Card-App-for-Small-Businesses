@@ -33,7 +33,20 @@ function CustomerAppLayout({ customerId, children }: CustomerAppLayoutProps) {
       </AppShell.Header>
 
       <AppShell.Main>
-        {children}
+        <Tabs value={activeTab}>
+          <Tabs.Panel value="home">
+            <Text size="lg" fw={600}>Home Content (Merchants Near You)</Text>
+          </Tabs.Panel>
+          <Tabs.Panel value="card">
+            {children}
+          </Tabs.Panel>
+          <Tabs.Panel value="rewards">
+            <Text size="lg" fw={600}>Rewards Content</Text>
+          </Tabs.Panel>
+          <Tabs.Panel value="profile">
+            <Text size="lg" fw={600}>Profile Content</Text>
+          </Tabs.Panel>
+        </Tabs>
       </AppShell.Main>
 
       <AppShell.Footer>
