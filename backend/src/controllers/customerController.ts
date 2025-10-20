@@ -97,3 +97,17 @@ export const updateCustomerProfile = async (req: Request, res: Response) => {
     }
   }
 };
+
+export const getCustomersByMerchantId = async (req: Request, res: Response) => {
+  try {
+    const { merchantId } = req.params;
+    const customers = await customerService.getCustomersByMerchantId(merchantId);
+    res.status(200).json(customers);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: 'Failed to fetch customers for merchant', details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch customers for merchant', details: 'An unknown error occurred' });
+    }
+  }
+};

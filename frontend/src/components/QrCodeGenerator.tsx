@@ -57,6 +57,10 @@ const QrCodeGenerator: React.FC<QrCodeGeneratorProps> = ({ loyaltyProgramId }) =
         />
       </Group>
 
+      <Text ta="center" size="sm" c="dimmed" mb="md">
+        Loyalty Program ID: <Text span fw={700}>{loyaltyProgramId}</Text>
+      </Text>
+
       <Group justify="center">
         <CopyButton value={qrCodeLink} timeout={2000}>
           {({ copied, copy }) => (

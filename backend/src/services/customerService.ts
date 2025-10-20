@@ -101,3 +101,24 @@ export const updateCustomerProfile = async (id: string, data: Prisma.CustomerUpd
     data,
   });
 };
+
+export const getCustomersByMerchantId = async (merchantId: string): Promise<Customer[]> => {
+  // Find all unique customer IDs that have stamps with this merchant
+  const customerStamps = await prisma.stamp.findMany({
+    where: { merchantId },
+    distinct: ['customerId'],
+    select: { customerId: true },
+  });
+
+  const customerIds = customerStamps.map(stamp => stamp.customerId);
+
+  // Fetch the customer details for these IDs
+  return prisma.customer.findMany({
+    where: {
+      id: {
+        in: customerIds,
+      },
+    },
+    select: { id: true, email: true, createdAt: true }, // Select relevant customer fields
+  });
+};
