@@ -1,0 +1,12 @@
+{
+  "name": "rudi-app",
+  "private": true,
+  "workspaces": [
+    "merchant-frontend",
+    "customer-frontend",
+    "packages/ui"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
