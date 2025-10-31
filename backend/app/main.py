@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.v1.auth import router as auth_router
+from .api.v1.merchants import router as merchants_router
 from .core.config import settings
 
 app = FastAPI(
@@ -20,6 +21,7 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(merchants_router, prefix=f"{settings.API_V1_STR}/merchants", tags=["merchants"])
 
 @app.get("/health")
 def health_check():
