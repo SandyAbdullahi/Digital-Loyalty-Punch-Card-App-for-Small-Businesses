@@ -1,4 +1,5 @@
 import math
+import redis
 from datetime import datetime, timedelta
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ...core.config import settings
+from ...core.limiter import limiter
 from ...db.session import get_db
 from ...api.deps import get_current_user
 from ...services.membership import get_membership_by_customer_and_program, earn_stamps
@@ -15,6 +17,8 @@ from ...services.auth import get_user_by_email
 from ...services.merchant import get_location
 
 router = APIRouter()
+
+redis_client = redis.from_url(settings.REDIS_URL)
 
 
 class QRToken(BaseModel):
@@ -25,6 +29,7 @@ class ScanRequest(BaseModel):
     token: str
     lat: float | None = None
     lng: float | None = None
+    device_fingerprint: str | None = None
 
 
 def verify_token(token: str) -> dict:
@@ -86,47 +91,60 @@ def issue_stamp_qr(location_id: UUID, purchase_total: float | None = None, db: S
 
 
 @router.post("/scan-join")
+@limiter.limit("10/minute")
 def scan_join(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     payload = verify_token(request.token)
     if payload.get("type") != "join":
         raise HTTPException(status_code=400, detail="Invalid token type")
-    
+
+    nonce = payload["nonce"]
+    if redis_client.exists(nonce):
+        raise HTTPException(status_code=400, detail="Token already used")
+
     # Check expiration
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
-    
+
     location_id = UUID(payload["location_id"])
     location = get_location(db, location_id)
     if not location:
         raise HTTPException(status_code=404, detail="Location not found")
-    
+
     # Geofence check
     if request.lat is not None and request.lng is not None:
         if not check_geofence(request.lat, request.lng, location.lat, location.lng):
             raise HTTPException(status_code=400, detail="Not near location")
-    
+
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # Create membership if not exists
     membership = get_membership_by_customer_and_program(db, user.id, location.merchant.programs[0].id)  # Assume first program
     if not membership:
-        from ....services.membership import create_membership
-        from ....schemas.customer_program_membership import CustomerProgramMembershipCreate
+        from ...services.membership import create_membership
+        from ...schemas.customer_program_membership import CustomerProgramMembershipCreate
         membership = create_membership(db, CustomerProgramMembershipCreate(
             customer_user_id=user.id,
             program_id=location.merchant.programs[0].id,
         ))
-    
+
+    # Mark nonce as used
+    redis_client.setex(nonce, 300, "used")
+
     return {"message": "Joined program", "membership_id": membership.id}
 
 
 @router.post("/scan-stamp")
+@limiter.limit("10/minute")
 def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     payload = verify_token(request.token)
     if payload.get("type") != "stamp":
         raise HTTPException(status_code=400, detail="Invalid token type")
+
+    nonce = payload["nonce"]
+    if redis_client.exists(nonce):
+        raise HTTPException(status_code=400, detail="Token already used")
 
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
@@ -148,8 +166,11 @@ def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user
     if not membership:
         raise HTTPException(status_code=404, detail="Not a member")
 
-    # Earn stamps (placeholder logic)
-    earn_stamps(db, membership.id, 1, tx_ref=payload.get("nonce"), device_fingerprint=None)
+    # Earn stamps
+    earn_stamps(db, membership.id, 1, tx_ref=nonce, device_fingerprint=request.device_fingerprint)
+
+    # Mark nonce as used
+    redis_client.setex(nonce, 300, "used")
 
     return {"message": "Stamp earned", "new_balance": membership.current_balance}
 
@@ -175,10 +196,15 @@ def issue_redeem_qr(location_id: UUID, amount: int, db: Session = Depends(get_db
 
 
 @router.post("/scan-redeem")
+@limiter.limit("10/minute")
 def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     payload = verify_token(request.token)
     if payload.get("type") != "redeem":
         raise HTTPException(status_code=400, detail="Invalid token type")
+
+    nonce = payload["nonce"]
+    if redis_client.exists(nonce):
+        raise HTTPException(status_code=400, detail="Token already used")
 
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
@@ -206,8 +232,11 @@ def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_use
 
     # Redeem stamps
     from ...services.membership import redeem_stamps
-    updated_membership = redeem_stamps(db, membership.id, amount, tx_ref=payload.get("nonce"), device_fingerprint=None)
+    updated_membership = redeem_stamps(db, membership.id, amount, tx_ref=nonce, device_fingerprint=request.device_fingerprint)
     if not updated_membership:
         raise HTTPException(status_code=400, detail="Redeem failed")
+
+    # Mark nonce as used
+    redis_client.setex(nonce, 300, "used")
 
     return {"message": "Stamps redeemed", "new_balance": updated_membership.current_balance}

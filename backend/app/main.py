@@ -6,11 +6,14 @@ from .api.v1.merchants import router as merchants_router
 from .api.v1.programs import router as programs_router
 from .api.v1.qr import router as qr_router
 from .core.config import settings
+from .core.limiter import limiter
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+app.state.limiter = limiter
 
 # Set up CORS
 if settings.BACKEND_CORS_ORIGINS:
