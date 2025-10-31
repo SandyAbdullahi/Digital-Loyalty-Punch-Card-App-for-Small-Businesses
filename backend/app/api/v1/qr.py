@@ -127,28 +127,87 @@ def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user
     payload = verify_token(request.token)
     if payload.get("type") != "stamp":
         raise HTTPException(status_code=400, detail="Invalid token type")
-    
+
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
-    
+
     location_id = UUID(payload["location_id"])
     location = get_location(db, location_id)
     if not location:
         raise HTTPException(status_code=404, detail="Location not found")
-    
+
     if request.lat is not None and request.lng is not None:
         if not check_geofence(request.lat, request.lng, location.lat, location.lng):
             raise HTTPException(status_code=400, detail="Not near location")
-    
+
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     membership = get_membership_by_customer_and_program(db, user.id, location.merchant.programs[0].id)
     if not membership:
         raise HTTPException(status_code=404, detail="Not a member")
-    
+
     # Earn stamps (placeholder logic)
     earn_stamps(db, membership.id, 1, tx_ref=payload.get("nonce"), device_fingerprint=None)
-    
+
     return {"message": "Stamp earned", "new_balance": membership.current_balance}
+
+
+@router.post("/issue-redeem", response_model=QRToken)
+def issue_redeem_qr(location_id: UUID, amount: int, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    user = get_user_by_email(db, current_user)
+    if not user or user.role != "merchant":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    location = get_location(db, location_id)
+    if not location or location.merchant.owner_user_id != user.id:
+        raise HTTPException(status_code=404, detail="Location not found")
+
+    payload = {
+        "type": "redeem",
+        "location_id": str(location_id),
+        "amount": amount,
+        "exp": (datetime.utcnow() + timedelta(seconds=120)).timestamp(),
+        "nonce": str(UUID()),
+    }
+    token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
+    return QRToken(token=token)
+
+
+@router.post("/scan-redeem")
+def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    payload = verify_token(request.token)
+    if payload.get("type") != "redeem":
+        raise HTTPException(status_code=400, detail="Invalid token type")
+
+    if datetime.utcnow().timestamp() > payload["exp"]:
+        raise HTTPException(status_code=400, detail="Token expired")
+
+    location_id = UUID(payload["location_id"])
+    location = get_location(db, location_id)
+    if not location:
+        raise HTTPException(status_code=404, detail="Location not found")
+
+    if request.lat is not None and request.lng is not None:
+        if not check_geofence(request.lat, request.lng, location.lat, location.lng):
+            raise HTTPException(status_code=400, detail="Not near location")
+
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    membership = get_membership_by_customer_and_program(db, user.id, location.merchant.programs[0].id)
+    if not membership:
+        raise HTTPException(status_code=404, detail="Not a member")
+
+    amount = payload["amount"]
+    if membership.current_balance < amount:
+        raise HTTPException(status_code=400, detail="Insufficient balance")
+
+    # Redeem stamps
+    from ...services.membership import redeem_stamps
+    updated_membership = redeem_stamps(db, membership.id, amount, tx_ref=payload.get("nonce"), device_fingerprint=None)
+    if not updated_membership:
+        raise HTTPException(status_code=400, detail="Redeem failed")
+
+    return {"message": "Stamps redeemed", "new_balance": updated_membership.current_balance}
