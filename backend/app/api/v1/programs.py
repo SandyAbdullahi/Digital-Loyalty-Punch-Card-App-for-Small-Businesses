@@ -4,9 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from ....db.session import get_db
-from ....api.deps import get_current_user
-from ....services.loyalty_program import (
+from ...db.session import get_db
+from ...api.deps import get_current_user
+from ...services.loyalty_program import (
     create_loyalty_program,
     get_loyalty_program,
     get_loyalty_programs_by_merchant,
@@ -14,7 +14,7 @@ from ....services.loyalty_program import (
     delete_loyalty_program,
     get_public_loyalty_programs,
 )
-from ....schemas.loyalty_program import LoyaltyProgram, LoyaltyProgramCreate, LoyaltyProgramUpdate
+from ...schemas.loyalty_program import LoyaltyProgram, LoyaltyProgramCreate, LoyaltyProgramUpdate
 
 router = APIRouter()
 

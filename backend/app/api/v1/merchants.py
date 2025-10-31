@@ -4,9 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from ....db.session import get_db
-from ....api.deps import get_current_user
-from ....services.merchant import (
+from ...db.session import get_db
+from ...api.deps import get_current_user
+from ...services.merchant import (
     create_merchant,
     get_merchant,
     get_merchants_by_owner,
@@ -19,8 +19,8 @@ from ....services.merchant import (
     delete_location,
     search_merchants,
 )
-from ....schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
-from ....schemas.location import Location, LocationCreate, LocationUpdate
+from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
+from ...schemas.location import Location, LocationCreate, LocationUpdate
 
 router = APIRouter()
 

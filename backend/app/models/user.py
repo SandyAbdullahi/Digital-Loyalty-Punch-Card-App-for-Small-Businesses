@@ -4,7 +4,7 @@ from enum import Enum
 
 from sqlalchemy import Boolean, Column, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db.base import Base
 
@@ -31,3 +31,4 @@ class User(Base):
 
     # Relationship
     merchants: Mapped[list["Merchant"]] = relationship("Merchant", back_populates="owner")
+    memberships: Mapped[list["CustomerProgramMembership"]] = relationship("CustomerProgramMembership", back_populates="customer")
