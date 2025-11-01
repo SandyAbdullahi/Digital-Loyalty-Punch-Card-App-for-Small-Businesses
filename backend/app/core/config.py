@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from pydantic import AnyHttpUrl, field_validator, ValidationInfo
+from pydantic import AnyHttpUrl, ConfigDict, field_validator, ValidationInfo
 from pydantic_settings import BaseSettings
 
 
@@ -31,8 +31,7 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
-    class Config:
-        env_file = ".env"
+    model_config = ConfigDict(env_file=".env")
 
 
 settings = Settings()

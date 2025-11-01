@@ -18,6 +18,12 @@ def get_membership_by_customer_and_program(db: Session, customer_user_id: UUID, 
     ).first()
 
 
+def get_memberships_by_customer(db: Session, customer_user_id: UUID) -> list[CustomerProgramMembership]:
+    return db.query(CustomerProgramMembership).filter(
+        CustomerProgramMembership.customer_user_id == customer_user_id
+    ).all()
+
+
 def create_membership(db: Session, membership: CustomerProgramMembershipCreate) -> CustomerProgramMembership:
     db_membership = CustomerProgramMembership(
         customer_user_id=membership.customer_user_id,

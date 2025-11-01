@@ -1,3 +1,4 @@
+import json
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -19,8 +20,8 @@ def create_loyalty_program(db: Session, program: LoyaltyProgramCreate, merchant_
         name=program.name,
         description=program.description,
         logic_type=program.logic_type,
-        earn_rule=program.earn_rule,
-        redeem_rule=program.redeem_rule,
+        earn_rule=json.dumps(program.earn_rule),
+        redeem_rule=json.dumps(program.redeem_rule),
         terms=program.terms,
     )
     db.add(db_program)

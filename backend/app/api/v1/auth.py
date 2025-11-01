@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ...core.security import create_access_token, create_refresh_token
 from ...db.session import get_db
 from ...schemas.auth import AuthRequest, Token
+from ...schemas.user import UserCreate
 from ...services.auth import authenticate_user, create_user, get_user_by_email
 
 router = APIRouter()
@@ -29,7 +30,7 @@ def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
         user = create_user(db, user_create)
 
     # Update last login
-    from ....services.auth import update_last_login
+    from ...services.auth import update_last_login
     update_last_login(db, user)
 
     # Create tokens

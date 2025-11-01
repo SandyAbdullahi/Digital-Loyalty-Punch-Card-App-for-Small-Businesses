@@ -24,3 +24,4 @@ class Merchant(Base):
     # Relationship
     owner: Mapped["User"] = relationship("User", back_populates="merchants")
     locations: Mapped[list["Location"]] = relationship("Location", back_populates="merchant")
+    programs: Mapped[list["LoyaltyProgram"]] = relationship("LoyaltyProgram", back_populates="merchant")

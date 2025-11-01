@@ -18,10 +18,11 @@ class LoyaltyProgram(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     logic_type: Mapped[str] = mapped_column(String, nullable=False)  # punch_card or points
-    earn_rule: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    redeem_rule: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    earn_rule: Mapped[str] = mapped_column(Text, nullable=False)
+    redeem_rule: Mapped[str] = mapped_column(Text, nullable=False)
     terms: Mapped[str] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationship
     merchant: Mapped["Merchant"] = relationship("Merchant", back_populates="programs")
+    memberships: Mapped[list["CustomerProgramMembership"]] = relationship("CustomerProgramMembership", back_populates="program")

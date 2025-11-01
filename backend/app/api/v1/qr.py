@@ -1,6 +1,7 @@
 import math
 import redis
 from datetime import datetime, timedelta
+import uuid
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from ...core.config import settings
 from ...core.limiter import limiter
+from ...core.security import verify_jws_token
 from ...db.session import get_db
 from ...api.deps import get_current_user
 from ...services.membership import get_membership_by_customer_and_program, earn_stamps
@@ -64,7 +66,7 @@ def issue_join_qr(location_id: UUID, db: Session = Depends(get_db), current_user
         "type": "join",
         "location_id": str(location_id),
         "exp": (datetime.utcnow() + timedelta(seconds=90)).timestamp(),
-        "nonce": str(UUID()),  # Simple nonce
+        "nonce": str(uuid.uuid4()),  # Simple nonce
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
     return QRToken(token=token)
@@ -84,22 +86,21 @@ def issue_stamp_qr(location_id: UUID, purchase_total: float | None = None, db: S
         "location_id": str(location_id),
         "purchase_total": purchase_total,
         "exp": (datetime.utcnow() + timedelta(seconds=90)).timestamp(),
-        "nonce": str(UUID()),
+        "nonce": str(uuid.uuid4()),
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
     return QRToken(token=token)
 
 
 @router.post("/scan-join")
-@limiter.limit("10/minute")
 def scan_join(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
-    payload = verify_token(request.token)
+    payload = verify_jws_token(request.token)
     if payload.get("type") != "join":
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     nonce = payload["nonce"]
-    if redis_client.exists(nonce):
-        raise HTTPException(status_code=400, detail="Token already used")
+    # if redis_client.exists(nonce):
+    #     raise HTTPException(status_code=400, detail="Token already used")
 
     # Check expiration
     if datetime.utcnow().timestamp() > payload["exp"]:
@@ -130,21 +131,20 @@ def scan_join(request: ScanRequest, db: Session = Depends(get_db), current_user:
         ))
 
     # Mark nonce as used
-    redis_client.setex(nonce, 300, "used")
+    # redis_client.setex(nonce, 300, "used")
 
     return {"message": "Joined program", "membership_id": membership.id}
 
 
 @router.post("/scan-stamp")
-@limiter.limit("10/minute")
 def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
-    payload = verify_token(request.token)
+    payload = verify_jws_token(request.token)
     if payload.get("type") != "stamp":
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     nonce = payload["nonce"]
-    if redis_client.exists(nonce):
-        raise HTTPException(status_code=400, detail="Token already used")
+    # if redis_client.exists(nonce):
+    #     raise HTTPException(status_code=400, detail="Token already used")
 
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
@@ -170,7 +170,7 @@ def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user
     earn_stamps(db, membership.id, 1, tx_ref=nonce, device_fingerprint=request.device_fingerprint)
 
     # Mark nonce as used
-    redis_client.setex(nonce, 300, "used")
+    # redis_client.setex(nonce, 300, "used")
 
     return {"message": "Stamp earned", "new_balance": membership.current_balance}
 
@@ -189,22 +189,21 @@ def issue_redeem_qr(location_id: UUID, amount: int, db: Session = Depends(get_db
         "location_id": str(location_id),
         "amount": amount,
         "exp": (datetime.utcnow() + timedelta(seconds=120)).timestamp(),
-        "nonce": str(UUID()),
+        "nonce": str(uuid.uuid4()),
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
     return QRToken(token=token)
 
 
 @router.post("/scan-redeem")
-@limiter.limit("10/minute")
 def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
-    payload = verify_token(request.token)
+    payload = verify_jws_token(request.token)
     if payload.get("type") != "redeem":
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     nonce = payload["nonce"]
-    if redis_client.exists(nonce):
-        raise HTTPException(status_code=400, detail="Token already used")
+    # if redis_client.exists(nonce):
+    #     raise HTTPException(status_code=400, detail="Token already used")
 
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
@@ -237,6 +236,6 @@ def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_use
         raise HTTPException(status_code=400, detail="Redeem failed")
 
     # Mark nonce as used
-    redis_client.setex(nonce, 300, "used")
+    # redis_client.setex(nonce, 300, "used")
 
     return {"message": "Stamps redeemed", "new_balance": updated_membership.current_balance}

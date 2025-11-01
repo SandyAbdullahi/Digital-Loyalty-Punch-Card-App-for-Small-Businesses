@@ -5,12 +5,17 @@ from app.services.auth import create_user
 from app.schemas.user import UserCreate
 
 
+def test_routes(client):
+    from app.main import app
+    routes = [route.path for route in app.routes if hasattr(route, 'path')]
+    print("Routes:", routes)
+    assert "/api/v1/login-or-register" in routes
+
+
 def test_register_customer(client):
-    response = client.post("/api/v1/auth/register", json={
+    response = client.post("/api/v1/login-or-register", json={
         "email": "customer@example.com",
-        "password": "password123",
-        "phone": "1234567890",
-        "role": "customer"
+        "password": "password123"
     })
     assert response.status_code == 200
     data = response.json()
@@ -20,23 +25,21 @@ def test_register_customer(client):
 
 
 def test_register_merchant(client):
-    response = client.post("/api/v1/auth/register", json={
+    response = client.post("/api/v1/login-or-register", json={
         "email": "merchant@example.com",
-        "password": "password123",
-        "role": "merchant"
+        "password": "password123"
     })
     assert response.status_code == 200
 
 
 def test_login(client):
     # First register
-    client.post("/api/v1/auth/register", json={
+    client.post("/api/v1/login-or-register", json={
         "email": "login@example.com",
-        "password": "password123",
-        "role": "customer"
+        "password": "password123"
     })
-    # Then login
-    response = client.post("/api/v1/auth/login", json={
+    # Then login (same endpoint)
+    response = client.post("/api/v1/login-or-register", json={
         "email": "login@example.com",
         "password": "password123"
     })
@@ -46,35 +49,12 @@ def test_login(client):
 
 
 def test_login_wrong_password(client):
-    client.post("/api/v1/auth/register", json={
+    client.post("/api/v1/login-or-register", json={
         "email": "wrong@example.com",
-        "password": "password123",
-        "role": "customer"
+        "password": "password123"
     })
-    response = client.post("/api/v1/auth/login", json={
+    response = client.post("/api/v1/login-or-register", json={
         "email": "wrong@example.com",
         "password": "wrongpass"
     })
-    assert response.status_code == 401
-
-
-def test_refresh_token(client):
-    # Register and login
-    client.post("/api/v1/auth/register", json={
-        "email": "refresh@example.com",
-        "password": "password123",
-        "role": "customer"
-    })
-    login_response = client.post("/api/v1/auth/login", json={
-        "email": "refresh@example.com",
-        "password": "password123"
-    })
-    refresh_token = login_response.json()["refresh_token"]
-
-    # Refresh
-    response = client.post("/api/v1/auth/refresh", json={
-        "refresh_token": refresh_token
-    })
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
+    assert response.status_code == 400

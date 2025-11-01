@@ -1,14 +1,33 @@
 from datetime import datetime, timedelta
 from typing import Any, Union
 
-from jose import jwt
+from jose import jwt, jws
 from passlib.context import CryptContext
 
 from .config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 ALGORITHM = "HS256"
+
+
+def verify_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+
+def verify_jws_token(token: str) -> dict:
+    try:
+        payload = jws.verify(token, settings.SIGNING_KEY, algorithms=["HS256"])
+        if isinstance(payload, bytes):
+            import json
+            payload = json.loads(payload.decode('utf-8'))
+        return payload
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid token")
 
 
 def create_access_token(
