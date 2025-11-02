@@ -1,7 +1,7 @@
-import { FormEvent, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { TextInput, Button, Paper, Anchor, Stack, Alert } from '@mantine/core';
 import Logo from '../components/Logo';
-import FormField from '../components/FormField';
 import { useAuth } from '../contexts/AuthContext';
 
 const AUTO_PASSWORD = 'rudi-autogen';
@@ -13,7 +13,7 @@ const Register = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     setIsSubmitting(true);
@@ -29,54 +29,165 @@ const Register = () => {
   };
 
   return (
-    <main className="min-h-screen bg-rudi-sand text-rudi-maroon flex flex-col items-center px-4 py-10">
-      <header className="w-full max-w-md flex flex-col items-center gap-4 mb-8">
-        <Logo />
-        <div className="text-center space-y-2">
-          <h1 className="font-heading text-2xl font-semibold">Create your account</h1>
-          <p className="text-sm text-rudi-maroon/80">If your email already exists we’ll log you in automatically.</p>
-        </div>
-      </header>
-      <section className="w-full max-w-md rudi-card p-6 space-y-6">
-        <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-          <FormField
-            id="register-email"
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            placeholder="you@email.com"
-            required
-            helperText="We’ll send you updates about your rewards."
-          />
-          {error && (
-            <p className="text-sm text-rudi-coral rounded-md bg-rudi-coral/10 px-3 py-2" role="alert">
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            className="rudi-btn rudi-btn--secondary w-full flex items-center justify-center"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Creating…' : 'Create account'}
-          </button>
-        </form>
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="rudi-btn rudi-btn--primary w-full"
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#FDF6EC',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '28rem',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Logo
+          size="xl"
+          style={{ transform: 'scale(0.4)', transformOrigin: 'center', marginBottom: '-4.5rem' }}
+        />
+        <h2
+          style={{
+            fontFamily: 'var(--mantine-font-family-headings)',
+            fontWeight: 'bold',
+            fontSize: 'clamp(3rem, 4.8vw, 3.6rem)',
+            marginTop: '-2rem',
+            marginBottom: '1.5rem',
+            color: '#3B1F1E',
+          }}
         >
-          Back to login
-        </button>
-      </section>
-      <div className="mt-6">
-        <Link to="/how-it-works" className="rudi-link text-sm">
-          How it works
-        </Link>
+          rudi
+        </h2>
+        <Paper
+          shadow="md"
+          radius="xl"
+          p={{ base: 'md', md: 'lg' }}
+          style={{
+            width: '100%',
+            backgroundColor: 'white',
+            borderRadius: '1rem',
+          }}
+        >
+          <h3
+            style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              color: '#3B1F1E',
+              textAlign: 'center',
+              marginBottom: '1rem',
+            }}
+          >
+            Register
+          </h3>
+          <form onSubmit={handleSubmit} noValidate>
+            <Stack gap="md">
+              <TextInput
+                placeholder="Email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="email"
+                required
+                styles={{
+                  input: {
+                    height: '3rem',
+                    borderRadius: '0.75rem',
+                    backgroundColor: '#FFF9F0',
+                    borderColor: '#EADCC7',
+                    color: '#3B1F1E',
+                    fontWeight: 600,
+                    paddingLeft: '1rem',
+                    paddingRight: '1rem',
+                    transition: 'all 200ms ease',
+                    '&:focus': {
+                      outline: 'none',
+                      ring: '2px solid #009688',
+                    },
+                  },
+                }}
+              />
+              {error && (
+                <Alert color="red" variant="light">
+                  {error}
+                </Alert>
+              )}
+              <Stack gap="xs">
+                <Button
+                  type="submit"
+                  loading={isSubmitting}
+                  fullWidth
+                  size="md"
+                  style={{
+                    height: '3rem',
+                    borderRadius: '0.75rem',
+                    backgroundColor: '#FF6F61',
+                    transition: 'all 200ms ease',
+                    '&:hover': {
+                      backgroundColor: '#E55A50',
+                    },
+                    '&:focus': {
+                      outline: 'none',
+                      boxShadow: '2px solid #009688',
+                    },
+                  }}
+                >
+                  {isSubmitting ? 'Creating…' : 'Create account'}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  variant="filled"
+                  fullWidth
+                  size="md"
+                  style={{
+                    height: '3rem',
+                    borderRadius: '0.75rem',
+                    backgroundColor: '#FFB300',
+                    color: '#3B1F1E',
+                    transition: 'all 200ms ease',
+                    '&:hover': {
+                      backgroundColor: '#FFC633',
+                    },
+                    '&:focus': {
+                      outline: 'none',
+                      boxShadow: '2px solid #009688',
+                    },
+                  }}
+                >
+                  Back to login
+                </Button>
+              </Stack>
+            </Stack>
+          </form>
+        </Paper>
+        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+          <Link
+            to="/how-it-works"
+            style={{
+              fontSize: '0.875rem',
+              color: '#009688',
+              textDecoration: 'none',
+              transition: 'all 200ms ease',
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.textDecoration = 'underline')
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.textDecoration = 'none')
+            }
+          >
+            How it works
+          </Link>
+        </div>
       </div>
-    </main>
+    </div>
   );
 };
 

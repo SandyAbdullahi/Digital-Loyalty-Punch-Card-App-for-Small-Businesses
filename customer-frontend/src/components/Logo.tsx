@@ -1,18 +1,28 @@
-const Logo = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' | 'xl' }) => {
+import React from 'react';
+
+type LogoSize = 'sm' | 'md' | 'lg' | 'xl';
+
+interface LogoProps {
+  size?: LogoSize;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+const Logo = ({ size = 'md', className = '', style }: LogoProps) => {
   const dimension = {
-    sm: 'h-10 w-10 text-2xl',
-    md: 'h-12 w-12 text-3xl',
-    lg: 'h-16 w-16 text-4xl',
-    xl: 'h-24 w-24 text-5xl',
+    sm: 'h-2 w-2',
+    md: 'h-2.5 w-2.5',
+    lg: 'h-3 w-3',
+    xl: 'h-5 w-5',
   }[size];
 
   return (
-    <div
-      className={`flex items-center justify-center rounded-rudi bg-rudi-teal text-white font-heading font-bold ${dimension}`}
-      aria-label="Rudi logo"
-    >
-      R
-    </div>
+    <img
+      src="/logo-1.png"
+      alt="Rudi logo"
+      className={`${dimension} object-contain ${className}`}
+      style={style}
+    />
   );
 };
 
