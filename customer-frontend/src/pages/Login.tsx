@@ -28,10 +28,10 @@ const Login = () => {
   };
 
   return (
-    <main className="min-h-screen bg-[#FDF6EC] text-[#3B1F1E] flex flex-col items-center justify-center px-4">
+    <main className="min-h-screen bg-[#1E90FF] text-white flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-md flex flex-col items-center">
         <Logo size="xl" />
-        <h2 className="font-heading font-bold text-2xl md:text-3xl mt-4 mb-6">rudi</h2>
+        <h2 className="font-heading font-bold text-2xl md:text-3xl mt-4 mb-6 text-white">rudi</h2>
         <div className="w-full bg-white rounded-2xl shadow-md p-6 md:p-7 space-y-4">
           <form className="space-y-4" onSubmit={handleSubmit} noValidate>
             <div>
@@ -59,7 +59,7 @@ const Login = () => {
               />
             </div>
             <div className="flex justify-end">
-              <a href="#" className="text-sm text-[#009688] hover:underline transition duration-200">Forgot password?</a>
+              <a href="#" className="text-sm text-white hover:underline transition duration-200">Forgot password?</a>
             </div>
             {error && (
               <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md" role="alert">
@@ -83,7 +83,7 @@ const Login = () => {
           </button>
         </div>
         <div className="text-center mt-6">
-          <Link to="/how-it-works" className="text-sm text-[#009688] hover:underline transition duration-200">
+          <Link to="/how-it-works" className="text-sm text-white hover:underline transition duration-200">
             How it works
           </Link>
         </div>
