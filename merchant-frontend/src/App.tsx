@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Locations from './pages/Locations'
 import QR from './pages/QR'
+import Programs from './pages/Programs'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -21,6 +22,7 @@ function App() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/programs" element={<ProtectedRoute><Programs /></ProtectedRoute>} />
         <Route path="/locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
         <Route path="/qr" element={<ProtectedRoute><QR /></ProtectedRoute>} />
         <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
