@@ -28,37 +28,133 @@ const HowItWorks = () => {
   const navigate = useNavigate();
 
   return (
-    <main className="min-h-screen bg-rudi-sand text-rudi-maroon font-body flex flex-col">
-      <div className="px-4 py-8 space-y-8">
-        <Logo />
-        <header className="space-y-2">
-          <h1 className="font-heading text-3xl font-semibold">How it works</h1>
-          <p className="text-rudi-maroon/75">
-            Rudi makes it easy to earn rewards at local businesses while keeping every stamp verified.
-          </p>
-        </header>
-        <ol className="space-y-4">
-          {steps.map((step, index) => (
-            <li key={step.title} className="rudi-card p-4 flex items-start gap-3" aria-label={step.title}>
-              <span className="text-2xl" aria-hidden="true">
-                {step.emoji}
-              </span>
-              <div>
-                <h2 className="font-heading text-lg font-semibold">
-                  {index + 1}. {step.title}
-                </h2>
-                <p className="text-sm text-rudi-maroon/80">{step.description}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#FDF6EC',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '28rem',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Logo
+          size="xl"
+          style={{ transform: 'scale(0.4)', transformOrigin: 'center', marginBottom: '-4.5rem' }}
+        />
+        <h2
+          style={{
+            fontFamily: 'var(--mantine-font-family-headings)',
+            fontWeight: 'bold',
+            fontSize: 'clamp(3rem, 4.8vw, 3.6rem)',
+            marginTop: '-2rem',
+            marginBottom: '1.5rem',
+            color: '#3B1F1E',
+          }}
+        >
+          rudi
+        </h2>
+        <div style={{ width: '100%', padding: '1rem' }}>
+          <header style={{ marginBottom: '2rem' }}>
+            <h1
+              style={{
+                fontFamily: 'var(--mantine-font-family-headings)',
+                fontSize: '1.875rem',
+                fontWeight: '600',
+                color: '#3B1F1E',
+                textAlign: 'center',
+                marginBottom: '0.5rem',
+              }}
+            >
+              How it works
+            </h1>
+            <p
+              style={{
+                color: '#3B1F1E',
+                opacity: 0.75,
+                textAlign: 'center',
+                fontSize: '0.875rem',
+              }}
+            >
+              Rudi makes it easy to earn rewards at local businesses while keeping every stamp verified.
+            </p>
+          </header>
+          <ol className="how-it-works-cards" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', transform: 'translateX(-5%)' }}>
+            {steps.map((step, index) => (
+              <li
+                key={step.title}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: '1rem',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  padding: '1rem',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                }}
+                aria-label={step.title}
+              >
+                <span style={{ fontSize: '1.5rem' }} aria-hidden="true">
+                  {step.emoji}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <h2
+                    style={{
+                      fontFamily: 'var(--mantine-font-family-headings)',
+                      fontSize: '1.125rem',
+                      fontWeight: '600',
+                      color: '#3B1F1E',
+                    }}
+                  >
+                    {index + 1}. {step.title}
+                  </h2>
+                  <p
+                    style={{
+                      fontSize: '0.875rem',
+                      color: '#3B1F1E',
+                      opacity: 0.8,
+                    }}
+                  >
+                    {step.description}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <div style={{ marginTop: '4rem' }}>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              style={{
+                width: '100%',
+                height: '3rem',
+                borderRadius: '0.75rem',
+                backgroundColor: '#FF6F61',
+                color: 'white',
+                fontWeight: 'bold',
+                border: 'none',
+                transition: 'all 200ms ease',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E55A50')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FF6F61')}
+            >
+              Back to login
+            </button>
+          </div>
+        </div>
       </div>
-      <div className="sticky bottom-0 left-0 right-0 px-4 pb-10 pt-6 bg-gradient-to-t from-rudi-sand via-rudi-sand/95 to-transparent">
-        <button type="button" className="rudi-btn rudi-btn--primary w-full" onClick={() => navigate(-1)}>
-          Back to login
-        </button>
-      </div>
-    </main>
+    </div>
   );
 };
 
