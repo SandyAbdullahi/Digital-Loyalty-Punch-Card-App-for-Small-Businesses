@@ -1,5 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { MantineProvider } from '@mantine/core';
+import '@mantine/core/styles.css';
 import App from './App';
 import './config/api'; // Import API configuration
 import { AuthProvider } from './contexts/AuthContext';
@@ -9,8 +11,10 @@ import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <MantineProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </MantineProvider>
   </React.StrictMode>
 );
