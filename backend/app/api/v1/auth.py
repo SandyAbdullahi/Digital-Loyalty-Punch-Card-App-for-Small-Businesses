@@ -25,7 +25,7 @@ def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
         user_create = UserCreate(
             email=auth_data.email,
             password=auth_data.password,
-            role="customer",  # Default role
+            role=auth_data.role,
         )
         user = create_user(db, user_create)
 
@@ -37,4 +37,8 @@ def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(subject=user.email)
     refresh_token = create_refresh_token(subject=user.email)
 
-    return Token(access_token=access_token, refresh_token=refresh_token)
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user={"id": user.id, "email": user.email, "role": user.role}
+    )

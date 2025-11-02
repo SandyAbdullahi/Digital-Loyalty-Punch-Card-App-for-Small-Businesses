@@ -11,19 +11,20 @@ export default defineConfig({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\/api\/.*/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              }
-            }
-          }
-        ]
+        // runtimeCaching disabled in dev to avoid interfering with proxy
+        // runtimeCaching: [
+        //   {
+        //     urlPattern: /^https:\/\/.*\/api\/.*/,
+        //     handler: 'NetworkFirst',
+        //     options: {
+        //       cacheName: 'api-cache',
+        //       expiration: {
+        //         maxEntries: 50,
+        //         maxAgeSeconds: 60 * 60 * 24 // 24 hours
+        //       }
+        //     }
+        //   }
+        // ]
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
@@ -47,7 +48,7 @@ export default defineConfig({
     })
   ],
   server: {
-    port: 3000,
+    port: 3002,
     host: true,
     proxy: {
       '/api': {

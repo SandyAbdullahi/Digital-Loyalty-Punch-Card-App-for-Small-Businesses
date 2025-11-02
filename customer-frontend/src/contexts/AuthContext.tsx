@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [])
 
   const login = async (email: string, password: string) => {
-    const response = await axios.post('/api/v1/auth/login', { email, password })
+    const response = await axios.post('/api/v1/auth/login-or-register', { email, password, role: 'customer' })
     const { access_token, user: userData } = response.data
     setToken(access_token)
     setUser(userData)
@@ -57,9 +57,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   const register = async (email: string, password: string, role: string) => {
-    await axios.post('/api/v1/auth/register', { email, password, role })
-    // After register, login
-    await login(email, password)
+    const response = await axios.post('/api/v1/auth/login-or-register', { email, password, role })
+    const { access_token, user: userData } = response.data
+    setToken(access_token)
+    setUser(userData)
+    localStorage.setItem('token', access_token)
+    localStorage.setItem('user', JSON.stringify(userData))
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
   }
 
   const logout = () => {

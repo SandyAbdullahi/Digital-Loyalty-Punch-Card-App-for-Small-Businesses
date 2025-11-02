@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&family=Poppins:wght@600;700&display=swap');
+
+:root {
+  --rudi-teal: #009688;
+  --rudi-yellow: #FFB300;
+  --rudi-coral: #FF6F61;
+  --rudi-sand: #FDF6EC;
+  --rudi-maroon: #3B1F1E;
+  --rudi-radius: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

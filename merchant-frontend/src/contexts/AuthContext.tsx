@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [])
 
   const login = async (email: string, password: string) => {
-    const response = await axios.post('/api/v1/auth/login', { email, password })
+    const response = await axios.post('/api/v1/auth/login-or-register', { email, password, role: 'merchant' })
     const { access_token, user: userData } = response.data
     setToken(access_token)
     setUser(userData)

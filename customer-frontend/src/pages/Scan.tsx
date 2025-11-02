@@ -1,100 +1,125 @@
-import { useEffect, useRef, useState } from 'react'
-import QrScanner from 'qr-scanner'
-import axios from 'axios'
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import QrScanner from 'qr-scanner';
+import axios from 'axios';
 
-export default function Scan() {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [scanned, setScanned] = useState<string | null>(null)
-  const [scanner, setScanner] = useState<QrScanner | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
+const Scan = () => {
+  const navigate = useNavigate();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<QrScanner | null>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
 
-  const getLocation = (): Promise<{ lat: number; lng: number }> => {
-    return new Promise((resolve, reject) => {
+  const getLocation = (): Promise<{ lat: number; lng: number }> =>
+    new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error('Geolocation not supported'))
-        return
+        reject(new Error('Geolocation not supported'));
+        return;
       }
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          resolve({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          })
+          resolve({ lat: position.coords.latitude, lng: position.coords.longitude });
         },
         (error) => reject(error),
         { enableHighAccuracy: true, timeout: 10000 }
-      )
-    })
-  }
+      );
+    });
 
   const handleScan = async (token: string) => {
-    setLoading(true)
-    setMessage('')
+    setStatus('loading');
+    setMessage('');
     try {
-      const location = await getLocation()
-      // Determine scan type from token (simple check)
-      let endpoint = '/api/v1/qr/scan-join' // default
-      if (token.includes('stamp')) endpoint = '/api/v1/qr/scan-stamp'
-      else if (token.includes('redeem')) endpoint = '/api/v1/qr/scan-redeem'
+      const location = await getLocation();
+      let endpoint = '/api/v1/qr/scan-join';
+      if (token.includes('stamp')) endpoint = '/api/v1/qr/scan-stamp';
+      else if (token.includes('redeem')) endpoint = '/api/v1/qr/scan-redeem';
 
       const response = await axios.post(endpoint, {
         token,
         lat: location.lat,
         lng: location.lng,
-      })
-      setMessage(response.data.message || 'Success')
+      });
+      setMessage(response.data.message || 'Nice! Stamp added.');
+      setStatus('success');
     } catch (error: any) {
-      setMessage(error.response?.data?.detail || error.message || 'Scan failed')
-    } finally {
-      setLoading(false)
+      const detail = error?.response?.data?.detail ?? error?.message ?? 'We could not complete the scan.';
+      setMessage(detail);
+      setStatus('error');
+      scannerRef.current?.start().catch(() => {});
     }
-  }
+  };
 
   useEffect(() => {
-    if (videoRef.current) {
-      const qrScanner = new QrScanner(
-        videoRef.current,
-        (result) => {
-          setScanned(result.data)
-          handleScan(result.data)
-          qrScanner.stop()
-        },
-        {
-          onDecodeError: (err) => console.log(err),
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
-        }
-      )
-      setScanner(qrScanner)
-      qrScanner.start().catch((err) => console.error(err))
-    }
+    if (!videoRef.current) return;
+
+    const qrScanner = new QrScanner(
+      videoRef.current,
+      (result) => {
+        handleScan(result.data);
+        qrScanner.stop();
+      },
+      {
+        highlightScanRegion: true,
+        highlightCodeOutline: true,
+      }
+    );
+
+    scannerRef.current = qrScanner;
+    qrScanner.start().catch((err) => {
+      setStatus('error');
+      setMessage(err?.message ?? 'Unable to access camera.');
+    });
 
     return () => {
-      if (scanner) {
-        scanner.stop()
-        scanner.destroy()
-      }
-    }
-  }, [])
+      qrScanner.stop();
+      qrScanner.destroy();
+    };
+  }, []);
 
   return (
-    <div className="flex flex-col items-center">
-      <h2 className="text-xl font-bold mb-4">Scan QR Code</h2>
-      <div className="relative">
-        <video ref={videoRef} className="w-full max-w-md border rounded" />
-      </div>
-      {loading && <p className="mt-4">Processing...</p>}
-      {message && (
-        <div className="mt-4 p-4 bg-blue-100 border rounded">
-          <p>{message}</p>
+    <main className="min-h-screen bg-rudi-sand text-rudi-maroon flex flex-col">
+      <header className="px-4 pt-6 pb-4 flex items-center justify-between max-w-md mx-auto">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="rudi-link text-sm inline-flex items-center gap-2"
+        >
+          ← Back
+        </button>
+        <h1 className="font-heading text-lg font-semibold">Scan QR</h1>
+        <span aria-hidden="true" className="w-10" />
+      </header>
+      <section className="flex-1 px-4 pb-10 flex flex-col items-center justify-center gap-6 max-w-md mx-auto">
+        <div className="relative w-full max-w-md aspect-[3/4] rounded-[32px] bg-black overflow-hidden">
+          <video ref={videoRef} className="h-full w-full object-cover opacity-80" />
+          <div className="absolute inset-0 border-4 border-transparent">
+            <div className="absolute top-6 left-6 w-14 h-14 border-4 border-rudi-teal rounded-tl-[32px]" />
+            <div className="absolute top-6 right-6 w-14 h-14 border-4 border-rudi-teal rounded-tr-[32px]" />
+            <div className="absolute bottom-6 left-6 w-14 h-14 border-4 border-rudi-teal rounded-bl-[32px]" />
+            <div className="absolute bottom-6 right-6 w-14 h-14 border-4 border-rudi-teal rounded-br-[32px]" />
+          </div>
         </div>
-      )}
-      {scanned && !loading && (
-        <div className="mt-4 p-4 bg-green-100 border rounded">
-          <p>Scanned: {scanned}</p>
+        <div className="text-center space-y-2">
+          <h2 className="font-heading text-xl font-semibold">Align QR code within the frame</h2>
+          <p className="text-sm text-rudi-maroon/70">We’ll confirm your visit with the merchant automatically.</p>
         </div>
-      )}
-    </div>
-  )
-}
+        <div
+          className={`px-4 py-3 rounded-xl text-sm font-medium ${
+            status === 'success'
+              ? 'bg-rudi-teal/10 text-rudi-teal'
+              : status === 'error'
+              ? 'bg-rudi-coral/10 text-rudi-coral'
+              : 'text-rudi-maroon/70'
+          }`}
+          role="status"
+        >
+          {status === 'idle' && 'Ready to scan.'}
+          {status === 'loading' && 'Processing your scan…'}
+          {status !== 'idle' && status !== 'loading' && message}
+        </div>
+      </section>
+    </main>
+  );
+};
+
+export default Scan;

@@ -1,0 +1,166 @@
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
+import StampDots from '../components/StampDots';
+import ConfettiOverlay from '../components/ConfettiOverlay';
+
+type Membership = {
+  id: string;
+  program_id: string;
+  current_balance: number;
+  program?: {
+    id: string;
+    name?: string;
+    description?: string;
+    reward_threshold?: number;
+    reward_description?: string;
+    merchant?: {
+      name?: string;
+      address?: string;
+      last_visit?: string;
+    };
+  };
+};
+
+const ProgramDetail = () => {
+  const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialMembership = location.state?.membership as Membership | undefined;
+
+  const [membership, setMembership] = useState<Membership | null>(initialMembership ?? null);
+  const [loading, setLoading] = useState(!initialMembership);
+  const [error, setError] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [redeeming, setRedeeming] = useState(false);
+
+  useEffect(() => {
+    if (membership || !id) return;
+
+    const fetchMembership = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get<Membership[]>('/api/v1/customer/memberships');
+        const found = response.data.find((item) => item.program_id === id);
+        if (!found) {
+          setError('Programme not found.');
+        } else {
+          setMembership(found);
+        }
+      } catch (err: any) {
+        setError(err?.response?.data?.detail ?? 'Unable to load this programme.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMembership();
+  }, [id, membership]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center text-sm text-rudi-maroon/70">
+        Loading programme…
+      </main>
+    );
+  }
+
+  if (error || !membership) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-4">
+        <div className="rudi-card p-6 text-center space-y-3">
+          <p className="text-sm text-rudi-coral">{error || 'Programme not found.'}</p>
+          <button
+            type="button"
+            className="rudi-btn rudi-btn--primary w-full"
+            onClick={() => navigate('/dashboard')}
+          >
+            Back to dashboard
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const threshold = membership.program?.reward_threshold ?? 10;
+  const canRedeem = membership.current_balance >= threshold;
+
+  const handleRedeem = async () => {
+    setRedeeming(true);
+    try {
+      await axios.post('/api/v1/customer/redeem', {
+        program_id: membership.program_id,
+      });
+      setShowConfetti(true);
+    } catch (err) {
+      // Gracefully ignore errors for now; API may not exist yet.
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-rudi-sand text-rudi-maroon pb-24">
+      <ConfettiOverlay visible={showConfetti} onComplete={() => setShowConfetti(false)} />
+      <section className="px-4 pt-10 space-y-6">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="rudi-link text-sm inline-flex items-center gap-2"
+        >
+          ← Back
+        </button>
+        <article className="rudi-card p-6 space-y-4">
+          <header>
+            <p className="text-xs uppercase tracking-wide text-rudi-maroon/60">Merchant</p>
+            <h1 className="font-heading text-2xl font-semibold">
+              {membership.program?.merchant?.name ?? `Programme ${membership.program_id}`}
+            </h1>
+            {membership.program?.merchant?.address && (
+              <p className="text-sm text-rudi-maroon/70">{membership.program.merchant.address}</p>
+            )}
+          </header>
+          <div className="space-y-3">
+            <p className="text-sm text-rudi-maroon/75">
+              {membership.program?.description ??
+                'Collect stamps each visit and redeem your reward once you complete the punch card.'}
+            </p>
+            <div className="rudi-card bg-rudi-sand/60 shadow-none border border-rudi-maroon/10 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Your progress</span>
+                <span className="text-sm text-rudi-maroon/70">
+                  {membership.current_balance}/{threshold}
+                </span>
+              </div>
+              <StampDots threshold={threshold} earned={membership.current_balance} size="lg" />
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              className="rudi-btn rudi-btn--primary w-full"
+              onClick={() => navigate('/scan')}
+            >
+              Scan QR
+            </button>
+            <button
+              type="button"
+              className="rudi-btn w-full border border-rudi-teal text-rudi-teal bg-transparent disabled:opacity-60"
+              onClick={handleRedeem}
+              disabled={!canRedeem || redeeming}
+            >
+              {canRedeem ? (redeeming ? 'Checking…' : 'Redeem reward') : 'Keep earning'}
+            </button>
+          </div>
+          {canRedeem && (
+            <p className="text-sm text-rudi-maroon/80">
+              {membership.program?.reward_description ?? 'Show this screen to staff to confirm your reward.'}
+            </p>
+          )}
+        </article>
+      </section>
+    </main>
+  );
+};
+
+export default ProgramDetail;

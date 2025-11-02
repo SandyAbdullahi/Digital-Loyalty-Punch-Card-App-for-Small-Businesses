@@ -1,0 +1,36 @@
+.rudi-card {
+  background: #fff;
+  border-radius: var(--rudi-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.rudi-btn {
+  height: 48px;
+  border-radius: var(--rudi-radius);
+  font-weight: 600;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.rudi-btn--primary {
+  background: var(--rudi-teal);
+  color: #fff;
+}
+
+.rudi-btn--secondary {
+  background: var(--rudi-yellow);
+  color: var(--rudi-maroon);
+}
+
+.rudi-link {
+  color: var(--rudi-teal);
+  font-weight: 600;
+}
+
+.rudi-btn:active {
+  transform: translateY(1px);
+}
+
+:focus-visible {
+  outline: 2px solid var(--rudi-teal);
+  outline-offset: 2px;
+}
