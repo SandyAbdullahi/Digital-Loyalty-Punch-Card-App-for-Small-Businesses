@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@rudi/ui'
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Dialog, DialogContent, DialogHeader, DialogTitle } from '@rudi/ui'
 
 interface Program {
   id: string

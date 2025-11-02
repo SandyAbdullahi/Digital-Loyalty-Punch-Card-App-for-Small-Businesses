@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+// @ts-ignore
 import QRCode from 'qrcode'
 import { Button, Card, CardContent, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Input, Label } from '@rudi/ui'
 
