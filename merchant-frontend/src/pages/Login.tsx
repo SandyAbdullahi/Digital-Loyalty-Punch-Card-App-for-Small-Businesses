@@ -37,7 +37,7 @@ export default function Login() {
           <img
             src="/logo-1.png"
             alt="Rudi"
-            className="mx-auto mb-6 h-16 w-auto transform scale-75"
+            className="mx-auto mb-6 h-20 w-auto"
           />
           <h1 className="font-heading text-3xl font-bold text-foreground">
             Welcome back
