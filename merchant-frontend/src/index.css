@@ -1,3 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --rudi-teal: #009688;
+    --rudi-yellow: #FFB300;
+    --rudi-coral: #FF6F61;
+    --rudi-sand: #FDF6EC;
+    --rudi-maroon: #3B1F1E;
+    --rudi-radius: 12px;
+  }
+
+  body {
+    @apply bg-rudi-sand font-body text-rudi-maroon antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading text-rudi-maroon;
+  }
+
+  ::selection {
+    background: rgba(0, 150, 136, 0.16);
+  }
+}
+
+@layer components {
+  .card-hover {
+    @apply transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-rudi-hover;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-2xl bg-rudi-teal px-4 py-2 font-heading text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-teal-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rudi-yellow focus-visible:ring-offset-2 active:translate-y-px;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-2xl bg-rudi-yellow px-4 py-2 font-heading text-sm font-semibold text-rudi-maroon shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rudi-teal focus-visible:ring-offset-2 active:translate-y-px;
+  }
+}

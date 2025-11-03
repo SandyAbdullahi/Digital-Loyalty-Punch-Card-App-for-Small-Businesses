@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Button } from '@rudi/ui'
+import { Button, TextInput } from '@mantine/core'
+import { AlertTriangle } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -19,35 +21,67 @@ export default function Login() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Merchant Login</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
+    <div className="flex min-h-screen items-center justify-center bg-[#FDF6EC] p-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <img
+            src="/logo-1.png"
+            alt="Rudi"
+            className="mx-auto mb-6 h-16 w-auto transform scale-75"
+          />
+          <h1 className="font-heading text-3xl font-bold text-rudi-maroon">
+            Welcome back
+          </h1>
+          <p className="mt-2 text-sm text-rudi-maroon/70">
+            Sign in to your merchant dashboard
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <TextInput
+              label="Email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded"
               required
+              autoComplete="email"
+              placeholder="merchant@business.com"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
-            <input
+            <TextInput
+              label="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border rounded"
               required
+              autoComplete="current-password"
+              placeholder="Enter your password"
             />
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <Button type="submit" className="w-full">
-            Login
+
+          {error && (
+            <div className="flex items-center gap-2 rounded-2xl bg-rudi-coral/10 p-4 text-sm text-rudi-coral">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" fullWidth size="md" color="teal">
+            Sign in
           </Button>
         </form>
+
+        <div className="text-center">
+          <p className="text-sm text-rudi-maroon/70">
+            New to Rudi?{' '}
+            <Link
+              to="/register"
+              className="font-semibold text-rudi-teal hover:text-rudi-teal/80"
+            >
+              Create your account
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )

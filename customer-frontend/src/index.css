@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Nunito Sans', system-ui;
+}
+
+html {
+  height: 100%;
+}

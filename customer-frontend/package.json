@@ -12,14 +12,17 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mantine/core": "^8.3.6",
+    "@mantine/hooks": "^8.3.6",
+    "axios": "^1.6.2",
+    "lucide-react": "^0.344.0",
+    "qr-scanner": "^1.4.2",
+    "qrcode": "^1.5.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.1",
-    "@rudi/ui": "workspace:*",
-    "axios": "^1.6.2",
-    "qrcode": "^1.5.3",
-    "qr-scanner": "^1.4.2",
-    "lucide-react": "^0.344.0"
+    "react-router-dom": "^6.20.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",

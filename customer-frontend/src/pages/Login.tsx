@@ -138,7 +138,7 @@ const Login = () => {
                   },
                 }}
               />
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <Anchor
                   href="#"
                   size="sm"
@@ -146,6 +146,7 @@ const Login = () => {
                     color: '#009688',
                     textDecoration: 'none',
                     transition: 'all 200ms ease',
+                    fontWeight: 'bold',
                   }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.textDecoration = 'underline')
@@ -216,9 +217,13 @@ const Login = () => {
             to="/how-it-works"
             style={{
               fontSize: '0.875rem',
-              color: '#009688',
+              color: '#3B1F1E',
               textDecoration: 'none',
               transition: 'all 200ms ease',
+              fontWeight: 'bold',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
             }}
             onMouseEnter={(e) =>
               (e.currentTarget.style.textDecoration = 'underline')
@@ -227,6 +232,22 @@ const Login = () => {
               (e.currentTarget.style.textDecoration = 'none')
             }
           >
+            <span
+              style={{
+                backgroundColor: '#FFB300',
+                borderRadius: '50%',
+                width: '1rem',
+                height: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                color: '#3B1F1E',
+              }}
+            >
+              !
+            </span>
             How it works
           </Link>
         </div>

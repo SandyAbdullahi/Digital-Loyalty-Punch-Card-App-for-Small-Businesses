@@ -11,6 +11,7 @@ interface AuthContextType {
   user: User | null
   token: string | null
   login: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string) => Promise<void>
   logout: () => void
   loading: boolean
 }
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setLoading(false)
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const authenticate = async (email: string, password: string) => {
     const response = await axios.post('/api/v1/auth/login-or-register', { email, password, role: 'merchant' })
     const { access_token, user: userData } = response.data
     setToken(access_token)
@@ -54,6 +55,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.setItem('user', JSON.stringify(userData))
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
   }
+
+  const login = (email: string, password: string) => authenticate(email, password)
+  const register = (email: string, password: string) => authenticate(email, password)
 
   const logout = () => {
     setUser(null)
@@ -64,7 +68,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   )

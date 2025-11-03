@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QrScanner from 'qr-scanner';
 import axios from 'axios';
+import { Button, Notification } from '@mantine/core';
 
 const Scan = () => {
   const navigate = useNavigate();
@@ -79,13 +80,9 @@ const Scan = () => {
   return (
     <main className="min-h-screen bg-rudi-sand text-rudi-maroon flex flex-col">
       <header className="px-4 pt-6 pb-4 flex items-center justify-between max-w-md mx-auto">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="rudi-link text-sm inline-flex items-center gap-2"
-        >
-          ← Back
-        </button>
+         <Button variant="subtle" size="sm" leftSection="←" onClick={() => navigate(-1)}>
+           Back
+         </Button>
         <h1 className="font-heading text-lg font-semibold">Scan QR</h1>
         <span aria-hidden="true" className="w-10" />
       </header>
@@ -103,20 +100,15 @@ const Scan = () => {
           <h2 className="font-heading text-xl font-semibold">Align QR code within the frame</h2>
           <p className="text-sm text-rudi-maroon/70">We’ll confirm your visit with the merchant automatically.</p>
         </div>
-        <div
-          className={`px-4 py-3 rounded-xl text-sm font-medium ${
-            status === 'success'
-              ? 'bg-rudi-teal/10 text-rudi-teal'
-              : status === 'error'
-              ? 'bg-rudi-coral/10 text-rudi-coral'
-              : 'text-rudi-maroon/70'
-          }`}
-          role="status"
-        >
-          {status === 'idle' && 'Ready to scan.'}
-          {status === 'loading' && 'Processing your scan…'}
-          {status !== 'idle' && status !== 'loading' && message}
-        </div>
+         {status !== 'idle' && (
+           <Notification
+             color={status === 'success' ? 'teal' : status === 'error' ? 'red' : 'blue'}
+             loading={status === 'loading'}
+             title=""
+           >
+             {status === 'loading' ? 'Processing your scan…' : message}
+           </Notification>
+         )}
       </section>
     </main>
   );

@@ -1,3 +1,5 @@
+import StampDots from './StampDots';
+
 type ProgramCardProps = {
   id: string;
   merchantName: string;
@@ -6,6 +8,7 @@ type ProgramCardProps = {
   threshold: number;
   actionLabel?: string;
   onAction?: () => void;
+  logoUrl?: string;
 };
 
 const ProgramCard = ({
@@ -15,29 +18,31 @@ const ProgramCard = ({
   threshold,
   actionLabel = 'View',
   onAction,
+  logoUrl,
 }: ProgramCardProps) => (
-  <article className="rudi-card p-4 flex items-start gap-3">
-    <div className="h-12 w-12 rounded-full bg-rudi-teal/10 text-rudi-teal flex items-center justify-center font-heading font-semibold uppercase">
-      {merchantName.slice(0, 2)}
+  <article className="bg-white p-4 rounded-2xl shadow-md flex gap-3 items-start">
+    <div className="h-12 w-12 rounded-full bg-rudi-teal/10 text-rudi-teal flex items-center justify-center font-heading font-semibold overflow-hidden">
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt={merchantName}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span className="uppercase">{merchantName.slice(0, 2)}</span>
+      )}
     </div>
-    <div className="flex-1 space-y-2">
-      <h3 className="font-heading text-lg font-semibold">{merchantName}</h3>
-      {merchantAddress && <p className="text-sm text-rudi-maroon/70">{merchantAddress}</p>}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-rudi-maroon">{earned}</span>
-        <div className="flex-1 h-2 bg-rudi-sand rounded-full overflow-hidden">
-          <div
-            className="h-full bg-rudi-teal transition-all duration-[180ms]"
-            style={{ width: `${Math.min((earned / threshold) * 100, 100)}%` }}
-          />
-        </div>
-        <span className="text-sm text-rudi-maroon/70">/{threshold}</span>
-      </div>
+    <div className="flex-1">
+      <h3 className="font-semibold text-rudi-maroon">{merchantName}</h3>
+      {merchantAddress && (
+        <p className="text-sm text-rudi-maroon/70">{merchantAddress}</p>
+      )}
+      <StampDots earned={earned} threshold={threshold} />
     </div>
     <button
       type="button"
       onClick={onAction}
-      className="rudi-btn rudi-btn--secondary px-4 text-sm whitespace-nowrap disabled:opacity-60"
+      className="h-8 px-3 rounded-lg bg-rudi-yellow text-rudi-maroon text-sm font-semibold hover:bg-rudi-yellow/90 transition-colors whitespace-nowrap"
     >
       {actionLabel}
     </button>

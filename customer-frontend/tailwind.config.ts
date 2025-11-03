@@ -14,7 +14,7 @@ const config: Config = {
         },
       },
       borderRadius: {
-        rudi: '16px',
+        rudi: '12px',
         'rudi-card': '24px',
       },
       fontFamily: {
