@@ -88,7 +88,7 @@ const Scan = () => {
         <span aria-hidden="true" className="w-10" />
       </header>
        <section className="flex-1 px-4 pb-16 flex flex-col items-center justify-center gap-6 max-w-md mx-auto">
-        <div className="relative w-full max-w-[358px] aspect-[3/4] rounded-[32px] bg-black overflow-hidden">
+        <div className="relative w-full max-w-[286px] aspect-[3/4] rounded-[32px] bg-black overflow-hidden">
           <video ref={videoRef} className="h-full w-full object-cover opacity-80" />
           <div className="absolute inset-0 border-4 border-transparent">
             <div className="absolute top-6 left-6 w-14 h-14 border-4 border-rudi-teal rounded-tl-[32px]" />
