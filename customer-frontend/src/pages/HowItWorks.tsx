@@ -50,7 +50,7 @@ const HowItWorks = () => {
       >
         <Logo
           size="xl"
-          style={{ transform: 'scale(4.8)', transformOrigin: 'center', marginBottom: '2rem' }}
+          style={{ transform: 'scale(4.8)', transformOrigin: 'center', marginTop: '2rem', marginBottom: '2rem' }}
         />
         <h2
           style={{
