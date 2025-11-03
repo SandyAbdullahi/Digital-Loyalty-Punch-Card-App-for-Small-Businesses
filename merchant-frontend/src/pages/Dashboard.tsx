@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 type SummaryMetric = {
   label: string;
   value: string;
-  accent: 'teal' | 'yellow' | 'coral';
+  accent: 'primary' | 'secondary' | 'accent';
   helper: string;
 };
 
@@ -17,15 +17,15 @@ type ActivityItem = {
 };
 
 const accentStyles: Record<SummaryMetric['accent'], string> = {
-  teal: 'bg-rudi-teal/15 text-rudi-teal',
-  yellow: 'bg-rudi-yellow/15 text-rudi-yellow',
-  coral: 'bg-rudi-coral/15 text-rudi-coral',
+  primary: 'bg-primary/15 text-primary',
+  secondary: 'bg-secondary/15 text-secondary',
+  accent: 'bg-accent/15 text-accent',
 };
 
 const activityAccent: Record<ActivityItem['type'], string> = {
-  stamp: 'bg-rudi-teal',
-  reward: 'bg-rudi-yellow',
-  join: 'bg-rudi-coral',
+  stamp: 'bg-primary',
+  reward: 'bg-secondary',
+  join: 'bg-accent',
 };
 
 const Dashboard = () => {
@@ -56,7 +56,7 @@ const Dashboard = () => {
           {
             label: 'Active programs',
             value: activePrograms.toString(),
-            accent: 'teal',
+            accent: 'primary',
             helper:
               activePrograms > 0
                 ? 'All systems humming'
@@ -68,7 +68,7 @@ const Dashboard = () => {
               activityResponse.status === 'fulfilled'
                 ? activityResponse.value.data.unique_customers ?? '0'
                 : '0',
-            accent: 'yellow',
+            accent: 'secondary',
             helper: 'Growing community momentum',
           },
           {
@@ -77,7 +77,7 @@ const Dashboard = () => {
               activityResponse.status === 'fulfilled'
                 ? activityResponse.value.data.rewards_redeemed ?? '0'
                 : '0',
-            accent: 'coral',
+            accent: 'accent',
             helper: 'Keep delighting your regulars',
           },
           {
@@ -86,7 +86,7 @@ const Dashboard = () => {
               activityResponse.status === 'fulfilled'
                 ? activityResponse.value.data.today_scans ?? '0'
                 : '0',
-            accent: 'teal',
+            accent: 'primary',
             helper: 'Another round of smiles',
           },
         ];
@@ -147,10 +147,10 @@ const Dashboard = () => {
     <div className="space-y-6 lg:space-y-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-rudi-maroon">
+          <h1 className="font-heading text-2xl font-bold text-foreground">
             Dashboard
           </h1>
-          <p className="text-sm text-rudi-maroon/70">
+          <p className="text-sm text-muted-foreground">
             Monitor your loyalty programs and customer engagement
           </p>
         </div>
@@ -169,13 +169,13 @@ const Dashboard = () => {
         {summary.map((metric, index) => (
           <div
             key={metric.label}
-            className="card-hover rounded-2xl bg-white p-5 shadow-rudi-card animate-slide-up"
+            className="card-hover rounded-2xl bg-card p-5 shadow-lg animate-slide-up"
             style={{ animationDelay: `${index * 0.05}s` }}
           >
-            <p className="font-heading text-xs uppercase tracking-wide text-rudi-maroon/70">
+            <p className="font-heading text-xs uppercase tracking-wide text-muted-foreground">
               {metric.label}
             </p>
-            <p className="mt-2 font-heading text-3xl font-bold text-rudi-maroon">
+            <p className="mt-2 font-heading text-3xl font-bold text-foreground">
               {metric.value}
             </p>
             <span
@@ -193,12 +193,12 @@ const Dashboard = () => {
             {[...Array(4)].map((_, index) => (
               <div
                 key={index}
-                className="animate-pulse rounded-2xl bg-white p-5 shadow-rudi-card"
+                className="animate-pulse rounded-2xl bg-card p-5 shadow-lg"
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
-                <div className="h-3 w-20 rounded-full bg-rudi-maroon/10"></div>
-                <div className="mt-2 h-8 w-16 rounded-lg bg-rudi-maroon/5"></div>
-                <div className="mt-3 h-5 w-32 rounded-full bg-rudi-maroon/5"></div>
+                <div className="h-3 w-20 rounded-full bg-muted"></div>
+                <div className="mt-2 h-8 w-16 rounded-lg bg-muted/50"></div>
+                <div className="mt-3 h-5 w-32 rounded-full bg-muted/50"></div>
               </div>
             ))}
           </>
@@ -206,11 +206,11 @@ const Dashboard = () => {
 
         {!loading && summary.length === 0 && (
           <div className="sm:col-span-2 xl:col-span-4">
-            <div className="rounded-2xl bg-white p-6 text-center shadow-rudi-card">
-              <h3 className="font-heading text-lg font-semibold text-rudi-maroon">
+            <div className="rounded-2xl bg-card p-6 text-center shadow-lg">
+              <h3 className="font-heading text-lg font-semibold text-foreground">
                 Welcome to Your Dashboard
               </h3>
-              <p className="mt-2 text-sm text-rudi-maroon/70">
+              <p className="mt-2 text-sm text-muted-foreground">
                 No metrics yet - your first happy customer is just a scan away!
               </p>
               <button
@@ -225,11 +225,11 @@ const Dashboard = () => {
 
         {loadingError && (
           <div className="sm:col-span-2 xl:col-span-4">
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center">
-              <p className="text-sm font-medium text-red-800">{loadingError}</p>
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-center">
+              <p className="text-sm font-medium text-destructive">{loadingError}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-2 text-sm font-medium text-red-600 hover:text-red-800"
+                className="mt-2 text-sm font-medium text-destructive hover:text-destructive/80"
               >
                 Try Again
               </button>
@@ -240,13 +240,13 @@ const Dashboard = () => {
 
       <div className="grid gap-6 lg:grid-cols-5 lg:gap-8">
         <section className="lg:col-span-3">
-          <div className="rounded-3xl bg-white p-6 shadow-rudi-card animate-slide-up">
+          <div className="rounded-3xl bg-card p-6 shadow-lg animate-slide-up">
             <div className="flex items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="font-heading text-xl font-semibold text-rudi-maroon">
+                <h2 className="font-heading text-xl font-semibold text-foreground">
                   Analytics Overview
                 </h2>
-                <p className="text-sm text-rudi-maroon/70">
+                <p className="text-sm text-muted-foreground">
                   Scans over the last 7 days
                 </p>
               </div>
@@ -260,10 +260,10 @@ const Dashboard = () => {
                       className="flex flex-col items-center gap-2 flex-1"
                     >
                       <div
-                        className="w-full bg-rudi-teal/10 rounded-t animate-pulse"
+                        className="w-full bg-primary/10 rounded-t animate-pulse"
                         style={{ height: '40%' }}
                       ></div>
-                      <span className="text-xs text-rudi-maroon/60">{day}</span>
+                      <span className="text-xs text-muted-foreground">{day}</span>
                     </div>
                   )
                 )}
@@ -280,14 +280,14 @@ const Dashboard = () => {
                         className="flex flex-col items-center gap-2 flex-1"
                       >
                         <div
-                          className="relative w-full bg-rudi-teal/20 rounded-t transition-all hover:bg-rudi-teal/40 group cursor-help"
+                          className="relative w-full bg-primary/20 rounded-t transition-all hover:bg-primary/40 group cursor-help"
                           style={{ height: `${height}%` }}
                         >
-                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-rudi-maroon text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                             {chartData[index]} scans
                           </div>
                         </div>
-                        <span className="text-xs text-rudi-maroon/60">
+                        <span className="text-xs text-muted-foreground">
                           {day}
                         </span>
                       </div>
@@ -300,13 +300,13 @@ const Dashboard = () => {
         </section>
 
         <section className="lg:col-span-2">
-          <div className="rounded-3xl bg-white p-6 shadow-rudi-card animate-slide-up h-full">
+          <div className="rounded-3xl bg-card p-6 shadow-lg animate-slide-up h-full">
             <div className="flex items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="font-heading text-xl font-semibold text-rudi-maroon">
+                <h2 className="font-heading text-xl font-semibold text-foreground">
                   Recent Activity
                 </h2>
-                <p className="text-sm text-rudi-maroon/70">
+                <p className="text-sm text-muted-foreground">
                   Latest customer interactions
                 </p>
               </div>
@@ -325,12 +325,12 @@ const Dashboard = () => {
                   {[...Array(3)].map((_, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-4 rounded-2xl border border-rudi-teal/10 bg-white/80 px-4 py-3 animate-pulse"
+                      className="flex items-start gap-4 rounded-2xl border border-primary/10 bg-card/80 px-4 py-3 animate-pulse"
                     >
-                      <div className="mt-1 h-3 w-3 rounded-full bg-rudi-maroon/10"></div>
+                      <div className="mt-1 h-3 w-3 rounded-full bg-muted"></div>
                       <div className="flex-1 space-y-2">
-                        <div className="h-4 w-3/4 rounded bg-rudi-maroon/5"></div>
-                        <div className="h-3 w-1/4 rounded bg-rudi-maroon/5"></div>
+                        <div className="h-4 w-3/4 rounded bg-muted/50"></div>
+                        <div className="h-3 w-1/4 rounded bg-muted/50"></div>
                       </div>
                     </div>
                   ))}
@@ -338,8 +338,8 @@ const Dashboard = () => {
               )}
 
               {activity.length === 0 && !loading && (
-                <div className="rounded-xl bg-rudi-sand/60 p-6 text-center">
-                  <p className="text-sm text-rudi-maroon/70">
+                <div className="rounded-xl bg-muted/60 p-6 text-center">
+                  <p className="text-sm text-muted-foreground">
                     No activity yet - your first customer interaction will
                     appear here
                   </p>
@@ -355,7 +355,7 @@ const Dashboard = () => {
               {activity.map((entry, index) => (
                 <div
                   key={entry.id}
-                  className="group flex items-start gap-4 rounded-2xl border border-rudi-teal/10 bg-white/80 px-4 py-3 shadow-sm animate-slide-up hover:border-rudi-teal/20 hover:bg-white transition-colors"
+                  className="group flex items-start gap-4 rounded-2xl border border-primary/10 bg-card/80 px-4 py-3 shadow-sm animate-slide-up hover:border-primary/20 hover:bg-card transition-colors"
                   style={{ animationDelay: `${index * 0.04}s` }}
                 >
                   <span
@@ -364,10 +364,10 @@ const Dashboard = () => {
                     } transition-transform duration-200 group-hover:scale-110`}
                   />
                   <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-rudi-maroon">
+                    <p className="text-sm font-medium text-foreground">
                       {entry.message}
                     </p>
-                    <p className="text-xs text-rudi-maroon/60">
+                    <p className="text-xs text-muted-foreground">
                       {entry.timestamp}
                     </p>
                   </div>
