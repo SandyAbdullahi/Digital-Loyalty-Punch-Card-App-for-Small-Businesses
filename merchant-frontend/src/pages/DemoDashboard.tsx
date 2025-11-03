@@ -32,7 +32,7 @@ const DemoDashboard = () => {
   const navigate = useNavigate();
   const [summary, setSummary] = useState<SummaryMetric[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [chartData, setChartData] = useState<number[]>([]);
+  const [chartData, setChartData] = useState<{stamps: number[], redemptions: number[]}>({stamps: [], redemptions: []});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -91,7 +91,10 @@ const DemoDashboard = () => {
       },
     ];
 
-    const mockChartData = [12, 19, 15, 25, 22, 30, 28];
+    const mockChartData = {
+      stamps: [12, 19, 15, 25, 22, 30, 28],
+      redemptions: [2, 3, 1, 4, 3, 5, 4]
+    };
 
     setTimeout(() => {
       setSummary(mockSummary);
@@ -199,20 +202,38 @@ const DemoDashboard = () => {
 
           <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
             <h2 className="font-heading text-xl font-semibold text-foreground mb-4">
-              Scans This Week
+              Activity This Week
             </h2>
-            <div className="flex items-end gap-2 h-32">
-              {chartData.map((value, index) => (
+            <div className="flex items-end gap-2 h-40">
+              {chartData.stamps.map((stamps, index) => (
                 <div key={index} className="flex-1 flex flex-col items-center">
-                  <div
-                    className="w-full bg-primary rounded-t"
-                    style={{ height: `${(value / 30) * 100}%` }}
-                  ></div>
+                  <div className="flex flex-col items-center w-full">
+                    <div
+                      className="w-full bg-primary rounded-t mb-1"
+                      style={{ height: `${(stamps / 35) * 100}%` }}
+                      title={`Stamps: ${stamps}`}
+                    ></div>
+                    <div
+                      className="w-full bg-secondary rounded-t"
+                      style={{ height: `${(chartData.redemptions[index] / 6) * 50}%` }}
+                      title={`Redemptions: ${chartData.redemptions[index]}`}
+                    ></div>
+                  </div>
                   <span className="text-xs text-muted-foreground mt-2">
                     {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
                   </span>
                 </div>
               ))}
+            </div>
+            <div className="flex justify-center gap-6 mt-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-primary rounded"></div>
+                <span className="text-xs text-muted-foreground">Stamps</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-secondary rounded"></div>
+                <span className="text-xs text-muted-foreground">Redemptions</span>
+              </div>
             </div>
           </div>
         </div>
