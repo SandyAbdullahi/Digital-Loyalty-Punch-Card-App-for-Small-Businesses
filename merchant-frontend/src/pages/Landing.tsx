@@ -256,7 +256,7 @@ const Landing = () => {
             <AnimatedSection>
               <div className="bg-white rounded-2xl p-6 shadow-rudi-card">
                 <div className="flex items-center mb-4">
-                  <img src="https://via.placeholder.com/40" alt="Avatar" className="w-10 h-10 rounded-full mr-3" />
+                  <div className="w-10 h-10 rounded-full bg-[#009688] flex items-center justify-center text-white font-bold mr-3">S</div>
                   <div>
                     <p className="font-semibold text-rudi-maroon">Sarah Chen</p>
                     <div className="flex">
@@ -270,7 +270,7 @@ const Landing = () => {
             <AnimatedSection delay={0.1}>
               <div className="bg-white rounded-2xl p-6 shadow-rudi-card">
                 <div className="flex items-center mb-4">
-                  <img src="https://via.placeholder.com/40" alt="Avatar" className="w-10 h-10 rounded-full mr-3" />
+                  <div className="w-10 h-10 rounded-full bg-[#FFB300] flex items-center justify-center text-rudi-maroon font-bold mr-3">M</div>
                   <div>
                     <p className="font-semibold text-rudi-maroon">Mike Johnson</p>
                     <div className="flex">
@@ -284,7 +284,7 @@ const Landing = () => {
             <AnimatedSection delay={0.2}>
               <div className="bg-white rounded-2xl p-6 shadow-rudi-card">
                 <div className="flex items-center mb-4">
-                  <img src="https://via.placeholder.com/40" alt="Avatar" className="w-10 h-10 rounded-full mr-3" />
+                  <div className="w-10 h-10 rounded-full bg-[#FF6F61] flex items-center justify-center text-white font-bold mr-3">E</div>
                   <div>
                     <p className="font-semibold text-rudi-maroon">Emma Rodriguez</p>
                     <div className="flex">

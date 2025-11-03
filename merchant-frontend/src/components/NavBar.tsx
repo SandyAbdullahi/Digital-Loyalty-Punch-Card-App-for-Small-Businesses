@@ -52,10 +52,11 @@ const NavBar = () => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-18 items-center justify-between">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center gap-2">
                 <a href="/">
                   <img src="/logo-1.png" alt="Rudi" className="h-8 w-auto" />
                 </a>
+                <span className="font-heading text-xl font-bold text-[#3B1F1E]">rudi</span>
               </div>
             </div>
             <div className="hidden md:block">
@@ -117,10 +118,11 @@ const NavBar = () => {
           <div className="fixed inset-0 bg-black bg-opacity-30 transition-opacity" />
           <div className="relative ml-auto flex h-full w-full max-w-sm flex-col bg-[#FDF6EC] py-6 shadow-xl">
             <div className="flex items-center justify-between px-6">
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center gap-2">
                 <a href="/">
                   <img src="/logo-1.png" alt="Rudi" className="h-8 w-auto" />
                 </a>
+                <span className="font-heading text-xl font-bold text-[#3B1F1E]">rudi</span>
               </div>
               <button
                 onClick={closeMobileMenu}
