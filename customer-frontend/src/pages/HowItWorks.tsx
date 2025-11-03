@@ -58,14 +58,14 @@ const HowItWorks = () => {
             fontWeight: 'bold',
             fontSize: 'clamp(3rem, 4.8vw, 3.6rem)',
             marginTop: '0',
-            marginBottom: '1.5rem',
+            marginBottom: '1rem',
             color: '#3B1F1E',
           }}
         >
           rudi
         </h2>
-        <div style={{ width: '100%', padding: '0.5rem' }}>
-          <header style={{ marginBottom: '1.5rem' }}>
+        <div style={{ width: '100%', padding: '0.25rem' }}>
+          <header style={{ marginBottom: '1rem' }}>
             <h1
               style={{
                 fontFamily: 'var(--mantine-font-family-headings)',
