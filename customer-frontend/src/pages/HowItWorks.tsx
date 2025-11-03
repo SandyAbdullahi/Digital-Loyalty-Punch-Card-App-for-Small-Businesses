@@ -64,8 +64,8 @@ const HowItWorks = () => {
         >
           rudi
         </h2>
-        <div style={{ width: '100%', padding: '1rem' }}>
-          <header style={{ marginBottom: '2rem' }}>
+        <div style={{ width: '100%', padding: '0.5rem' }}>
+          <header style={{ marginBottom: '1.5rem' }}>
             <h1
               style={{
                 fontFamily: 'var(--mantine-font-family-headings)',
