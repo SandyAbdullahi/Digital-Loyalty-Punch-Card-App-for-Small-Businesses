@@ -89,7 +89,7 @@ const HowItWorks = () => {
               Rudi makes it easy to earn rewards at local businesses while keeping every stamp verified.
             </p>
           </header>
-          <ol className="how-it-works-cards" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', transform: 'translateX(-5%)' }}>
+          <ol className="how-it-works-cards" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {steps.map((step, index) => (
               <li
                 key={step.title}
