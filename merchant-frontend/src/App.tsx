@@ -1,5 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import Landing from './pages/Landing'
+import About from './pages/About'
+import Contact from './pages/Contact'
+import Pricing from './pages/Pricing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import QR from './pages/QR'
@@ -32,6 +36,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
         <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
         <Route element={<ProtectedApp />}>
@@ -44,7 +52,6 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/locations" element={<Locations />} />
         </Route>
-        <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
       </Routes>
     </BrowserRouter>
   )
