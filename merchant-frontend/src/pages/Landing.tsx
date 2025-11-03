@@ -1,4 +1,4 @@
-import { Button, Container, Grid, Group, Stack, Text, Title, Image, Card, Badge, Header, Anchor } from '@mantine/core';
+import { Button, Container, Grid, Group, Stack, Text, Title, Image, Card, Badge, Anchor } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 
 const Landing = () => {
@@ -7,30 +7,32 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-rudi-sand">
       {/* Navigation */}
-      <Header height={60} className="bg-white shadow-sm">
-        <Container size="xl" className="h-full flex items-center justify-between">
-          <Title order={3} className="font-heading text-rudi-maroon cursor-pointer" onClick={() => navigate('/')}>
-            Rudi
-          </Title>
-          <Group gap="lg">
-            <Anchor className="text-rudi-maroon hover:text-rudi-teal" onClick={() => navigate('/about')}>
-              About
-            </Anchor>
-            <Anchor className="text-rudi-maroon hover:text-rudi-teal" onClick={() => navigate('/pricing')}>
-              Pricing
-            </Anchor>
-            <Anchor className="text-rudi-maroon hover:text-rudi-teal" onClick={() => navigate('/contact')}>
-              Contact
-            </Anchor>
-            <Button variant="subtle" className="text-rudi-teal" onClick={() => navigate('/login')}>
-              Login
-            </Button>
-            <Button className="bg-rudi-teal hover:bg-teal-600" onClick={() => navigate('/register')}>
-              Sign Up
-            </Button>
+      <div className="bg-white shadow-sm py-4">
+        <Container size="xl">
+          <Group justify="space-between" align="center">
+            <Title order={3} className="font-heading text-rudi-maroon cursor-pointer" onClick={() => navigate('/')}>
+              Rudi
+            </Title>
+            <Group gap="lg">
+              <Anchor className="text-rudi-maroon hover:text-rudi-teal" onClick={() => navigate('/about')}>
+                About
+              </Anchor>
+              <Anchor className="text-rudi-maroon hover:text-rudi-teal" onClick={() => navigate('/pricing')}>
+                Pricing
+              </Anchor>
+              <Anchor className="text-rudi-maroon hover:text-rudi-teal" onClick={() => navigate('/contact')}>
+                Contact
+              </Anchor>
+              <Button variant="subtle" className="text-rudi-teal" onClick={() => navigate('/login')}>
+                Login
+              </Button>
+              <Button className="bg-rudi-teal hover:bg-teal-600" onClick={() => navigate('/register')}>
+                Sign Up
+              </Button>
+            </Group>
           </Group>
         </Container>
-      </Header>
+      </div>
 
       {/* Hero Section */}
       <Container size="xl" py="xl">
