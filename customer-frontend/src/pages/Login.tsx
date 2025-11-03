@@ -51,7 +51,7 @@ const Login = () => {
       >
         <Logo
           size="xl"
-          style={{ transform: 'scale(1.6)', transformOrigin: 'center', marginBottom: '1rem' }}
+          style={{ transform: 'scale(2.4)', transformOrigin: 'center', marginBottom: '1rem' }}
         />
         <h2
           style={{
