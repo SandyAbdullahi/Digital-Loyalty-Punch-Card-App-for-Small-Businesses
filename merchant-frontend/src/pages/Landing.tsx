@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useAnimation, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Play, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Star, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 
@@ -9,6 +9,8 @@ const Landing = () => {
   const navigate = useNavigate();
   const [demoStamps, setDemoStamps] = useState(0);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
 
 
@@ -21,6 +23,20 @@ const Landing = () => {
   const toggleFaq = (index: number) => {
     setFaqOpen(faqOpen === index ? null : index);
   };
+
+  const closeDemoModal = () => {
+    setDemoModalOpen(false);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && demoModalOpen) {
+        closeDemoModal();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [demoModalOpen]);
 
   const AnimatedSection = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
     const controls = useAnimation();
@@ -35,9 +51,9 @@ const Landing = () => {
     return (
       <motion.div
         ref={ref}
-        initial={{ opacity: 0, y: 20 }}
+        initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
         animate={controls}
-        transition={{ duration: 0.6, delay }}
+        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.6, delay }}
       >
         {children}
       </motion.div>
@@ -49,49 +65,27 @@ const Landing = () => {
       <NavBar />
 
       {/* Hero Section */}
-      <section className="pt-24 pb-12 md:pt-32 md:pb-16 bg-gradient-to-br from-rudi-sand to-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <h1 className="font-heading text-3xl md:text-4xl lg:text-5xl text-rudi-maroon tracking-tight mb-4">
-                Earn. Return. Reward.
-              </h1>
-              <p className="text-lg md:text-xl text-rudi-maroon/90 leading-relaxed mb-8">
-                Join local shops with one scan, collect stamps, and claim instant rewards.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => window.location.href = 'http://localhost:3002/register'}
-                  className="bg-rudi-teal text-white rounded-2xl h-12 px-6 hover:bg-teal-600 transition-colors font-medium"
-                >
-                  Get the App
-                </button>
-                <button className="bg-transparent border-2 border-rudi-teal text-rudi-teal rounded-2xl h-12 px-6 hover:bg-rudi-teal hover:text-white transition-colors font-medium flex items-center justify-center gap-2">
-                  <Play size={16} />
-                  Watch 30s Demo
-                </button>
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative"
-            >
-              <img
-                src="https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg"
-                alt="Phone mockup showing punch card"
-                className="w-full max-w-md mx-auto rounded-2xl shadow-lg"
-                fetchpriority="high"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-rudi-teal/10 to-transparent rounded-2xl"></div>
-            </motion.div>
-          </div>
-        </div>
+      <section className="relative pt-24 pb-12 min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5')" }}>
+        <div className="absolute inset-0 bg-white/70"></div>
+        <motion.div
+          className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center"
+          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.8 }}
+        >
+          <h1 className="font-heading text-4xl sm:text-5xl font-bold tracking-tight text-[var(--rudi-maroon)] mb-4">
+            Kenya's friendliest digital stamp card
+          </h1>
+          <p className="font-body text-[var(--rudi-maroon)]/90 text-base sm:text-lg mb-6 max-w-md mx-auto">
+            Join with one scan, earn stamps, redeem instantly.
+          </p>
+          <button
+            onClick={() => navigate('/get-started')}
+            className="bg-[var(--rudi-teal)] text-white rounded-2xl h-12 px-6 font-semibold hover:brightness-105 active:translate-y-px transition focus-visible:outline-2 focus-visible:outline-[var(--rudi-teal)]"
+          >
+            Get Started
+          </button>
+        </motion.div>
       </section>
 
       {/* Social Proof */}
@@ -228,12 +222,12 @@ const Landing = () => {
                     <span className="text-rudi-maroon/80">Track redemptions in real-time</span>
                   </li>
                 </ul>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="bg-rudi-yellow text-rudi-maroon rounded-2xl h-12 px-6 hover:bg-amber-400 transition-colors font-medium"
-                >
-                  Merchant Demo
-                </button>
+                 <button
+                   onClick={() => navigate('/demo')}
+                   className="bg-rudi-yellow text-rudi-maroon rounded-2xl h-12 px-6 hover:bg-amber-400 transition-colors font-medium"
+                 >
+                   Merchant Demo
+                 </button>
               </div>
             </AnimatedSection>
             <AnimatedSection delay={0.2}>
@@ -451,6 +445,44 @@ const Landing = () => {
           </div>
         </div>
       </footer>
+
+      {/* Demo Modal */}
+      <AnimatePresence>
+        {demoModalOpen && (
+          <motion.div
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1 }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0 }}
+            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={closeDemoModal}
+          >
+            <motion.div
+              initial={shouldReduceMotion ? { scale: 1, opacity: 1 } : { scale: 0.9, opacity: 0 }}
+              animate={shouldReduceMotion ? { scale: 1, opacity: 1 } : { scale: 1, opacity: 1 }}
+              exit={shouldReduceMotion ? { scale: 0.9, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+              transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2 }}
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={closeDemoModal}
+                className="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors focus-visible:outline-2 focus-visible:outline-rudi-teal"
+                aria-label="Close demo"
+              >
+                <X size={20} className="text-rudi-maroon" />
+              </button>
+              <div className="aspect-video bg-gray-100 flex items-center justify-center">
+                <div className="text-center">
+                  <Play size={48} className="text-rudi-teal mx-auto mb-4" />
+                  <p className="text-rudi-maroon font-medium">Demo Video Placeholder</p>
+                  <p className="text-rudi-maroon/70 text-sm">30-second overview of Rudi loyalty system</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

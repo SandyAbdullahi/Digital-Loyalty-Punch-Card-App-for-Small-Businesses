@@ -87,10 +87,10 @@ const NavBar = () => {
                   Get the App
                 </button>
                 <button
-                  onClick={() => navigate('/register')}
+                  onClick={() => navigate('/login')}
                   className="bg-[#FFB300] text-[#3B1F1E] rounded-2xl h-12 px-6 hover:bg-[#FFC633] active:translate-y-px transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#009688] font-medium"
                 >
-                  Merchant Demo
+                  Merchant Login
                 </button>
               </div>
             </div>
@@ -158,10 +158,10 @@ const NavBar = () => {
                   Get the App
                 </button>
                 <button
-                  onClick={() => { navigate('/register'); closeMobileMenu(); }}
+                  onClick={() => { navigate('/login'); closeMobileMenu(); }}
                   className="w-full bg-[#FFB300] text-[#3B1F1E] rounded-2xl h-12 px-6 hover:bg-[#FFC633] active:translate-y-px transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#009688] font-medium"
                 >
-                  Merchant Demo
+                  Merchant Login
                 </button>
               </div>
             </div>

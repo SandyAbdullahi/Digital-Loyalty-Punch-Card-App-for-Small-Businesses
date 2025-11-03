@@ -1,5 +1,5 @@
 import { Button, TextInput } from '@mantine/core';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -39,6 +39,15 @@ export default function Register() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#FDF6EC] p-4">
       <div className="w-full max-w-md space-y-8">
+        <div className="flex justify-start">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-rudi-maroon/70 hover:text-rudi-maroon transition-colors focus:outline-none focus:ring-2 focus:ring-rudi-teal rounded"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </button>
+        </div>
         <div className="text-center">
           <img
             src="/logo-1.png"

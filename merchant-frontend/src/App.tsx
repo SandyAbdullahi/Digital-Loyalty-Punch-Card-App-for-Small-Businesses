@@ -15,6 +15,8 @@ import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import Layout from './components/Layout'
 import Locations from './pages/Locations'
+import GetStarted from './pages/GetStarted'
+import DemoDashboard from './pages/DemoDashboard'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -40,6 +42,8 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/get-started" element={<GetStarted />} />
+        <Route path="/demo" element={<DemoDashboard />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
         <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
         <Route element={<ProtectedApp />}>
