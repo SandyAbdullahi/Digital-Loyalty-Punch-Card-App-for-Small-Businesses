@@ -86,7 +86,7 @@ const Landing = () => {
                 src="https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg"
                 alt="Phone mockup showing punch card"
                 className="w-full max-w-md mx-auto rounded-2xl shadow-lg"
-                fetchPriority="high"
+                fetchpriority="high"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-rudi-teal/10 to-transparent rounded-2xl"></div>
             </motion.div>
