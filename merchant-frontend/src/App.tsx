@@ -34,7 +34,7 @@ function App() {
   if (loading) return <div>Loading...</div>
 
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true }}>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
