@@ -44,7 +44,7 @@ const NavBar = () => {
   return (
     <>
       <nav
-        className={`sticky top-0 z-50 transition-all duration-300 ${
+        className={`sticky top-0 w-full z-50 py-2 transition-all duration-300 ${
           isScrolled ? 'bg-white shadow-md border-b border-[#EADCC7]' : 'bg-[#FDF6EC]'
         }`}
         role="navigation"
