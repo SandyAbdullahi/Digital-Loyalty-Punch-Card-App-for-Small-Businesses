@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import QrScanner from 'qr-scanner';
 import axios from 'axios';
 import { Button, Notification } from '@mantine/core';
+import { BottomNav } from '../components/BottomNav';
 
 const Scan = () => {
   const navigate = useNavigate();
@@ -86,7 +87,7 @@ const Scan = () => {
         <h1 className="font-heading text-lg font-semibold">Scan QR</h1>
         <span aria-hidden="true" className="w-10" />
       </header>
-      <section className="flex-1 px-4 pb-10 flex flex-col items-center justify-center gap-6 max-w-md mx-auto">
+       <section className="flex-1 px-4 pb-16 flex flex-col items-center justify-center gap-6 max-w-md mx-auto">
         <div className="relative w-full max-w-md aspect-[3/4] rounded-[32px] bg-black overflow-hidden">
           <video ref={videoRef} className="h-full w-full object-cover opacity-80" />
           <div className="absolute inset-0 border-4 border-transparent">
@@ -108,10 +109,11 @@ const Scan = () => {
            >
              {status === 'loading' ? 'Processing your scan…' : message}
            </Notification>
-         )}
-      </section>
-    </main>
-  );
-};
+          )}
+       </section>
+       <BottomNav />
+     </main>
+   );
+ };
 
 export default Scan;
