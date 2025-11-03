@@ -51,14 +51,14 @@ const Login = () => {
       >
         <Logo
           size="xl"
-          style={{ transform: 'scale(1.6)', transformOrigin: 'center', marginBottom: '-7rem' }}
+          style={{ transform: 'scale(1.6)', transformOrigin: 'center', marginBottom: '1rem' }}
         />
         <h2
           style={{
             fontFamily: 'var(--mantine-font-family-headings)',
             fontWeight: 'bold',
             fontSize: 'clamp(3rem, 4.8vw, 3.6rem)',
-            marginTop: '-3rem',
+            marginTop: '0',
             marginBottom: '1.5rem',
             color: '#3B1F1E',
           }}
