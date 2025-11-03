@@ -207,7 +207,7 @@ const DemoDashboard = () => {
             <div className="flex items-end gap-2 h-40">
               {chartData.stamps.map((stamps, index) => (
                 <div key={index} className="flex-1 flex flex-col items-center">
-                  <div className="flex flex-col items-center w-full">
+                  <div className="flex flex-col items-end w-full h-32">
                     <div
                       className="w-full bg-primary rounded-t mb-1"
                       style={{ height: `${(stamps / 35) * 100}%` }}
@@ -215,7 +215,7 @@ const DemoDashboard = () => {
                     ></div>
                     <div
                       className="w-full bg-secondary rounded-t"
-                      style={{ height: `${(chartData.redemptions[index] / 6) * 50}%` }}
+                      style={{ height: `${(chartData.redemptions[index] / 6) * 100}%` }}
                       title={`Redemptions: ${chartData.redemptions[index]}`}
                     ></div>
                   </div>
