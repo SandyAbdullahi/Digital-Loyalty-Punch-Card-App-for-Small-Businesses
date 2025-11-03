@@ -103,7 +103,9 @@ const QR = () => {
       <div className="flex w-full max-w-3xl flex-col items-center gap-6 rounded-3xl bg-white/90 p-8 text-center shadow-rudi-card lg:p-12">
         <div className="space-y-2 animate-slide-up">
           <h1 className="font-heading text-3xl font-semibold text-rudi-maroon">
-            Scan or display this QR to award a stamp.
+            {qrType === 'join' ? 'Scan to join your loyalty program.' :
+             qrType === 'stamp' ? 'Scan or display this QR to award a stamp.' :
+             'Scan to redeem a reward.'}
           </h1>
           <p className="text-sm text-rudi-maroon/70">
             QRs last 60 seconds — keeping every reward secure for your guests.

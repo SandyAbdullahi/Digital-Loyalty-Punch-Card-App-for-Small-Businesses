@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@mantine/core';
 
 type SummaryMetric = {
   label: string;
@@ -134,6 +133,8 @@ const Dashboard = () => {
             },
           ]);
         }
+      } catch (error) {
+        setLoadingError('Unable to load dashboard data. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -143,7 +144,7 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="space-y-6 lg:space-y-8 bg-blue-500">
+    <div className="space-y-6 lg:space-y-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold text-rudi-maroon">
@@ -153,14 +154,15 @@ const Dashboard = () => {
             Monitor your loyalty programs and customer engagement
           </p>
         </div>
-        <Button
+        <button
           onClick={() => navigate('/programs/new')}
-          color="teal"
-          size="sm"
-          fullWidth={{ base: true, sm: false }}
+          className="btn-primary w-full sm:w-auto group"
         >
           Create Program
-        </Button>
+          <span className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5">
+            →
+          </span>
+        </button>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -211,14 +213,12 @@ const Dashboard = () => {
               <p className="mt-2 text-sm text-rudi-maroon/70">
                 No metrics yet - your first happy customer is just a scan away!
               </p>
-        <Button
-          onClick={() => navigate('/programs/new')}
-          color="teal"
-          size="sm"
-          fullWidth={{ base: true, sm: false }}
-        >
-          Create Program
-        </Button>
+              <button
+                onClick={() => navigate('/programs/new')}
+                className="btn-secondary mt-4"
+              >
+                Create Your First Program
+              </button>
             </div>
           </div>
         )}

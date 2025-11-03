@@ -8,7 +8,6 @@ const Profile = () => {
   const { user, logout, updateUser } = useAuth();
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<File | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -22,10 +21,16 @@ const Profile = () => {
     setStatus('saving');
     setMessage('');
     try {
-      const response = await axios.put('/api/v1/customer/profile', {
-        name,
-        email: user.email,
-        avatar_url: avatarUrl,
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('email', user.email);
+      if (avatar) {
+        formData.append('avatar', avatar);
+      }
+      const response = await axios.put('/api/v1/customer/profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       updateUser(response.data);
       setStatus('success');
@@ -48,28 +53,21 @@ const Profile = () => {
               <label htmlFor="profile-avatar" className="block text-sm font-semibold text-rudi-maroon">
                 Avatar
               </label>
-              <img
-                src={avatarUrl || user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.name || user?.email}`}
-                alt="Current avatar"
-                className="w-16 h-16 rounded-full mb-2 object-cover"
-              />
-              <input
-                id="profile-avatar"
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] || null;
-                  setAvatar(file);
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => setAvatarUrl(e.target?.result as string);
-                    reader.readAsDataURL(file);
-                  } else {
-                    setAvatarUrl(null);
-                  }
-                }}
-                className="block w-full text-sm text-rudi-maroon file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rudi-teal file:text-white hover:file:bg-teal-600"
-              />
+               <img
+                 src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.name || user?.email}`}
+                 alt="Current avatar"
+                 className="w-16 h-16 rounded-full mb-2 object-cover"
+               />
+               <input
+                 id="profile-avatar"
+                 type="file"
+                 accept="image/*"
+                 onChange={(event) => {
+                   const file = event.target.files?.[0] || null;
+                   setAvatar(file);
+                 }}
+                 className="block w-full text-sm text-rudi-maroon file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rudi-teal file:text-white hover:file:bg-teal-600"
+               />
             </div>
            <FormField
              id="profile-name"

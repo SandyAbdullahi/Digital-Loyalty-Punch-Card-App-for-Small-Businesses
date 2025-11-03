@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 
 from ...db.session import get_db
 from ...api.deps import get_current_user
@@ -177,6 +178,99 @@ def delete_location_endpoint(
         return {"message": "Location deleted"}
     raise HTTPException(status_code=404, detail="Location not found")
 
+
+# Merchant customers
+@router.get("/customers")
+def get_merchant_customers(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        return []
+
+    merchant = merchants[0]
+    program_ids = [p.id for p in merchant.programs]
+
+    from ...models.customer_program_membership import CustomerProgramMembership
+    from ...models.user import User
+    from ...models.ledger_entry import LedgerEntry
+    from sqlalchemy import func
+
+    memberships = db.query(CustomerProgramMembership).filter(
+        CustomerProgramMembership.program_id.in_(program_ids)
+    ).all()
+
+    customers = []
+    for membership in memberships:
+        customer = db.query(User).filter(User.id == membership.customer_user_id).first()
+        if not customer:
+            continue
+
+        total_stamps = db.query(func.sum(LedgerEntry.amount)).filter(
+            LedgerEntry.customer_user_id == customer.id,
+            LedgerEntry.program_id.in_(program_ids),
+            LedgerEntry.entry_type == 'earn'
+        ).scalar() or 0
+
+        last_visit = db.query(LedgerEntry.created_at).filter(
+            LedgerEntry.customer_user_id == customer.id,
+            LedgerEntry.program_id.in_(program_ids)
+        ).order_by(desc(LedgerEntry.created_at)).first()
+
+        programs = [{
+            "id": str(membership.program_id),
+            "name": membership.program.name,
+            "progress": membership.current_balance,
+            "threshold": membership.program.redeem_rule.get('reward_threshold', 10) if membership.program.redeem_rule else 10
+        }]
+
+        customers.append({
+            "id": str(customer.id),
+            "name": customer.name or customer.email.split('@')[0],
+            "email": customer.email,
+            "avatar": customer.avatar_url,
+            "totalStamps": total_stamps,
+            "lastVisit": last_visit[0].strftime('%B %d, %Y') if last_visit else 'Never',
+            "programs": programs
+        })
+
+    return customers
+
+# Merchant rewards
+@router.get("/rewards")
+def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        return []
+
+    merchant = merchants[0]
+    program_ids = [p.id for p in merchant.programs]
+
+    from ...models.ledger_entry import LedgerEntry
+    from ...models.user import User
+
+    redeem_entries = db.query(LedgerEntry).filter(
+        LedgerEntry.program_id.in_(program_ids),
+        LedgerEntry.entry_type == 'redeem'
+    ).order_by(desc(LedgerEntry.created_at)).all()
+
+    rewards = []
+    for entry in redeem_entries:
+        customer = db.query(User).filter(User.id == entry.customer_user_id).first()
+        program = next((p for p in merchant.programs if p.id == entry.program_id), None)
+        rewards.append({
+            "id": str(entry.id),
+            "program": program.name if program else 'Program',
+            "customer": customer.name or customer.email.split('@')[0] if customer else 'Customer',
+            "date": entry.created_at.strftime('%B %d, %Y - %I:%M %p'),
+            "status": 'redeemed'
+        })
+
+    return rewards
 
 # Public search
 @router.get("/search", response_model=List[Merchant])

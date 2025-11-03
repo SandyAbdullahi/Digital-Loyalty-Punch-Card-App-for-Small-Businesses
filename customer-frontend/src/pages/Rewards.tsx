@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { BottomNav } from '../components/BottomNav';
 
 type Reward = {
   id: string;
@@ -72,6 +73,7 @@ const Rewards = () => {
           </article>
         ))}
       </section>
+      <BottomNav />
     </main>
   );
 };
