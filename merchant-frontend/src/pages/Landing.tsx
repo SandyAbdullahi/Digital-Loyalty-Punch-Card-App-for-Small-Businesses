@@ -1,23 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Play, Star, ChevronDown, ChevronUp, Menu, X } from 'lucide-react';
+import { Play, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import NavBar from '../components/NavBar';
 
 const Landing = () => {
   const navigate = useNavigate();
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [demoStamps, setDemoStamps] = useState(0);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+
 
   const addStamp = () => {
     if (demoStamps < 10) {
@@ -53,88 +46,7 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-rudi-sand font-body">
-      {/* Sticky Navbar */}
-      <nav
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          isScrolled ? 'bg-white shadow-md' : 'bg-rudi-sand'
-        }`}
-        role="navigation"
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-18 items-center justify-between">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="font-heading text-2xl font-bold text-rudi-maroon">Rudi</span>
-              </div>
-            </div>
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-4">
-                <a href="#how-it-works" className="text-rudi-maroon hover:text-rudi-teal px-3 py-2 text-sm font-medium transition-colors">
-                  How it works
-                </a>
-                <a href="#for-merchants" className="text-rudi-maroon hover:text-rudi-teal px-3 py-2 text-sm font-medium transition-colors">
-                  For Merchants
-                </a>
-                <a href="#pricing" className="text-rudi-maroon hover:text-rudi-teal px-3 py-2 text-sm font-medium transition-colors">
-                  Pricing
-                </a>
-                <a href="#faq" className="text-rudi-maroon hover:text-rudi-teal px-3 py-2 text-sm font-medium transition-colors">
-                  FAQ
-                </a>
-                <a href="#contact" className="text-rudi-maroon hover:text-rudi-teal px-3 py-2 text-sm font-medium transition-colors">
-                  Contact
-                </a>
-              </div>
-            </div>
-            <div className="hidden md:block">
-              <div className="ml-4 flex items-center md:ml-6 space-x-3">
-                <button
-                  onClick={() => window.location.href = 'http://localhost:3002/register'}
-                  className="bg-rudi-teal text-white rounded-2xl h-12 px-6 hover:bg-teal-600 transition-colors font-medium"
-                >
-                  Get the App
-                </button>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="bg-transparent border-2 border-rudi-yellow text-rudi-maroon rounded-2xl h-12 px-6 hover:bg-rudi-yellow transition-colors font-medium"
-                >
-                  Merchant Demo
-                </button>
-              </div>
-            </div>
-            <div className="md:hidden">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-rudi-maroon hover:text-rudi-teal p-2"
-              >
-                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
-          </div>
-        </div>
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-rudi-sand">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <a href="#how-it-works" className="text-rudi-maroon hover:text-rudi-teal block px-3 py-2 text-base font-medium">How it works</a>
-              <a href="#for-merchants" className="text-rudi-maroon hover:text-rudi-teal block px-3 py-2 text-base font-medium">For Merchants</a>
-              <a href="#pricing" className="text-rudi-maroon hover:text-rudi-teal block px-3 py-2 text-base font-medium">Pricing</a>
-              <a href="#faq" className="text-rudi-maroon hover:text-rudi-teal block px-3 py-2 text-base font-medium">FAQ</a>
-              <a href="#contact" className="text-rudi-maroon hover:text-rudi-teal block px-3 py-2 text-base font-medium">Contact</a>
-              <button
-                onClick={() => window.location.href = 'http://localhost:3002/register'}
-                className="bg-rudi-teal text-white rounded-2xl h-12 px-6 w-full mt-4 font-medium"
-              >
-                Get the App
-              </button>
-              <button
-                onClick={() => navigate('/register')}
-                className="bg-rudi-yellow text-rudi-maroon rounded-2xl h-12 px-6 w-full mt-2 font-medium"
-              >
-                Merchant Demo
-              </button>
-            </div>
-          </div>
-        )}
+      <NavBar />
       </nav>
 
       {/* Hero Section */}
