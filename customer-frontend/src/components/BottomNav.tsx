@@ -28,7 +28,7 @@ export const BottomNav = () => {
   const location = useLocation();
 
   return (
-    <nav className="sticky bottom-0 bg-white border-t border-gray-200 py-2 px-4">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-4 z-50">
       <div className="flex items-center justify-between max-w-md mx-auto">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;

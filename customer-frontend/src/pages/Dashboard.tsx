@@ -5,6 +5,7 @@ import ProgramCard from '../components/ProgramCard';
 import { BottomNav } from '../components/BottomNav';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 type Membership = {
   id: string;
@@ -29,6 +30,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const fetchMemberships = async () => {
@@ -73,13 +75,19 @@ const Dashboard = () => {
 
   return (
     <>
-      <Sidebar />
-      <main className="min-h-screen bg-rudi-sand pb-24 md:ml-60">
+      <Sidebar isOpen={sidebarOpen} />
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed top-4 left-4 z-50 bg-rudi-teal text-white p-2 rounded-full shadow-lg hover:bg-teal-500 transition-colors"
+      >
+        {sidebarOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+      </button>
+      <main className={`min-h-screen bg-rudi-sand transition-all duration-300 ${sidebarOpen ? 'md:ml-60' : 'md:ml-0'}`}>
         <header className="bg-white shadow-sm">
           <div className="flex items-center justify-between p-4">
-            <h1 className="text-lg font-semibold text-rudi-maroon">
-              Welcome, {firstName}
-            </h1>
+          <h1 className="ml-16 text-2xl font-black text-rudi-maroon">
+            Welcome, {firstName}
+          </h1>
             <div className="h-10 w-10 rounded-full bg-rudi-teal/10 flex items-center justify-center text-rudi-teal font-semibold">
               {user?.email?.[0].toUpperCase() ?? 'G'}
             </div>
@@ -90,7 +98,7 @@ const Dashboard = () => {
               placeholder="Search programs..."
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="w-full h-11 rounded-full bg-white/80 backdrop-blur px-4 shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rudi-teal focus:border-transparent"
+              className="w-full h-11 rounded-full bg-white/80 backdrop-blur px-4 py-2 mb-2 shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rudi-teal focus:border-transparent"
             />
           </div>
         </header>
