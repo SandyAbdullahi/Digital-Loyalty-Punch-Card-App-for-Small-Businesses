@@ -40,5 +40,5 @@ def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
     return Token(
         access_token=access_token,
         refresh_token=refresh_token,
-        user={"id": user.id, "email": user.email, "role": user.role}
+        user={"id": user.id, "email": user.email, "role": user.role, "name": user.name, "avatar_url": user.avatar_url}
     )

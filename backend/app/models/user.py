@@ -22,6 +22,8 @@ class User(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=True)
+    avatar_url: Mapped[str] = mapped_column(String, nullable=True)
     phone: Mapped[str] = mapped_column(String, nullable=True)
     role: Mapped[UserRole] = mapped_column(String, nullable=False, default=UserRole.CUSTOMER)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)

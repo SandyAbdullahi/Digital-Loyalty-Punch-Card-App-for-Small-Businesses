@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProgramCard from '../components/ProgramCard';
 import { BottomNav } from '../components/BottomNav';
-import Sidebar from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+
 
 type Membership = {
   id: string;
@@ -30,7 +30,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const fetchMemberships = async () => {
@@ -60,7 +59,7 @@ const Dashboard = () => {
     });
   }, [memberships, query]);
 
-  const firstName = user?.email?.split('@')[0] ?? 'Explorer';
+  const firstName = user?.name || user?.email?.split('@')[0] || 'Explorer';
 
   const thresholdFor = (membership: Membership) =>
     membership.program?.reward_threshold ?? 10;
@@ -75,23 +74,18 @@ const Dashboard = () => {
 
   return (
     <>
-      <Sidebar isOpen={sidebarOpen} />
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 bg-rudi-teal text-white p-2 rounded-full shadow-lg hover:bg-teal-500 transition-colors"
-      >
-        {sidebarOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-      </button>
-      <main className={`min-h-screen bg-rudi-sand transition-all duration-300 ${sidebarOpen ? 'md:ml-60' : 'md:ml-0'}`}>
+      <main className="min-h-screen bg-rudi-sand">
         <header className="bg-white shadow-sm">
-          <div className="flex items-center justify-between p-4">
-          <h1 className="ml-16 text-2xl font-black text-rudi-maroon">
+        <div className="flex items-center justify-between p-4">
+          <h1 className="text-2xl font-black text-rudi-maroon">
             Welcome, {firstName}
           </h1>
-            <div className="h-10 w-10 rounded-full bg-rudi-teal/10 flex items-center justify-center text-rudi-teal font-semibold">
-              {user?.email?.[0].toUpperCase() ?? 'G'}
-            </div>
-          </div>
+          <img
+            src={user?.avatar_url || `https://ui-avatars.com/api/?name=${firstName}&background=009688&color=fff&size=40`}
+            alt="Avatar"
+            className="h-10 w-10 rounded-full object-cover"
+          />
+        </div>
           <div className="mx-4 mb-3">
             <input
               type="search"
@@ -157,10 +151,10 @@ const Dashboard = () => {
                 />
               </div>
             ))}
-          </div>
-        </section>
-        <BottomNav />
+        </div>
+      </section>
       </main>
+      <BottomNav />
     </>
   );
 };

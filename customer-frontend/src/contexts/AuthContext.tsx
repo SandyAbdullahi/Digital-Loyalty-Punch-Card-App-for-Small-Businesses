@@ -5,6 +5,8 @@ interface User {
   id: string
   email: string
   role: string
+  name?: string
+  avatar_url?: string
 }
 
 interface AuthContextType {
@@ -13,6 +15,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, role: string) => Promise<void>
   logout: () => void
+  updateUser: (newUser: User) => void
   loading: boolean
 }
 
@@ -66,6 +69,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
   }
 
+  const updateUser = (newUser: User) => {
+    setUser(newUser)
+    localStorage.setItem('user', JSON.stringify(newUser))
+  }
+
   const logout = () => {
     setUser(null)
     setToken(null)
@@ -75,7 +83,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   )

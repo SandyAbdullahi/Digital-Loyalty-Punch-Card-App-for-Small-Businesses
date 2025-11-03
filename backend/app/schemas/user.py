@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 
 class UserBase(BaseModel):
     email: EmailStr
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
     phone: Optional[str] = None
     role: str = "customer"
 
