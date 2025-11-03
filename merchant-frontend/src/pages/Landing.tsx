@@ -47,7 +47,6 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-rudi-sand font-body">
       <NavBar />
-      </nav>
 
       {/* Hero Section */}
       <section className="pt-24 pb-12 md:pt-32 md:pb-16 bg-gradient-to-br from-rudi-sand to-white">
