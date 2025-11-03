@@ -39,7 +39,7 @@ const programPerformance: ProgramData[] = [
   { name: 'Weekend Vibes', value: 22 },
 ]
 
-const chartColors = ['#009688', '#FFB300', '#FF6F61']
+const chartColors = ['#00C896', '#2196F3', '#FF5252']
 
 const buildLinePath = (data: StampData[], key: keyof StampData) => {
   const { width, height, padding } = lineChartConfig
@@ -151,20 +151,20 @@ const Analytics = () => {
                 stroke="#EADCC7"
                 strokeDasharray="6 6"
               />
-              <polyline
-                points={buildLinePath(stampsData, 'stamps')}
-                fill="none"
-                stroke="#009688"
-                strokeWidth={3}
-                strokeLinecap="round"
-              />
-              <polyline
-                points={buildLinePath(stampsData, 'redemptions')}
-                fill="none"
-                stroke="#FFB300"
-                strokeWidth={3}
-                strokeLinecap="round"
-              />
+               <polyline
+                 points={buildLinePath(stampsData, 'stamps')}
+                 fill="none"
+                 stroke="#00C896"
+                 strokeWidth={3}
+                 strokeLinecap="round"
+               />
+               <polyline
+                 points={buildLinePath(stampsData, 'redemptions')}
+                 fill="none"
+                 stroke="#2196F3"
+                 strokeWidth={3}
+                 strokeLinecap="round"
+               />
               {stampsData.map((item, index) => {
                 const x =
                   lineChartConfig.padding +

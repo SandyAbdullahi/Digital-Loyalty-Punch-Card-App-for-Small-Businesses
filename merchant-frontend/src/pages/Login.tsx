@@ -22,12 +22,12 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#FDF6EC] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex justify-start">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-rudi-maroon/70 hover:text-rudi-maroon transition-colors focus:outline-none focus:ring-2 focus:ring-rudi-teal rounded"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to home
@@ -39,10 +39,10 @@ export default function Login() {
             alt="Rudi"
             className="mx-auto mb-6 h-16 w-auto transform scale-75"
           />
-          <h1 className="font-heading text-3xl font-bold text-rudi-maroon">
+          <h1 className="font-heading text-3xl font-bold text-foreground">
             Welcome back
           </h1>
-          <p className="mt-2 text-sm text-rudi-maroon/70">
+          <p className="mt-2 text-sm text-muted-foreground">
             Sign in to your merchant dashboard
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 rounded-2xl bg-rudi-coral/10 p-4 text-sm text-rudi-coral">
+            <div className="flex items-center gap-2 rounded-2xl bg-accent/10 p-4 text-sm text-accent">
               <AlertTriangle className="h-5 w-5 flex-shrink-0" />
               {error}
             </div>
@@ -82,11 +82,11 @@ export default function Login() {
         </form>
 
         <div className="text-center">
-          <p className="text-sm text-rudi-maroon/70">
+          <p className="text-sm text-muted-foreground">
             New to Rudi?{' '}
             <Link
               to="/register"
-              className="font-semibold text-rudi-teal hover:text-rudi-teal/80"
+              className="font-semibold text-primary hover:text-primary/80"
             >
               Create your account
             </Link>
