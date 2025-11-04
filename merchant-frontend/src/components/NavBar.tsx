@@ -42,12 +42,12 @@ const NavBar = () => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-18 items-center justify-between">
              <div className="flex items-center">
-               <div className="flex-shrink-0 flex items-center gap-2">
-                 <a href="/">
-                   <img src="/logo-1.png" alt="Rudi" className="h-8 w-auto" />
-                 </a>
-                 <span className="font-heading text-xl font-bold text-foreground">rudi</span>
-               </div>
+                <div className="flex-shrink-0 flex items-center gap-2">
+                  <a href="/" className="flex items-center gap-2">
+                    <img src="/logo-1.png" alt="Rudi" className="h-8 w-auto" />
+                    <span className="font-heading text-xl font-bold text-foreground">rudi</span>
+                  </a>
+                </div>
              </div>
             <div className="hidden md:block">
                <div className="ml-10 flex items-baseline space-x-4">

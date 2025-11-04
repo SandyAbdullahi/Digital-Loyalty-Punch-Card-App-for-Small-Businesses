@@ -12,26 +12,26 @@ const GetApp = () => {
           <p className="text-muted-foreground mb-12 max-w-md mx-auto">
             Download the app to start earning stamps and redeeming rewards.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-8 justify-center">
             <Button
-              leftSection={<Smartphone size={20} />}
-              size="lg"
-              variant="filled"
+              size="xl"
+              variant="outline"
               color="primary"
               component="a"
               href="#"
+              className="w-96 h-64 flex items-center justify-center p-4 hover:bg-[#00C896] hover:border-[#00C896]"
             >
-              Download on Google Play
+              <img src="/Google_Play_logo.png" alt="Google Play" style={{ width: '384px', height: 'auto' }} />
             </Button>
             <Button
-              leftSection={<Apple size={20} />}
-              size="lg"
-              variant="filled"
-              color="secondary"
+              size="xl"
+              variant="outline"
+              color="primary"
               component="a"
               href="#"
+              className="w-96 h-64 flex items-center justify-center p-4 hover:bg-[#00C896] hover:border-[#00C896]"
             >
-              Download on App Store
+              <img src="/App_store_logo.png" alt="App Store" style={{ width: '384px', height: 'auto' }} />
             </Button>
           </div>
         </div>
