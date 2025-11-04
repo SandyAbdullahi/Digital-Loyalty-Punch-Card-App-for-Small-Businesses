@@ -61,12 +61,12 @@ const TopBar = ({ onToggleSidebar }: TopBarProps) => {
             </div>
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 rounded-xl border border-border shadow-lg">
-          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-foreground/70">
+        <DropdownMenuContent align="end" className="w-48 rounded-xl border border-border shadow-lg bg-primary text-white">
+          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-white/70">
             Quick actions
           </DropdownMenuLabel>
           <DropdownMenuItem
-            className="rounded-lg text-sm font-medium text-foreground hover:bg-primary/10"
+            className="rounded-lg text-sm font-medium text-white hover:bg-primary/80 hover:text-black cursor-pointer"
             onSelect={(event) => {
               event.preventDefault()
               navigate('/settings')
@@ -76,7 +76,7 @@ const TopBar = ({ onToggleSidebar }: TopBarProps) => {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="rounded-lg text-sm font-medium text-accent hover:bg-accent/10"
+            className="rounded-lg text-sm font-medium text-white hover:bg-primary/80 hover:text-black cursor-pointer"
             onSelect={(event) => {
               event.preventDefault()
               logout()

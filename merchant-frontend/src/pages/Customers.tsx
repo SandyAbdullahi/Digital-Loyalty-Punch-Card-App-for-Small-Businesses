@@ -2,14 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-} from '@rudi/ui'
+  Modal,
+  TextInput,
+  Text,
+} from '@mantine/core'
 
 type CustomerProgram = {
   id: string
@@ -33,33 +29,41 @@ const Customers = () => {
   const [query, setQuery] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'info'; message: string } | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const response = await axios.get('/api/v1/merchants/customers')
-        if (Array.isArray(response.data)) {
-          setCustomers(
-            response.data.map((item: any) => ({
+  const fetchCustomers = async () => {
+    setLoading(true)
+    try {
+      const response = await axios.get('/api/v1/merchants/customers')
+      if (Array.isArray(response.data)) {
+        setCustomers(
+          response.data.map((item: any) => {
+            const programs = (item.programs ?? []).map((program: any) => ({
+              id: program.id ?? crypto.randomUUID(),
+              name: program.name ?? 'Program',
+              progress: program.progress ?? 0,
+              threshold: program.threshold ?? 10,
+            }))
+            return {
               id: item.id ?? crypto.randomUUID(),
               name: item.name ?? item.email ?? 'Valued Guest',
               email: item.email ?? 'unknown',
-              totalStamps: item.total_stamps ?? 0,
-              lastVisit: item.last_visit ?? 'Just now',
-              programs: (item.programs ?? []).map((program: any) => ({
-                id: program.id ?? crypto.randomUUID(),
-                name: program.name ?? 'Program',
-                progress: program.progress ?? 0,
-                threshold: program.threshold ?? 10,
-              })),
-            }))
-          )
-        }
-       } catch (error) {
-         console.error('Failed to fetch customers', error)
-         setCustomers([])
-       }
-    }
+              totalStamps: programs.reduce((sum, p) => sum + p.progress, 0),
+              lastVisit: item.last_visit ?? 'Never',
+              programs,
+            }
+          })
+        )
+      }
+     } catch (error) {
+       console.error('Failed to fetch customers', error)
+       setCustomers([])
+     } finally {
+       setLoading(false)
+     }
+  }
+
+  useEffect(() => {
     fetchCustomers()
   }, [])
 
@@ -77,11 +81,41 @@ const Customers = () => {
     setTimeout(() => setToast(null), 2400)
   }
 
-  const handleManualAction = (action: 'add' | 'revoke') => {
-    if (action === 'add') {
-      showToast('success', 'Stamp added - let the celebration begin!')
-    } else {
-      showToast('info', 'Stamp revoked - balance back in harmony.')
+  const handleManualAction = async (action: 'add' | 'revoke') => {
+    if (!selectedCustomer || selectedCustomer.programs.length === 0) return
+
+    const programId = selectedCustomer.programs[0].id
+    const url = `/api/v1/merchants/customers/${selectedCustomer.id}/${action === 'add' ? 'add-stamp' : 'revoke-stamp'}`
+
+    const formData = new FormData()
+    formData.append('program_id', programId)
+
+    try {
+      await axios.post(url, formData)
+      showToast('success', action === 'add' ? 'Stamp added - let the celebration begin!' : 'Stamp revoked - balance back in harmony.')
+      // Refetch customers to update stamps
+      const response = await axios.get('/api/v1/merchants/customers')
+      if (Array.isArray(response.data)) {
+        const updatedCustomers = response.data.map((item: any) => ({
+          id: item.id ?? crypto.randomUUID(),
+          name: item.name ?? item.email ?? 'Valued Guest',
+          email: item.email ?? 'unknown',
+          totalStamps: item.total_stamps ?? 0,
+          lastVisit: item.last_visit ?? 'Just now',
+          programs: (item.programs ?? []).map((program: any) => ({
+            id: program.id ?? crypto.randomUUID(),
+            name: program.name ?? 'Program',
+            progress: program.progress ?? 0,
+            threshold: program.threshold ?? 10,
+          })),
+        }))
+        setCustomers(updatedCustomers)
+        // Update selectedCustomer with new data
+        const updatedSelected = updatedCustomers.find(c => c.id === selectedCustomer.id)
+        setSelectedCustomer(updatedSelected || null)
+      }
+    } catch (error) {
+      showToast('info', 'Action failed - please try again.')
     }
   }
 
@@ -94,14 +128,21 @@ const Customers = () => {
         </p>
       </div>
 
-      <div className="flex justify-center">
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by name or email"
-          className="h-12 w-full max-w-lg rounded-full border-primary/20 bg-card px-5 shadow-md"
-        />
-      </div>
+       <div className="flex justify-center gap-4">
+          <TextInput
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search by name or email"
+            className="h-12 w-full max-w-lg rounded-full border-primary/20 bg-card px-5 pt-1 shadow-md"
+          />
+          <Button
+            onClick={fetchCustomers}
+            className="btn-secondary"
+            disabled={loading}
+          >
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+       </div>
 
       <div className="space-y-4">
         {filteredCustomers.map((customer, index) => (
@@ -142,68 +183,61 @@ const Customers = () => {
         )}
       </div>
 
-      <Dialog open={Boolean(selectedCustomer)} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
-        <DialogContent className="max-w-xl rounded-3xl border border-border p-0 shadow-2xl">
-          <DialogHeader className="space-y-1 rounded-t-3xl bg-primary/10 px-6 py-5">
-            <DialogTitle className="font-heading text-xl text-foreground">
-              {selectedCustomer?.name}
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">{selectedCustomer?.email}</p>
-          </DialogHeader>
+      <Modal opened={Boolean(selectedCustomer)} onClose={() => setSelectedCustomer(null)} title={selectedCustomer?.name} size="xl">
+        <div className="space-y-5">
+          <p className="text-sm text-muted-foreground">{selectedCustomer?.email}</p>
 
-          <div className="space-y-5 px-6 py-5">
-            <div className="grid gap-4 rounded-2xl border border-primary/15 bg-muted/50 p-4 text-sm text-muted-foreground sm:grid-cols-2">
-              <div>
-                <span className="font-semibold text-foreground">{selectedCustomer?.totalStamps}</span>{' '}
-                total stamps
-              </div>
-              <div>Last visit: {selectedCustomer?.lastVisit}</div>
+          <div className="grid gap-4 rounded-2xl border border-primary/15 bg-muted/50 p-4 text-sm text-muted-foreground sm:grid-cols-2">
+            <div>
+              <span className="font-semibold text-foreground">{selectedCustomer?.programs.reduce((sum, p) => sum + p.progress, 0)}</span>{' '}
+              total stamps
             </div>
+            <div>Last visit: {selectedCustomer?.lastVisit}</div>
+          </div>
 
+          <div className="space-y-3">
+            <Text className="text-sm font-semibold text-foreground">
+              Active loyalty journeys
+            </Text>
             <div className="space-y-3">
-              <Label className="text-sm font-semibold text-foreground">
-                Active loyalty journeys
-              </Label>
-              <div className="space-y-3">
-                {selectedCustomer?.programs.map((program) => {
-                  const progress = Math.min(
-                    Math.round((program.progress / program.threshold) * 100),
-                    100
-                  )
-                  return (
-                    <div key={program.id} className="rounded-2xl border border-primary/15 bg-surface/80 p-4 shadow-sm">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-semibold text-foreground">{program.name}</span>
-                        <span className="text-muted-foreground">
-                          {program.progress}/{program.threshold} stamps
-                        </span>
-                      </div>
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-primary transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
+              {selectedCustomer?.programs.map((program) => {
+                const progress = Math.min(
+                  Math.round((program.progress / program.threshold) * 100),
+                  100
+                )
+                return (
+                  <div key={program.id} className="rounded-2xl border border-primary/15 bg-surface/80 p-4 shadow-sm">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold text-foreground">{program.name}</span>
+                      <span className="text-muted-foreground">
+                        {program.progress}/{program.threshold} stamps
+                      </span>
                     </div>
-                  )
-                })}
-                {!selectedCustomer?.programs.length && (
-                  <div className="rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
-                    No active programs yet - invite them to their first reward adventure!
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
                   </div>
-                )}
-              </div>
+                )
+              })}
+              {!selectedCustomer?.programs.length && (
+                <div className="rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
+                  No active programs yet - invite them to their first reward adventure!
+                </div>
+              )}
             </div>
           </div>
 
-          <DialogFooter className="flex items-center justify-between rounded-b-3xl bg-surface px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="text-xs text-muted-foreground">
               Nice work - another happy customer!
             </div>
             <div className="flex gap-3">
               <Button
                 type="button"
-                className="rounded-2xl border border-primary/30 bg-surface px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
+                className="rounded-2xl bg-red-500 text-white px-4 py-2 text-sm font-semibold hover:bg-red-600"
                 onClick={() => handleManualAction('revoke')}
               >
                 Revoke stamp
@@ -212,9 +246,9 @@ const Customers = () => {
                 Add manual stamp
               </Button>
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      </Modal>
 
       {toast && (
         <div

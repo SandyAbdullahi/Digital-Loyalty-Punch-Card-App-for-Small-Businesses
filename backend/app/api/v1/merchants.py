@@ -167,61 +167,50 @@ def get_merchant_customers(
         .all()
     )
 
-    customers = []
+    # Group memberships by customer
+    customer_memberships = {}
     for membership in memberships:
-        customer = db.query(User).filter(User.id == membership.customer_user_id).first()
+        customer_id = membership.customer_user_id
+        if customer_id not in customer_memberships:
+            customer_memberships[customer_id] = []
+        customer_memberships[customer_id].append(membership)
+
+    customers = []
+    for customer_id, mems in customer_memberships.items():
+        customer = db.query(User).filter(User.id == customer_id).first()
         if not customer:
             continue
 
-        total_stamps = (
-            db.query(func.sum(LedgerEntry.amount))
-            .join(
-                CustomerProgramMembership,
-                LedgerEntry.membership_id == CustomerProgramMembership.id,
-            )
-            .filter(
-                CustomerProgramMembership.customer_user_id == customer.id,
-                CustomerProgramMembership.program_id.in_(program_ids),
-                LedgerEntry.entry_type == "earn",
-            )
-            .scalar()
-            or 0
-        )
+        total_stamps = sum(m.current_balance for m in mems)
 
+        membership_ids = [m.id for m in mems]
         last_visit = (
             db.query(LedgerEntry.created_at)
-            .join(
-                CustomerProgramMembership,
-                LedgerEntry.membership_id == CustomerProgramMembership.id,
-            )
-            .filter(
-                CustomerProgramMembership.customer_user_id == customer.id,
-                CustomerProgramMembership.program_id.in_(program_ids),
-            )
+            .filter(LedgerEntry.membership_id.in_(membership_ids))
             .order_by(desc(LedgerEntry.created_at))
             .first()
         )
 
-        redeem_source = membership.program.redeem_rule if membership.program else {}
-        if isinstance(redeem_source, str):
-            try:
-                redeem_rule = json.loads(redeem_source)
-            except json.JSONDecodeError:
+        programs = []
+        for membership in mems:
+            redeem_source = membership.program.redeem_rule if membership.program else {}
+            if isinstance(redeem_source, str):
+                try:
+                    redeem_rule = json.loads(redeem_source)
+                except json.JSONDecodeError:
+                    redeem_rule = {}
+            elif isinstance(redeem_source, dict):
+                redeem_rule = redeem_source
+            else:
                 redeem_rule = {}
-        elif isinstance(redeem_source, dict):
-            redeem_rule = redeem_source
-        else:
-            redeem_rule = {}
-        threshold = redeem_rule.get("reward_threshold", 10)
+            threshold = redeem_rule.get("reward_threshold", 10)
 
-        programs = [
-            {
+            programs.append({
                 "id": str(membership.program_id),
                 "name": membership.program.name,
                 "progress": membership.current_balance,
                 "threshold": threshold,
-            }
-        ]
+            })
 
         customers.append(
             {
@@ -230,7 +219,7 @@ def get_merchant_customers(
                 "email": customer.email,
                 "avatar": customer.avatar_url,
                 "totalStamps": total_stamps,
-                "lastVisit": last_visit[0].strftime("%B %d, %Y")
+                "lastVisit": last_visit[0].strftime('%B %d, %Y - %I:%M %p')
                 if last_visit
                 else "Never",
                 "programs": programs,
@@ -411,6 +400,90 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
         })
 
     return rewards
+
+# Manual stamp actions
+@router.post("/customers/{customer_id}/add-stamp")
+def add_manual_stamp(
+    customer_id: UUID,
+    program_id: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+ ):
+    from ...services.membership import earn_stamps
+    from ...models.customer_program_membership import CustomerProgramMembership
+
+    # Verify merchant owns the program
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+    merchant = merchants[0]
+    program_ids = [p.id for p in merchant.programs]
+    try:
+        program_uuid = UUID(program_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid program_id")
+    if program_uuid not in program_ids:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Find membership
+    membership = db.query(CustomerProgramMembership).filter(
+        CustomerProgramMembership.customer_user_id == customer_id,
+        CustomerProgramMembership.program_id == program_uuid
+    ).first()
+    if not membership:
+        raise HTTPException(status_code=404, detail="Membership not found")
+
+    # Add stamp
+    result = earn_stamps(db, membership.id, 1, "manual", "manual")
+    if result:
+        return {"message": "Stamp added successfully"}
+    raise HTTPException(status_code=400, detail="Failed to add stamp")
+
+
+@router.post("/customers/{customer_id}/revoke-stamp")
+def revoke_manual_stamp(
+    customer_id: UUID,
+    program_id: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+ ):
+    from ...services.auth import get_user_by_email
+    from ...services.membership import adjust_balance
+    from ...models.customer_program_membership import CustomerProgramMembership
+
+    # Verify merchant owns the program
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+    merchant = merchants[0]
+    program_ids = [p.id for p in merchant.programs]
+    try:
+        program_uuid = UUID(program_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid program_id")
+    if program_uuid not in program_ids:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Find membership
+    membership = db.query(CustomerProgramMembership).filter(
+        CustomerProgramMembership.customer_user_id == customer_id,
+        CustomerProgramMembership.program_id == program_uuid
+    ).first()
+    if not membership:
+        raise HTTPException(status_code=404, detail="Membership not found")
+
+    # Revoke stamp (adjust by -1)
+    result = adjust_balance(db, membership.id, -1, "manual revoke", "manual")
+    if result:
+        return {"message": "Stamp revoked successfully"}
+    raise HTTPException(status_code=400, detail="Failed to revoke stamp")
+
 
 # Public search
 @router.get("/search", response_model=List[Merchant])

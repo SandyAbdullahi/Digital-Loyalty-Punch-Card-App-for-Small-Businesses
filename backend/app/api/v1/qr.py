@@ -181,12 +181,12 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
         raise HTTPException(status_code=404, detail="Not a member")
 
     # Earn stamps
-    earn_stamps(db, membership.id, 1, tx_ref=nonce, device_fingerprint=request.device_fingerprint)
+    updated_membership = earn_stamps(db, membership.id, 1, tx_ref=nonce, device_fingerprint=request.device_fingerprint)
 
     # Mark nonce as used
     # redis_client.setex(nonce, 300, "used")
 
-    return {"message": "Stamp earned", "new_balance": membership.current_balance + 1}
+    return {"message": "Stamp earned", "new_balance": updated_membership.current_balance if updated_membership else membership.current_balance + 1}
 
 
 @router.post("/scan-stamp")

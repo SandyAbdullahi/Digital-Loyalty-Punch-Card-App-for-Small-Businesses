@@ -45,6 +45,9 @@ dev-dependencies = [
 [tool.isort]
 profile = "black"
 
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
 [tool.mypy]
 strict = true
 ignore_missing_imports = true
