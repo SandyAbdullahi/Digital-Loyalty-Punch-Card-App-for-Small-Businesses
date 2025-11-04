@@ -4,6 +4,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from .loyalty_program import LoyaltyProgram
+from .merchant import Merchant
+
 
 class CustomerProgramMembershipBase(BaseModel):
     customer_user_id: UUID
@@ -34,3 +37,9 @@ class CustomerProgramMembership(CustomerProgramMembershipInDBBase):
 
 class CustomerProgramMembershipInDB(CustomerProgramMembershipInDBBase):
     pass
+
+
+class CustomerProgramMembershipWithDetails(CustomerProgramMembershipInDBBase):
+    program: LoyaltyProgram
+
+    model_config = ConfigDict(from_attributes=True)

@@ -50,11 +50,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const storedToken = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
+    const storedMerchant = localStorage.getItem('merchant')
     if (storedToken) {
       setToken(storedToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
       if (storedUser) {
         setUser(JSON.parse(storedUser))
+      }
+      if (storedMerchant) {
+        setMerchant(JSON.parse(storedMerchant))
       }
     }
     setLoading(false)
@@ -68,6 +72,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.setItem('token', access_token)
     localStorage.setItem('user', JSON.stringify(userData))
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+    // Fetch merchant data
+    try {
+      const merchantResponse = await axios.get('/api/v1/merchants/')
+      if (merchantResponse.data.length > 0) {
+        const merchantData = merchantResponse.data[0]
+        setMerchant(merchantData)
+        localStorage.setItem('merchant', JSON.stringify(merchantData))
+      }
+    } catch (error) {
+      console.error('Failed to fetch merchant', error)
+    }
   }
 
   const login = (email: string, password: string) => authenticate(email, password)
@@ -80,6 +95,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const updateMerchant = (newMerchant: Merchant) => {
     setMerchant(newMerchant)
+    localStorage.setItem('merchant', JSON.stringify(newMerchant))
   }
 
   const logout = () => {
@@ -88,6 +104,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setToken(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    localStorage.removeItem('merchant')
     delete axios.defaults.headers.common['Authorization']
   }
 

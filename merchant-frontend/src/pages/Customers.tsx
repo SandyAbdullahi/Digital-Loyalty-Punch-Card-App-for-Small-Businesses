@@ -28,38 +28,8 @@ type CustomerRecord = {
   programs: CustomerProgram[]
 }
 
-const seedCustomers: CustomerRecord[] = [
-  {
-    id: '1',
-    name: 'Maria Gomez',
-    email: 'maria@gomez.com',
-    totalStamps: 28,
-    lastVisit: '2 hours ago',
-    programs: [
-      { id: 'p1', name: 'Morning Brew', progress: 7, threshold: 10 },
-      { id: 'p2', name: 'Lunch Club', progress: 3, threshold: 8 },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Kai Summers',
-    email: 'kai@summers.com',
-    totalStamps: 41,
-    lastVisit: 'Yesterday',
-    programs: [{ id: 'p3', name: 'VIP Latte', progress: 9, threshold: 12 }],
-  },
-  {
-    id: '3',
-    name: 'Ola Adeniyi',
-    email: 'ola@adeniyi.co',
-    totalStamps: 12,
-    lastVisit: '3 days ago',
-    programs: [{ id: 'p4', name: 'Pastry Lovers', progress: 4, threshold: 6 }],
-  },
-]
-
 const Customers = () => {
-  const [customers, setCustomers] = useState<CustomerRecord[]>(seedCustomers)
+  const [customers, setCustomers] = useState<CustomerRecord[]>([])
   const [query, setQuery] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'info'; message: string } | null>(null)
@@ -85,9 +55,10 @@ const Customers = () => {
             }))
           )
         }
-      } catch (error) {
-        console.info('Falling back to in-memory customers.', error)
-      }
+       } catch (error) {
+         console.error('Failed to fetch customers', error)
+         setCustomers([])
+       }
     }
     fetchCustomers()
   }, [])

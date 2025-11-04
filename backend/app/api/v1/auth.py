@@ -26,7 +26,7 @@ def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
                 detail="Incorrect password",
             )
         # Update role if provided
-        if requested_role and getattr(user.role, "value", user.role) != requested_role.value:
+        if requested_role and user.role != requested_role:
             user.role = requested_role  # type: ignore[assignment]
             db.commit()
             db.refresh(user)

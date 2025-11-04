@@ -32,15 +32,15 @@ const Rewards = () => {
   }, []);
 
   return (
-    <main className="min-h-screen bg-rudi-sand text-rudi-maroon pb-16">
+    <main className="min-h-screen bg-[var(--rudi-background)] text-[var(--rudi-text)] pb-16">
       <header className="px-4 pt-10 pb-6 space-y-2">
         <h1 className="font-heading text-2xl font-semibold">Rewards</h1>
-        <p className="text-sm text-rudi-maroon/70">Track the perks you’ve earned from your favourite merchants.</p>
+        <p className="text-sm text-[var(--rudi-text)]/70">Track the perks you’ve earned from your favourite merchants.</p>
       </header>
       <section className="px-4 space-y-4">
-        {loading && <p className="text-sm text-rudi-maroon/70">Loading rewards…</p>}
+        {loading && <p className="text-sm text-[var(--rudi-text)]/70">Loading rewards…</p>}
         {error && (
-          <p className="text-sm text-rudi-coral bg-rudi-coral/10 px-3 py-2 rounded-md">
+          <p className="text-sm text-[var(--rudi-accent)] bg-[var(--rudi-accent)]/10 px-3 py-2 rounded-md">
             We’ll show your rewards here once available.
           </p>
         )}
@@ -50,7 +50,7 @@ const Rewards = () => {
               🌱
             </div>
             <h2 className="font-heading text-lg font-semibold">No rewards yet</h2>
-            <p className="text-sm text-rudi-maroon/70">
+            <p className="text-sm text-[var(--rudi-text)]/70">
               Join a local shop to start earning stamps and unlock something delightful.
             </p>
           </div>
@@ -62,7 +62,7 @@ const Rewards = () => {
             </div>
             <div className="flex-1">
               <h3 className="font-heading text-lg font-semibold">{reward.title}</h3>
-              <p className="text-xs text-rudi-maroon/60">
+              <p className="text-xs text-[var(--rudi-text)]/60">
                 Redeemed {new Date(reward.redeemed_at).toLocaleDateString()} •{' '}
                 {reward.merchant_name ?? 'Merchant reward'}
               </p>

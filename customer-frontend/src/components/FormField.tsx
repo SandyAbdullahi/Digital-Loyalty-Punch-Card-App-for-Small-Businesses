@@ -9,22 +9,22 @@ type FormFieldProps = {
 
 const FormField = ({ id, label, error, helperText, className, ...inputProps }: FormFieldProps) => (
   <div className="space-y-2">
-    <label htmlFor={id} className="block text-sm font-semibold text-rudi-maroon">
+    <label htmlFor={id} className="block text-sm font-semibold text-[var(--rudi-text)]">
       {label}
     </label>
     <input
       id={id}
-      className={`w-full h-12 px-4 rounded-xl border border-[#EADCC7] bg-[#FFF9F0] text-rudi-maroon placeholder:text-rudi-maroon/50 focus:outline-none focus:ring-2 focus:ring-rudi-teal transition duration-[180ms] ${className ?? ''}`}
+      className={`w-full h-12 px-4 rounded-xl border border-[var(--rudi-input-border)] bg-[var(--rudi-input-bg)] text-[var(--rudi-text)] placeholder:text-[var(--rudi-text)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--rudi-primary)] transition duration-[180ms] ${className ?? ''}`}
       aria-invalid={Boolean(error)}
       {...inputProps}
     />
     {helperText && !error && (
-      <p className="text-xs text-rudi-maroon/70" role="note">
+      <p className="text-xs text-[var(--rudi-text)]/70" role="note">
         {helperText}
       </p>
     )}
     {error && (
-      <p className="text-xs text-rudi-coral" role="alert">
+      <p className="text-xs text-[var(--rudi-accent)]" role="alert">
         {error}
       </p>
     )}

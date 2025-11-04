@@ -12,17 +12,17 @@
 }
 
 .rudi-btn--primary {
-  background: var(--rudi-teal);
+  background: var(--rudi-primary);
   color: #fff;
 }
 
 .rudi-btn--secondary {
-  background: var(--rudi-yellow);
-  color: var(--rudi-maroon);
+  background: var(--rudi-secondary);
+  color: var(--rudi-text);
 }
 
 .rudi-link {
-  color: var(--rudi-teal);
+  color: var(--rudi-primary);
   font-weight: 600;
 }
 
@@ -31,6 +31,6 @@
 }
 
 :focus-visible {
-  outline: 2px solid var(--rudi-teal);
+  outline: 2px solid var(--rudi-primary);
   outline-offset: 2px;
 }

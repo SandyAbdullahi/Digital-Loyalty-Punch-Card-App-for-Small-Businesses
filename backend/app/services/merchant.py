@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 
 from ..models.merchant import Merchant
@@ -60,6 +60,7 @@ def get_locations_by_merchant(db: Session, merchant_id: UUID) -> list[Location]:
 def create_location(db: Session, location: LocationCreate, merchant_id: UUID) -> Location:
     db_location = Location(
         merchant_id=merchant_id,
+        name=location.name,
         lat=location.lat,
         lng=location.lng,
         address=location.address,

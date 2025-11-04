@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
 
     # Database
-    DATABASE_URL: str = "sqlite:///./test.db"
+    DATABASE_URL: str = "postgresql://loyalty_user:password@localhost:5432/rudi_app"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379"

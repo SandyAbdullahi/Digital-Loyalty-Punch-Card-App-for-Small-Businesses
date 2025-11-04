@@ -57,11 +57,13 @@ const SidebarLink = ({
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
   <div className="flex h-full flex-col gap-6 bg-foreground px-5 py-6 text-white shadow-2xl lg:px-6">
-    <div className="flex items-center gap-3 bg-black/80 rounded-xl px-3 py-2">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 font-heading text-lg font-semibold">
-        RU
-      </div>
-      <div>
+    <div className="flex flex-col items-center gap-2 bg-black/80 rounded-xl px-3 py-2">
+      <img
+        src="/logo-1.png"
+        alt="Rudi Logo"
+        className="h-10 w-10 rounded-xl object-cover"
+      />
+      <div className="text-center">
         <p className="text-sm uppercase tracking-wide text-white/70">Rudi Merchant</p>
         <p className="text-lg font-heading font-semibold text-white">Mission Control</p>
       </div>

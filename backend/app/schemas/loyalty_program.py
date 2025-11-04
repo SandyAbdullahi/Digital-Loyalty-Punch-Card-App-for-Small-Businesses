@@ -41,7 +41,11 @@ class LoyaltyProgramInDBBase(LoyaltyProgramBase):
 
 
 class LoyaltyProgram(LoyaltyProgramInDBBase):
-    pass
+    merchant: "Merchant | None" = None
+
+
+# Import here to avoid circular import
+from .merchant import Merchant
 
 
 class LoyaltyProgramInDB(LoyaltyProgramInDBBase):

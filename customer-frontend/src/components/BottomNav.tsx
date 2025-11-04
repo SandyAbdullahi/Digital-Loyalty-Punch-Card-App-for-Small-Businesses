@@ -36,9 +36,14 @@ export const BottomNav = () => {
             <Link
               key={item.to}
               to={item.to}
-              className={`flex flex-col items-center py-1 px-3 rounded-lg ${
-                isActive ? 'text-teal-600' : 'text-maroon-600'
-              }`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '0.5rem',
+                color: isActive ? 'var(--rudi-primary)' : 'var(--rudi-text)',
+              }}
             >
               <span className="text-2xl">{item.icon}</span>
               <span className="text-xs mt-1">{item.label}</span>

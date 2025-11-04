@@ -31,17 +31,21 @@ const Scan = () => {
     setStatus('loading');
     setMessage('');
     try {
-      const location = await getLocation();
-      let endpoint = '/api/v1/qr/scan-join';
-      if (token.includes('stamp')) endpoint = '/api/v1/qr/scan-stamp';
-      else if (token.includes('redeem')) endpoint = '/api/v1/qr/scan-redeem';
+      let location = null;
+      try {
+        location = await getLocation();
+      } catch (locError) {
+        console.warn('Location not available', locError);
+      }
 
-      const response = await axios.post(endpoint, {
-        token,
-        lat: location.lat,
-        lng: location.lng,
-      });
-      setMessage(response.data.message || 'Nice! Stamp added.');
+      const payload: any = { token };
+      if (location) {
+        payload.lat = location.lat;
+        payload.lng = location.lng;
+      }
+
+      const response = await axios.post('/api/v1/qr/scan', payload);
+      setMessage(response.data.message || 'Nice! Action completed.');
       setStatus('success');
     } catch (error: any) {
       const detail = error?.response?.data?.detail ?? error?.message ?? 'We could not complete the scan.';
@@ -79,7 +83,7 @@ const Scan = () => {
   }, []);
 
   return (
-    <main className="min-h-screen bg-rudi-sand text-rudi-maroon flex flex-col">
+    <main className="min-h-screen bg-[var(--rudi-background)] text-[var(--rudi-text)] flex flex-col">
       <header className="px-4 pt-6 pb-4 flex items-center justify-between max-w-md mx-auto">
          <Button variant="subtle" size="sm" leftSection="←" onClick={() => navigate(-1)}>
            Back
@@ -99,7 +103,7 @@ const Scan = () => {
         </div>
         <div className="text-center space-y-2">
           <h2 className="font-heading text-xl font-semibold">Align QR code within the frame</h2>
-          <p className="text-sm text-rudi-maroon/70">We’ll confirm your visit with the merchant automatically.</p>
+          <p className="text-sm text-[var(--rudi-text)]/70">We’ll confirm your visit with the merchant automatically.</p>
         </div>
          {status !== 'idle' && (
            <Notification

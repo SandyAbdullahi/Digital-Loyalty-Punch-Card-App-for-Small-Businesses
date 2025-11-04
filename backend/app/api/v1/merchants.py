@@ -69,8 +69,9 @@ def update_merchant_profile(
         upload_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate unique filename
+        import time
         file_extension = Path(logo.filename).suffix or ".png"
-        filename = f"{merchant.id}{file_extension}"
+        filename = f"{merchant.id}_{int(time.time())}{file_extension}"
         file_path = upload_dir / filename
 
         # Save the file
@@ -125,13 +126,118 @@ def create_merchant_endpoint(
 def read_merchants(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
- ):
+  ):
     from ...services.auth import get_user_by_email
     from ...services.merchant import get_merchants_by_owner
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return get_merchants_by_owner(db, user.id)
+
+
+@router.get("/customers")
+def get_merchant_customers(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+    from ...models.customer_program_membership import CustomerProgramMembership
+    from ...models.user import User
+    from ...models.ledger_entry import LedgerEntry
+    from sqlalchemy import func
+    import json
+
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        return []
+
+    merchant = merchants[0]
+    program_ids = [p.id for p in merchant.programs]
+    if not program_ids:
+        return []
+
+    memberships = (
+        db.query(CustomerProgramMembership)
+        .filter(CustomerProgramMembership.program_id.in_(program_ids))
+        .all()
+    )
+
+    customers = []
+    for membership in memberships:
+        customer = db.query(User).filter(User.id == membership.customer_user_id).first()
+        if not customer:
+            continue
+
+        total_stamps = (
+            db.query(func.sum(LedgerEntry.amount))
+            .join(
+                CustomerProgramMembership,
+                LedgerEntry.membership_id == CustomerProgramMembership.id,
+            )
+            .filter(
+                CustomerProgramMembership.customer_user_id == customer.id,
+                CustomerProgramMembership.program_id.in_(program_ids),
+                LedgerEntry.entry_type == "earn",
+            )
+            .scalar()
+            or 0
+        )
+
+        last_visit = (
+            db.query(LedgerEntry.created_at)
+            .join(
+                CustomerProgramMembership,
+                LedgerEntry.membership_id == CustomerProgramMembership.id,
+            )
+            .filter(
+                CustomerProgramMembership.customer_user_id == customer.id,
+                CustomerProgramMembership.program_id.in_(program_ids),
+            )
+            .order_by(desc(LedgerEntry.created_at))
+            .first()
+        )
+
+        redeem_source = membership.program.redeem_rule if membership.program else {}
+        if isinstance(redeem_source, str):
+            try:
+                redeem_rule = json.loads(redeem_source)
+            except json.JSONDecodeError:
+                redeem_rule = {}
+        elif isinstance(redeem_source, dict):
+            redeem_rule = redeem_source
+        else:
+            redeem_rule = {}
+        threshold = redeem_rule.get("reward_threshold", 10)
+
+        programs = [
+            {
+                "id": str(membership.program_id),
+                "name": membership.program.name,
+                "progress": membership.current_balance,
+                "threshold": threshold,
+            }
+        ]
+
+        customers.append(
+            {
+                "id": str(customer.id),
+                "name": customer.name or customer.email.split("@")[0],
+                "email": customer.email,
+                "avatar": customer.avatar_url,
+                "totalStamps": total_stamps,
+                "lastVisit": last_visit[0].strftime("%B %d, %Y")
+                if last_visit
+                else "Never",
+                "programs": programs,
+            }
+        )
+
+    return customers
 
 
 @router.get("/{merchant_id}", response_model=Merchant)
@@ -267,70 +373,6 @@ def delete_location_endpoint(
         return {"message": "Location deleted"}
     raise HTTPException(status_code=404, detail="Location not found")
 
-
-# Merchant customers
-@router.get("/customers")
-def get_merchant_customers(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
-    from ...services.auth import get_user_by_email
-    from ...services.merchant import get_merchants_by_owner
-    user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    merchants = get_merchants_by_owner(db, user.id)
-    if not merchants:
-        return []
-
-    merchant = merchants[0]
-    program_ids = [p.id for p in merchant.programs]
-
-    from ...models.customer_program_membership import CustomerProgramMembership
-    from ...models.user import User
-    from ...models.ledger_entry import LedgerEntry
-    from sqlalchemy import func
-
-    memberships = db.query(CustomerProgramMembership).filter(
-        CustomerProgramMembership.program_id.in_(program_ids)
-    ).all()
-
-    customers = []
-    for membership in memberships:
-        customer = db.query(User).filter(User.id == membership.customer_user_id).first()
-        if not customer:
-            continue
-
-        total_stamps = db.query(func.sum(LedgerEntry.amount)).join(
-            CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
-        ).filter(
-            CustomerProgramMembership.customer_user_id == customer.id,
-            CustomerProgramMembership.program_id.in_(program_ids),
-            LedgerEntry.entry_type == 'earn'
-        ).scalar() or 0
-
-        last_visit = db.query(LedgerEntry.created_at).join(
-            CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
-        ).filter(
-            CustomerProgramMembership.customer_user_id == customer.id,
-            CustomerProgramMembership.program_id.in_(program_ids)
-        ).order_by(desc(LedgerEntry.created_at)).first()
-
-        programs = [{
-            "id": str(membership.program_id),
-            "name": membership.program.name,
-            "progress": membership.current_balance,
-            "threshold": membership.program.redeem_rule.get('reward_threshold', 10) if membership.program.redeem_rule else 10
-        }]
-
-        customers.append({
-            "id": str(customer.id),
-            "name": customer.name or customer.email.split('@')[0],
-            "email": customer.email,
-            "avatar": customer.avatar_url,
-            "totalStamps": total_stamps,
-            "lastVisit": last_visit[0].strftime('%B %d, %Y') if last_visit else 'Never',
-            "programs": programs
-        })
-
-    return customers
 
 # Merchant rewards
 @router.get("/rewards")

@@ -1,9 +1,10 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 
 from ..models.customer_program_membership import CustomerProgramMembership
+from ..models.loyalty_program import LoyaltyProgram
 from ..models.ledger_entry import LedgerEntry, LedgerEntryType
-from ..schemas.customer_program_membership import CustomerProgramMembershipCreate
+from ..schemas.customer_program_membership import CustomerProgramMembershipCreate, CustomerProgramMembershipWithDetails
 from ..schemas.ledger_entry import LedgerEntryCreate
 
 
@@ -20,6 +21,14 @@ def get_membership_by_customer_and_program(db: Session, customer_user_id: UUID, 
 
 def get_memberships_by_customer(db: Session, customer_user_id: UUID) -> list[CustomerProgramMembership]:
     return db.query(CustomerProgramMembership).filter(
+        CustomerProgramMembership.customer_user_id == customer_user_id
+    ).all()
+
+
+def get_memberships_with_details_by_customer(db: Session, customer_user_id: UUID) -> list[CustomerProgramMembershipWithDetails]:
+    return db.query(CustomerProgramMembership).options(
+        joinedload(CustomerProgramMembership.program).joinedload(LoyaltyProgram.merchant)
+    ).filter(
         CustomerProgramMembership.customer_user_id == customer_user_id
     ).all()
 

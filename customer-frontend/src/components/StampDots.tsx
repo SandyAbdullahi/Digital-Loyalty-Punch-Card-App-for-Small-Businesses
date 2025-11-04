@@ -23,7 +23,7 @@ const StampDots = ({ threshold, earned, size = 'md' }: StampDotsProps) => {
     >
       {dots.map((isFilled, index) => {
         const base = 'rounded-full transition-transform duration-[180ms] ease-out';
-        const stateClass = isFilled ? 'bg-rudi-teal scale-100' : 'bg-rudi-sand border border-rudi-teal scale-90';
+        const stateClass = isFilled ? 'bg-[var(--rudi-primary)] scale-100' : 'bg-[var(--rudi-background)] border border-[var(--rudi-primary)] scale-90';
         return (
           <span
             key={index}

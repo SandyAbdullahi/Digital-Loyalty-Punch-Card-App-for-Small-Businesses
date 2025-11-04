@@ -37,8 +37,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token')
-    const storedUser = localStorage.getItem('user')
+    const storedToken = localStorage.getItem('customer_token')
+    const storedUser = localStorage.getItem('customer_user')
     if (storedToken) {
       setToken(storedToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
@@ -54,8 +54,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { access_token, user: userData } = response.data
     setToken(access_token)
     setUser(userData)
-    localStorage.setItem('token', access_token)
-    localStorage.setItem('user', JSON.stringify(userData))
+    localStorage.setItem('customer_token', access_token)
+    localStorage.setItem('customer_user', JSON.stringify(userData))
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
   }
 
@@ -64,21 +64,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { access_token, user: userData } = response.data
     setToken(access_token)
     setUser(userData)
-    localStorage.setItem('token', access_token)
-    localStorage.setItem('user', JSON.stringify(userData))
+    localStorage.setItem('customer_token', access_token)
+    localStorage.setItem('customer_user', JSON.stringify(userData))
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
   }
 
   const updateUser = (newUser: User) => {
     setUser(newUser)
-    localStorage.setItem('user', JSON.stringify(newUser))
+    localStorage.setItem('customer_user', JSON.stringify(newUser))
   }
 
   const logout = () => {
     setUser(null)
     setToken(null)
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    localStorage.removeItem('customer_token')
+    localStorage.removeItem('customer_user')
     delete axios.defaults.headers.common['Authorization']
   }
 

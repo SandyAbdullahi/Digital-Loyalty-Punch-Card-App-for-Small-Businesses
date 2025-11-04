@@ -8,13 +8,13 @@ from pathlib import Path
 from ...db.session import get_db
 from ...api.deps import get_current_user
 from ...services.auth import get_user_by_email, update_user
-from ...services.membership import get_memberships_by_customer
-from ...schemas.customer_program_membership import CustomerProgramMembership
+from ...services.membership import get_memberships_with_details_by_customer
+from ...schemas.customer_program_membership import CustomerProgramMembershipWithDetails
 from ...schemas.user import UserUpdate
 
 router = APIRouter()
 
-@router.get("/memberships", response_model=List[CustomerProgramMembership])
+@router.get("/memberships", response_model=List[CustomerProgramMembershipWithDetails])
 def get_my_memberships(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
@@ -22,7 +22,7 @@ def get_my_memberships(
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return get_memberships_by_customer(db, user.id)
+    return get_memberships_with_details_by_customer(db, user.id)
 
 
 @router.put("/profile")
@@ -46,8 +46,9 @@ def update_profile(
             upload_dir.mkdir(parents=True, exist_ok=True)
 
             # Generate unique filename
+            import time
             file_extension = Path(avatar.filename).suffix or ".jpg"
-            filename = f"{user.id}{file_extension}"
+            filename = f"{user.id}_{int(time.time())}{file_extension}"
             file_path = upload_dir / filename
 
             # Save the file

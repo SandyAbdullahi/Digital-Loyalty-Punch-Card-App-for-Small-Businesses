@@ -80,7 +80,7 @@ def issue_join_qr(request: IssueJoinRequest, db: Session = Depends(get_db), curr
     payload = {
         "type": "join",
         "program_id": str(request.program_id),
-        "exp": (datetime.utcnow() + timedelta(seconds=90)).timestamp(),
+        "exp": (datetime.utcnow() + timedelta(seconds=300)).timestamp(),
         "nonce": str(uuid.uuid4()),  # Simple nonce
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
@@ -100,15 +100,14 @@ def issue_stamp_qr(request: IssueStampRequest, db: Session = Depends(get_db), cu
         "type": "stamp",
         "program_id": str(request.program_id),
         "purchase_total": request.purchase_total,
-        "exp": (datetime.utcnow() + timedelta(seconds=90)).timestamp(),
+        "exp": (datetime.utcnow() + timedelta(seconds=300)).timestamp(),
         "nonce": str(uuid.uuid4()),
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
     return QRToken(token=token)
 
 
-@router.post("/scan-join")
-def scan_join(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+def _scan_join_logic(request: ScanRequest, db: Session, user):
     payload = verify_jws_token(request.token)
     if payload.get("type") != "join":
         raise HTTPException(status_code=400, detail="Invalid token type")
@@ -121,16 +120,15 @@ def scan_join(request: ScanRequest, db: Session = Depends(get_db), current_user:
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
 
-    program_id = UUID(payload["program_id"])
+    program_id_str = payload.get("program_id") or payload.get("location_id")
+    if not program_id_str:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    program_id = UUID(program_id_str)
     program = get_loyalty_program(db, program_id)
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
 
     # Skip geofence for now
-
-    user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
 
     # Create membership if not exists
     membership = get_membership_by_customer_and_program(db, user.id, program_id)
@@ -148,8 +146,15 @@ def scan_join(request: ScanRequest, db: Session = Depends(get_db), current_user:
     return {"message": "Joined program", "membership_id": membership.id}
 
 
-@router.post("/scan-stamp")
-def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+@router.post("/scan-join")
+def scan_join(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return _scan_join_logic(request, db, user)
+
+
+def _scan_stamp_logic(request: ScanRequest, db: Session, user):
     payload = verify_jws_token(request.token)
     if payload.get("type") != "stamp":
         raise HTTPException(status_code=400, detail="Invalid token type")
@@ -161,16 +166,15 @@ def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
 
-    program_id = UUID(payload["program_id"])
+    program_id_str = payload.get("program_id") or payload.get("location_id")
+    if not program_id_str:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    program_id = UUID(program_id_str)
     program = get_loyalty_program(db, program_id)
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
 
     # Skip geofence for now
-
-    user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
 
     membership = get_membership_by_customer_and_program(db, user.id, program_id)
     if not membership:
@@ -182,7 +186,15 @@ def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user
     # Mark nonce as used
     # redis_client.setex(nonce, 300, "used")
 
-    return {"message": "Stamp earned", "new_balance": membership.current_balance}
+    return {"message": "Stamp earned", "new_balance": membership.current_balance + 1}
+
+
+@router.post("/scan-stamp")
+def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return _scan_stamp_logic(request, db, user)
 
 
 @router.post("/issue-redeem", response_model=QRToken)
@@ -198,15 +210,14 @@ def issue_redeem_qr(request: IssueRedeemRequest, db: Session = Depends(get_db), 
         "type": "redeem",
         "program_id": str(request.program_id),
         "amount": request.amount,
-        "exp": (datetime.utcnow() + timedelta(seconds=120)).timestamp(),
+        "exp": (datetime.utcnow() + timedelta(seconds=300)).timestamp(),
         "nonce": str(uuid.uuid4()),
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
     return QRToken(token=token)
 
 
-@router.post("/scan-redeem")
-def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+def _scan_redeem_logic(request: ScanRequest, db: Session, user):
     payload = verify_jws_token(request.token)
     if payload.get("type") != "redeem":
         raise HTTPException(status_code=400, detail="Invalid token type")
@@ -218,16 +229,15 @@ def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_use
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
 
-    program_id = UUID(payload["program_id"])
+    program_id_str = payload.get("program_id") or payload.get("location_id")
+    if not program_id_str:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    program_id = UUID(program_id_str)
     program = get_loyalty_program(db, program_id)
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
 
     # Skip geofence for now
-
-    user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
 
     membership = get_membership_by_customer_and_program(db, user.id, program_id)
     if not membership:
@@ -247,3 +257,34 @@ def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_use
     # redis_client.setex(nonce, 300, "used")
 
     return {"message": "Stamps redeemed", "new_balance": updated_membership.current_balance}
+
+
+@router.post("/scan-redeem")
+def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return _scan_redeem_logic(request, db, user)
+
+
+@router.post("/scan")
+def scan_qr(request: ScanRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """Universal scan endpoint that determines the action based on token type"""
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        payload = verify_jws_token(request.token)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+    token_type = payload.get("type")
+    if token_type == "join":
+        return _scan_join_logic(request, db, user)
+    elif token_type == "stamp":
+        return _scan_stamp_logic(request, db, user)
+    elif token_type == "redeem":
+        return _scan_redeem_logic(request, db, user)
+    else:
+        raise HTTPException(status_code=400, detail="Unknown token type")
