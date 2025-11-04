@@ -55,10 +55,15 @@ export default {
           "0%": { opacity: "0", transform: "translateY(12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
       },
       animation: {
         "pulse-soft": "pulse-soft 2.4s ease-in-out infinite",
         "slide-up": "slide-up 0.18s ease-out forwards",
+        "float": "float 6s ease-in-out infinite",
       },
     },
   },

@@ -77,12 +77,24 @@ const Landing = () => {
               <stop offset="100%" stopColor="#00C896" />
             </linearGradient>
           </defs>
-          <path d="M0,0 Q400,-80 720,0 T1440,0 V100 Q1120,200 720,100 Q320,0 0,100 Z" fill="url(#waveGradient1)" opacity="0.7" />
-          <path d="M0,50 Q520,-50 960,50 T1440,50 V150 Q1000,250 520,150 Q0,50 0,150 Z" fill="url(#waveGradient2)" opacity="0.5" />
-          <path d="M0,100 Q650,0 1200,100 T1440,100 V200 Q1280,300 650,200 Q0,100 0,200 Z" fill="#00C896" opacity="0.3" />
-          <path d="M0,630 Q400,730 720,630 T1440,630 V730 Q1100,630 720,730 Q340,830 0,730 Z" fill="url(#waveGradient1)" opacity="0.6" />
-          <path d="M0,680 Q520,780 960,680 T1440,680 V780 Q1000,680 520,780 Q0,880 0,780 Z" fill="url(#waveGradient2)" opacity="0.4" />
-          <path d="M0,730 Q650,830 1200,730 T1440,730 V830 Q1250,730 650,830 Q0,930 0,830 Z" fill="#00C896" opacity="0.2" />
+          <path d="M0,0 Q400,-80 720,0 T1440,0 V100 Q1120,200 720,100 Q320,0 0,100 Z" fill="url(#waveGradient1)" opacity="0.7">
+            <animate attributeName="d" dur="8s" repeatCount="indefinite" values="M0,0 Q400,-80 720,0 T1440,0 V100 Q1120,200 720,100 Q320,0 0,100 Z;M0,10 Q420,-70 740,10 T1440,10 V110 Q1140,210 740,110 Q340,10 0,110 Z;M0,0 Q400,-80 720,0 T1440,0 V100 Q1120,200 720,100 Q320,0 0,100 Z" />
+          </path>
+          <path d="M0,50 Q520,-50 960,50 T1440,50 V150 Q1000,250 520,150 Q0,50 0,150 Z" fill="url(#waveGradient2)" opacity="0.5">
+            <animate attributeName="d" dur="10s" repeatCount="indefinite" values="M0,50 Q520,-50 960,50 T1440,50 V150 Q1000,250 520,150 Q0,50 0,150 Z;M0,60 Q540,-40 980,60 T1440,60 V160 Q1020,260 540,160 Q20,60 0,160 Z;M0,50 Q520,-50 960,50 T1440,50 V150 Q1000,250 520,150 Q0,50 0,150 Z" />
+          </path>
+          <path d="M0,100 Q650,0 1200,100 T1440,100 V200 Q1280,300 650,200 Q0,100 0,200 Z" fill="#00C896" opacity="0.3">
+            <animate attributeName="d" dur="12s" repeatCount="indefinite" values="M0,100 Q650,0 1200,100 T1440,100 V200 Q1280,300 650,200 Q0,100 0,200 Z;M0,110 Q670,10 1220,110 T1440,110 V210 Q1300,310 670,210 Q20,110 0,210 Z;M0,100 Q650,0 1200,100 T1440,100 V200 Q1280,300 650,200 Q0,100 0,200 Z" />
+          </path>
+          <path d="M0,630 Q400,730 720,630 T1440,630 V730 Q1100,630 720,730 Q340,830 0,730 Z" fill="url(#waveGradient1)" opacity="0.6">
+            <animate attributeName="d" dur="9s" repeatCount="indefinite" values="M0,630 Q400,730 720,630 T1440,630 V730 Q1100,630 720,730 Q340,830 0,730 Z;M0,640 Q420,740 740,640 T1440,640 V740 Q1120,640 740,740 Q360,840 0,740 Z;M0,630 Q400,730 720,630 T1440,630 V730 Q1100,630 720,730 Q340,830 0,730 Z" />
+          </path>
+          <path d="M0,680 Q520,780 960,680 T1440,680 V780 Q1000,680 520,780 Q0,880 0,780 Z" fill="url(#waveGradient2)" opacity="0.4">
+            <animate attributeName="d" dur="11s" repeatCount="indefinite" values="M0,680 Q520,780 960,680 T1440,680 V780 Q1000,680 520,780 Q0,880 0,780 Z;M0,690 Q540,790 980,690 T1440,690 V790 Q1020,690 540,790 Q20,890 0,790 Z;M0,680 Q520,780 960,680 T1440,680 V780 Q1000,680 520,780 Q0,880 0,780 Z" />
+          </path>
+          <path d="M0,730 Q650,830 1200,730 T1440,730 V830 Q1250,730 650,830 Q0,930 0,830 Z" fill="#00C896" opacity="0.2">
+            <animate attributeName="d" dur="13s" repeatCount="indefinite" values="M0,730 Q650,830 1200,730 T1440,730 V830 Q1250,730 650,830 Q0,930 0,830 Z;M0,740 Q670,840 1220,740 T1440,740 V840 Q1270,740 670,840 Q20,940 0,840 Z;M0,730 Q650,830 1200,730 T1440,730 V830 Q1250,730 650,830 Q0,930 0,830 Z" />
+          </path>
         </svg>
 
         <motion.div
