@@ -24,7 +24,7 @@ def merchant_token(client, db):
     program = create_loyalty_program(db, LoyaltyProgramCreate(name="Test Program", description="Test", logic_type="punch_card", earn_rule={"stamps_per_purchase": 1}, redeem_rule={"stamps_needed": 10}), merchant_id=merchant.id)
 
     # Login
-    response = client.post("/api/v1/login-or-register", json={"email": email, "password": "pass"})
+    response = client.post("/api/v1/auth/login-or-register", json={"email": email, "password": "pass"})
     token = response.json()["access_token"]
     return {"token": token, "location_id": location.id, "program_id": program.id}
 
@@ -36,7 +36,7 @@ def customer_token(client, db):
     # Create customer
     create_user(db, UserCreate(email=email, password="pass", role="customer"))
     # Login
-    response = client.post("/api/v1/login-or-register", json={"email": email, "password": "pass"})
+    response = client.post("/api/v1/auth/login-or-register", json={"email": email, "password": "pass"})
     token = response.json()["access_token"]
     return token
 
