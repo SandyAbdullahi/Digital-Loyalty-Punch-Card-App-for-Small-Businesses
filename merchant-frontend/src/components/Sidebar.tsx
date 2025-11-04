@@ -45,8 +45,8 @@ const SidebarLink = ({
       [
         'group my-1 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
         isActive
-          ? 'bg-rudi-yellow text-rudi-maroon shadow-sm'
-          : 'text-white/80 hover:bg-white/10 hover:text-white',
+          ? 'bg-primary text-white shadow-sm'
+          : 'text-white hover:bg-primary/15 hover:text-white',
       ].join(' ')
     }
   >
@@ -56,8 +56,8 @@ const SidebarLink = ({
 )
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
-  <div className="flex h-full flex-col gap-6 bg-rudi-teal px-5 py-6 text-white shadow-2xl lg:px-6">
-    <div className="flex items-center gap-3">
+  <div className="flex h-full flex-col gap-6 bg-foreground px-5 py-6 text-white shadow-2xl lg:px-6">
+    <div className="flex items-center gap-3 bg-black/80 rounded-xl px-3 py-2">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 font-heading text-lg font-semibold">
         RU
       </div>

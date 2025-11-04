@@ -65,7 +65,12 @@ const Landing = () => {
       <NavBar />
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-12 min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5')" }}>
+      <section className="relative pt-24 pb-12 min-h-screen flex items-center justify-center overflow-hidden">
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 960 320" preserveAspectRatio="xMidYMid slice">
+          <path d="M0,160 C320,120 640,200 960,160 L960,320 L0,320 Z" fill="#00C896" opacity="0.1" />
+          <path d="M0,200 C320,160 640,240 960,200 L960,320 L0,320 Z" fill="#00C896" opacity="0.15" />
+          <path d="M0,240 C320,200 640,280 960,240 L960,320 L0,320 Z" fill="#00C896" opacity="0.2" />
+        </svg>
         <div className="absolute inset-0 bg-card/70"></div>
         <motion.div
           className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center"

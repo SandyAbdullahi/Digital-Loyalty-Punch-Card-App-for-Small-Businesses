@@ -155,7 +155,7 @@ const Dashboard = () => {
           </p>
         </div>
         <button
-          onClick={() => navigate('/programs/new')}
+          onClick={() => navigate('/programs')}
           className="btn-primary w-full sm:w-auto group"
         >
           Create Program
@@ -213,10 +213,10 @@ const Dashboard = () => {
               <p className="mt-2 text-sm text-muted-foreground">
                 No metrics yet - your first happy customer is just a scan away!
               </p>
-              <button
-                onClick={() => navigate('/programs/new')}
-                className="btn-secondary mt-4"
-              >
+               <button
+                 onClick={() => navigate('/programs')}
+                 className="btn-secondary mt-4"
+               >
                 Create Your First Program
               </button>
             </div>

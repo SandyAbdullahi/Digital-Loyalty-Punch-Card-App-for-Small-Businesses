@@ -117,8 +117,8 @@ const Customers = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="font-heading text-3xl font-semibold text-rudi-maroon">Customers</h1>
-        <p className="text-sm text-rudi-maroon/70">
+        <h1 className="font-heading text-3xl font-semibold text-foreground">Customers</h1>
+        <p className="text-sm text-muted-foreground">
           Search your community of explorers and celebrate their loyalty.
         </p>
       </div>
@@ -128,7 +128,7 @@ const Customers = () => {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search by name or email"
-          className="h-12 w-full max-w-lg rounded-full border-rudi-teal/20 bg-white px-5 shadow-md"
+          className="h-12 w-full max-w-lg rounded-full border-primary/20 bg-card px-5 shadow-md"
         />
       </div>
 
@@ -136,22 +136,22 @@ const Customers = () => {
         {filteredCustomers.map((customer, index) => (
           <div
             key={customer.id}
-            className="card-hover flex items-center justify-between gap-4 rounded-3xl bg-white px-5 py-4 shadow-rudi-card animate-slide-up"
+            className="card-hover flex items-center justify-between gap-4 rounded-3xl bg-card px-5 py-4 shadow-lg animate-slide-up"
             style={{ animationDelay: `${index * 0.05}s` }}
           >
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rudi-teal/10 font-heading text-lg font-semibold text-rudi-teal">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-heading text-lg font-semibold text-primary">
                 {customer.name[0]?.toUpperCase()}
               </div>
               <div>
-                <p className="text-base font-semibold text-rudi-maroon">{customer.name}</p>
-                <p className="text-sm text-rudi-maroon/60">{customer.email}</p>
+                <p className="text-base font-semibold text-foreground">{customer.name}</p>
+                <p className="text-sm text-muted-foreground">{customer.email}</p>
               </div>
             </div>
-            <div className="hidden flex-col text-right text-sm text-rudi-maroon/70 sm:flex">
+            <div className="hidden flex-col text-right text-sm text-muted-foreground sm:flex">
               <span>
                 Total stamps:{' '}
-                <strong className="text-rudi-maroon">{customer.totalStamps}</strong>
+                <strong className="text-foreground">{customer.totalStamps}</strong>
               </span>
               <span>Last visit: {customer.lastVisit}</span>
             </div>
@@ -162,9 +162,9 @@ const Customers = () => {
         ))}
 
         {!filteredCustomers.length && (
-          <div className="rounded-3xl bg-white p-10 text-center shadow-rudi-card">
-            <h3 className="font-heading text-lg text-rudi-maroon">No matches yet</h3>
-            <p className="mt-2 text-sm text-rudi-maroon/70">
+          <div className="rounded-3xl bg-card p-10 text-center shadow-lg">
+            <h3 className="font-heading text-lg text-foreground">No matches yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
               Try a different search, or invite new guests to join the fun.
             </p>
           </div>
@@ -172,25 +172,25 @@ const Customers = () => {
       </div>
 
       <Dialog open={Boolean(selectedCustomer)} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
-        <DialogContent className="max-w-xl rounded-3xl border-none p-0 shadow-2xl">
-          <DialogHeader className="space-y-1 rounded-t-3xl bg-rudi-teal/10 px-6 py-5">
-            <DialogTitle className="font-heading text-xl text-rudi-maroon">
+        <DialogContent className="max-w-xl rounded-3xl border border-border p-0 shadow-2xl">
+          <DialogHeader className="space-y-1 rounded-t-3xl bg-primary/10 px-6 py-5">
+            <DialogTitle className="font-heading text-xl text-foreground">
               {selectedCustomer?.name}
             </DialogTitle>
-            <p className="text-sm text-rudi-maroon/60">{selectedCustomer?.email}</p>
+            <p className="text-sm text-muted-foreground">{selectedCustomer?.email}</p>
           </DialogHeader>
 
           <div className="space-y-5 px-6 py-5">
-            <div className="grid gap-4 rounded-2xl border border-rudi-teal/15 bg-rudi-sand/50 p-4 text-sm text-rudi-maroon/80 sm:grid-cols-2">
+            <div className="grid gap-4 rounded-2xl border border-primary/15 bg-muted/50 p-4 text-sm text-muted-foreground sm:grid-cols-2">
               <div>
-                <span className="font-semibold text-rudi-maroon">{selectedCustomer?.totalStamps}</span>{' '}
+                <span className="font-semibold text-foreground">{selectedCustomer?.totalStamps}</span>{' '}
                 total stamps
               </div>
               <div>Last visit: {selectedCustomer?.lastVisit}</div>
             </div>
 
             <div className="space-y-3">
-              <Label className="text-sm font-semibold text-rudi-maroon">
+              <Label className="text-sm font-semibold text-foreground">
                 Active loyalty journeys
               </Label>
               <div className="space-y-3">
@@ -200,16 +200,16 @@ const Customers = () => {
                     100
                   )
                   return (
-                    <div key={program.id} className="rounded-2xl border border-rudi-teal/15 bg-white/80 p-4 shadow-sm">
+                    <div key={program.id} className="rounded-2xl border border-primary/15 bg-surface/80 p-4 shadow-sm">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-semibold text-rudi-maroon">{program.name}</span>
-                        <span className="text-rudi-maroon/60">
+                        <span className="font-semibold text-foreground">{program.name}</span>
+                        <span className="text-muted-foreground">
                           {program.progress}/{program.threshold} stamps
                         </span>
                       </div>
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-rudi-sand">
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
                         <div
-                          className="h-full rounded-full bg-rudi-teal transition-all"
+                          className="h-full rounded-full bg-primary transition-all"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
@@ -217,7 +217,7 @@ const Customers = () => {
                   )
                 })}
                 {!selectedCustomer?.programs.length && (
-                  <div className="rounded-2xl bg-rudi-sand/60 p-4 text-sm text-rudi-maroon/70">
+                  <div className="rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
                     No active programs yet - invite them to their first reward adventure!
                   </div>
                 )}
@@ -225,14 +225,14 @@ const Customers = () => {
             </div>
           </div>
 
-          <DialogFooter className="flex items-center justify-between rounded-b-3xl bg-white px-6 py-4">
-            <div className="text-xs text-rudi-maroon/60">
+          <DialogFooter className="flex items-center justify-between rounded-b-3xl bg-surface px-6 py-4">
+            <div className="text-xs text-muted-foreground">
               Nice work - another happy customer!
             </div>
             <div className="flex gap-3">
               <Button
                 type="button"
-                className="rounded-2xl border border-rudi-teal/30 bg-white px-4 py-2 text-sm font-semibold text-rudi-coral hover:bg-rudi-coral/10"
+                className="rounded-2xl border border-primary/30 bg-surface px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
                 onClick={() => handleManualAction('revoke')}
               >
                 Revoke stamp
@@ -248,7 +248,7 @@ const Customers = () => {
       {toast && (
         <div
           className={`fixed bottom-8 right-6 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg ${
-            toast.type === 'success' ? 'bg-rudi-teal' : 'bg-rudi-yellow text-rudi-maroon'
+            toast.type === 'success' ? 'bg-primary' : 'bg-secondary'
           }`}
         >
           {toast.message}

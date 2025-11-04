@@ -100,23 +100,23 @@ const QR = () => {
 
   return (
     <div className="flex justify-center">
-      <div className="flex w-full max-w-3xl flex-col items-center gap-6 rounded-3xl bg-white/90 p-8 text-center shadow-rudi-card lg:p-12">
+      <div className="flex w-full max-w-3xl flex-col items-center gap-6 rounded-3xl bg-card p-8 text-center shadow-lg lg:p-12">
         <div className="space-y-2 animate-slide-up">
-          <h1 className="font-heading text-3xl font-semibold text-rudi-maroon">
+          <h1 className="font-heading text-3xl font-semibold text-foreground">
             {qrType === 'join' ? 'Scan to join your loyalty program.' :
              qrType === 'stamp' ? 'Scan or display this QR to award a stamp.' :
              'Scan to redeem a reward.'}
           </h1>
-          <p className="text-sm text-rudi-maroon/70">
+          <p className="text-sm text-muted-foreground">
             QRs last 60 seconds — keeping every reward secure for your guests.
           </p>
         </div>
 
         <div className="grid w-full gap-4 text-left md:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-rudi-maroon">Location</Label>
+            <Label className="text-sm font-semibold text-foreground">Location</Label>
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="h-12 rounded-2xl border-[#EADCC7] bg-[#FFF9F0] px-4">
+              <SelectTrigger className="h-12 rounded-2xl border-border bg-background px-4">
                 <SelectValue placeholder="Select a location" />
               </SelectTrigger>
               <SelectContent>
@@ -130,9 +130,9 @@ const QR = () => {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-rudi-maroon">QR purpose</Label>
+            <Label className="text-sm font-semibold text-foreground">QR purpose</Label>
             <Select value={qrType} onValueChange={(value: QrType) => setQrType(value)}>
-              <SelectTrigger className="h-12 rounded-2xl border-[#EADCC7] bg-[#FFF9F0] px-4">
+              <SelectTrigger className="h-12 rounded-2xl border-border bg-background px-4">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -145,7 +145,7 @@ const QR = () => {
 
           {qrType === 'redeem' && (
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-rudi-maroon">
+              <Label className="text-sm font-semibold text-foreground">
                 Reward amount
               </Label>
               <Input
@@ -153,7 +153,7 @@ const QR = () => {
                 min={1}
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
-                className="h-12 rounded-2xl border-[#EADCC7] bg-[#FFF9F0]"
+                className="h-12 rounded-2xl border-border bg-background"
                 placeholder="e.g. 2 coffees"
               />
             </div>
@@ -176,7 +176,7 @@ const QR = () => {
         </Button>
 
         <div
-          className={`relative mt-4 flex min-h-[280px] w-full max-w-sm flex-col items-center justify-center rounded-3xl border-2 border-dashed border-rudi-teal/30 bg-rudi-sand/40 p-6 ${
+          className={`relative mt-4 flex min-h-[280px] w-full max-w-sm flex-col items-center justify-center rounded-3xl border-2 border-dashed border-primary/30 bg-muted/40 p-6 ${
             qrImage ? 'animate-pulse-soft' : ''
           }`}
         >
@@ -185,15 +185,15 @@ const QR = () => {
               key={qrImage}
               src={qrImage}
               alt="Merchant QR Code"
-              className="h-48 w-48 rounded-2xl border border-rudi-teal/20 bg-white p-3 shadow-md"
+              className="h-48 w-48 rounded-2xl border border-primary/20 bg-card p-3 shadow-md"
             />
           ) : (
-            <div className="space-y-3 text-sm text-rudi-maroon/60">
+            <div className="space-y-3 text-sm text-muted-foreground">
               <p>No QR yet.</p>
               <p>Choose a location and generate a fresh link.</p>
             </div>
           )}
-          <span className="mt-4 text-xs text-rudi-maroon/60">
+          <span className="mt-4 text-xs text-muted-foreground">
             Each QR expires after 60 seconds for security.
           </span>
         </div>
@@ -213,7 +213,7 @@ const QR = () => {
         )}
 
         {feedback && (
-          <div className="rounded-full bg-rudi-teal/10 px-4 py-2 text-xs font-semibold text-rudi-teal shadow-sm">
+          <div className="rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold text-primary shadow-sm">
             {feedback}
           </div>
         )}

@@ -75,4 +75,22 @@
   .btn-secondary {
     @apply inline-flex items-center justify-center rounded-2xl bg-secondary px-4 py-2 font-heading text-sm font-semibold text-secondary-foreground shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:translate-y-px;
   }
+
+  .custom-nav-button {
+    color: black !important;
+  }
+
+  [data-theme="dark"] .custom-nav-button {
+    color: white !important;
+  }
+
+  .custom-nav-button:hover {
+    background-color: black !important;
+    color: white !important;
+  }
+
+  [data-theme="dark"] .custom-nav-button:hover {
+    background-color: white !important;
+    color: black !important;
+  }
 }

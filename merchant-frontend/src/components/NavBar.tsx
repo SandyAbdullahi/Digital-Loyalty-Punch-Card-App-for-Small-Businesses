@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Burger, Drawer, Button, Group, Stack, Anchor, Divider } from '@mantine/core';
 
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [drawerOpened, setDrawerOpened] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const navigate = useNavigate();
 
@@ -29,31 +30,8 @@ const NavBar = () => {
     localStorage.setItem('theme', newTheme);
   };
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && mobileMenuOpen) {
-        setMobileMenuOpen(false);
-      }
-    };
-    if (mobileMenuOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
-  }, [mobileMenuOpen]);
-
-  const closeMobileMenu = () => setMobileMenuOpen(false);
-
-  const handleBackdropClick = (event: React.MouseEvent) => {
-    if (event.target === event.currentTarget) {
-      closeMobileMenu();
-    }
-  };
+  const toggleDrawer = () => setDrawerOpened((o) => !o);
+  const closeDrawer = () => setDrawerOpened(false);
 
   return (
     <>
@@ -92,113 +70,84 @@ const NavBar = () => {
                  </a>
                </div>
             </div>
-            <div className="hidden md:block">
-              <div className="ml-4 flex items-center space-x-3">
-                <button
-                  onClick={toggleTheme}
-                  className="text-foreground hover:text-primary p-2 focus:outline-none focus:ring-2 focus:ring-ring rounded"
-                  aria-label="Toggle theme"
-                >
-                  {isDark ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
-                <button
-                  onClick={() => window.location.href = 'http://localhost:3002/register'}
-                  className="bg-primary text-primary-foreground rounded-2xl h-12 px-6 hover:opacity-90 active:translate-y-px transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring font-medium"
-                >
-                  Get the App
-                </button>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="bg-secondary text-secondary-foreground rounded-2xl h-12 px-6 hover:opacity-90 active:translate-y-px transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring font-medium"
-                >
-                  Merchant Login
-                </button>
-              </div>
-            </div>
-             <div className="md:hidden">
-               <button
-                 onClick={() => setMobileMenuOpen(true)}
-                 className="text-foreground hover:text-primary p-2 focus:outline-none focus:ring-2 focus:ring-ring rounded"
-                 aria-label="Open menu"
+             <Group gap="xs" visibleFrom="md">
+               <Button
+                 onClick={toggleTheme}
+                 variant="subtle"
+                 size="sm"
+                 aria-label="Toggle theme"
                >
-                 <Menu size={24} />
-               </button>
-             </div>
+                 {isDark ? <Sun size={20} /> : <Moon size={20} />}
+               </Button>
+               <Button
+                 onClick={() => window.location.href = 'http://localhost:3002/register'}
+                 variant="filled"
+                 color="primary"
+                 size="sm"
+                 className="custom-nav-button"
+               >
+                 Get the App
+               </Button>
+               <Button
+                 onClick={() => navigate('/login')}
+                 variant="filled"
+                 color="secondary"
+                 size="sm"
+                 className="custom-nav-button"
+               >
+                 Merchant Login
+               </Button>
+             </Group>
+             <Burger opened={drawerOpened} onClick={toggleDrawer} hiddenFrom="md" size="sm" />
           </div>
         </div>
       </nav>
 
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-50 flex md:hidden"
-          aria-modal="true"
-          role="dialog"
-          onClick={handleBackdropClick}
-        >
-          <div className="fixed inset-0 bg-black bg-opacity-30 transition-opacity" />
-          <div className="relative ml-auto flex h-full w-full max-w-sm flex-col bg-background py-6 shadow-xl">
-             <div className="flex items-center justify-between px-6">
-               <div className="flex-shrink-0 flex items-center gap-2">
-                 <a href="/">
-                   <img src="/logo-1.png" alt="Rudi" className="h-8 w-auto" />
-                 </a>
-                 <span className="font-heading text-xl font-bold text-foreground">rudi</span>
-               </div>
-               <button
-                 onClick={closeMobileMenu}
-                 className="text-foreground hover:text-primary p-2 focus:outline-none focus:ring-2 focus:ring-ring rounded"
-                 aria-label="Close menu"
-               >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="mt-6 flex-1 px-6">
-               <nav className="space-y-3">
-                 <a href="#how-it-works" onClick={closeMobileMenu} className="block text-foreground hover:text-primary py-2 text-base font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded">
-                   How it works
-                 </a>
-                 <a href="#for-merchants" onClick={closeMobileMenu} className="block text-foreground hover:text-primary py-2 text-base font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded">
-                   For Merchants
-                 </a>
-                 <a href="#pricing" onClick={closeMobileMenu} className="block text-foreground hover:text-primary py-2 text-base font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded">
-                   Pricing
-                 </a>
-                 <a href="#faq" onClick={closeMobileMenu} className="block text-foreground hover:text-primary py-2 text-base font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded">
-                   FAQ
-                 </a>
-                 <a href="#contact" onClick={closeMobileMenu} className="block text-foreground hover:text-primary py-2 text-base font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded">
-                   Contact
-                 </a>
-               </nav>
-               <div className="mt-8 space-y-3">
-                 <button
-                   onClick={toggleTheme}
-                   className="w-full flex items-center justify-center text-foreground hover:text-primary p-2 focus:outline-none focus:ring-2 focus:ring-ring rounded"
-                   aria-label="Toggle theme"
-                 >
-                   {isDark ? <Sun size={20} /> : <Moon size={20} />} Toggle Theme
-                 </button>
-                 <button
-                   onClick={() => { window.location.href = 'http://localhost:3002/register'; closeMobileMenu(); }}
-                   className="w-full bg-primary text-primary-foreground rounded-2xl h-12 px-6 hover:opacity-90 active:translate-y-px transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring font-medium"
-                 >
-                   Get the App
-                 </button>
-                 <button
-                   onClick={() => { navigate('/login'); closeMobileMenu(); }}
-                   className="w-full bg-secondary text-secondary-foreground rounded-2xl h-12 px-6 hover:opacity-90 active:translate-y-px transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring font-medium"
-                 >
-                   Merchant Login
-                 </button>
-               </div>
-            </div>
-             <div className="border-t border-border px-6 py-4">
-               <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Rudi • Earn. Return. Reward.</p>
-             </div>
-          </div>
-        </div>
-      )}
+      <Drawer
+        opened={drawerOpened}
+        onClose={closeDrawer}
+        size="100%"
+        padding="md"
+        title={
+          <Group>
+            <img src="/logo-1.png" alt="Rudi" style={{ height: 32, width: 'auto' }} />
+            <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>rudi</span>
+          </Group>
+        }
+        hiddenFrom="md"
+      >
+        <Stack gap="md">
+          <Anchor href="#how-it-works" onClick={closeDrawer}>
+            How it works
+          </Anchor>
+          <Anchor href="#for-merchants" onClick={closeDrawer}>
+            For Merchants
+          </Anchor>
+          <Anchor href="#pricing" onClick={closeDrawer}>
+            Pricing
+          </Anchor>
+          <Anchor href="#faq" onClick={closeDrawer}>
+            FAQ
+          </Anchor>
+          <Anchor href="#contact" onClick={closeDrawer}>
+            Contact
+          </Anchor>
+          <Divider />
+          <Button onClick={toggleTheme} variant="subtle" leftSection={isDark ? <Sun size={20} /> : <Moon size={20} />}>
+            Toggle Theme
+          </Button>
+          <Button onClick={() => { window.location.href = 'http://localhost:3002/register'; closeDrawer(); }} variant="filled" color="primary" className="custom-nav-button">
+            Get the App
+          </Button>
+          <Button onClick={() => { navigate('/login'); closeDrawer(); }} variant="filled" color="secondary" className="custom-nav-button">
+            Merchant Login
+          </Button>
+        </Stack>
+        <Divider mt="md" />
+        <p style={{ fontSize: '0.75rem', color: 'var(--mantine-color-dimmed)' }}>
+          © {new Date().getFullYear()} Rudi • Earn. Return. Reward.
+        </p>
+      </Drawer>
     </>
   );
 };

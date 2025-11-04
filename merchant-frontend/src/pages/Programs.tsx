@@ -55,8 +55,8 @@ const defaultFormState: ProgramFormState = {
 
 const statusBadge = (isActive: boolean) =>
   isActive
-    ? 'inline-flex items-center gap-1 rounded-full bg-rudi-teal/10 px-3 py-1 text-xs font-semibold text-rudi-teal'
-    : 'inline-flex items-center gap-1 rounded-full bg-rudi-coral/10 px-3 py-1 text-xs font-semibold text-rudi-coral'
+    ? 'inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary'
+    : 'inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent'
 
 const Programs = () => {
   const [programs, setPrograms] = useState<Program[]>([])
@@ -184,17 +184,17 @@ const Programs = () => {
   }
 
   if (loading) {
-    return <div className="py-10 text-sm text-rudi-maroon/70">Loading programs…</div>
+    return <div className="py-10 text-sm text-muted-foreground">Loading programs…</div>
   }
 
   return (
     <div className="space-y-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-semibold text-rudi-maroon">
+          <h1 className="font-heading text-3xl font-semibold text-foreground">
             Loyalty Programs
           </h1>
-          <p className="text-sm text-rudi-maroon/70">
+          <p className="text-sm text-muted-foreground">
             Tune your rewards and keep guests coming back for more.
           </p>
         </div>
@@ -204,7 +204,7 @@ const Programs = () => {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search programs"
-              className="h-11 rounded-full border-rudi-teal/15 bg-white px-4"
+              className="h-11 rounded-full border-primary/15 bg-card px-4"
             />
           </div>
           <Button
@@ -229,15 +229,15 @@ const Programs = () => {
           return (
             <article
               key={program.id}
-              className="card-hover flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-rudi-card animate-slide-up"
+              className="card-hover flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-lg animate-slide-up"
               style={{ animationDelay: `${index * 0.04}s` }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="font-heading text-xl font-semibold text-rudi-maroon">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">
                     {program.name}
                   </h2>
-                  <p className="text-sm text-rudi-maroon/70">
+                  <p className="text-sm text-muted-foreground">
                     {program.description || 'Craft an irresistible reward story.'}
                   </p>
                 </div>
@@ -247,24 +247,24 @@ const Programs = () => {
                 </span>
               </div>
 
-              <div className="grid gap-3 rounded-2xl border border-rudi-teal/15 bg-rudi-sand/60 p-4 text-sm text-rudi-maroon/80 sm:grid-cols-2">
+              <div className="grid gap-3 rounded-2xl border border-primary/15 bg-muted/60 p-4 text-sm text-muted-foreground sm:grid-cols-2">
                 <div className="flex items-center gap-2">
                   <StampIcon />
                   <span>{rewardThreshold} stamps per reward</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-rudi-teal" />
+                  <Calendar className="h-4 w-4 text-primary" />
                   <span>Expires {expires === 'No expiry' ? 'never' : new Date(expires).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-rudi-teal" />
+                  <Clock className="h-4 w-4 text-primary" />
                   <span>
                     {program.earn_rule?.max_per_day
                       ? `${program.earn_rule.max_per_day} scans per day`
                       : 'Unlimited daily scans'}
                   </span>
                 </div>
-                <div className="text-sm text-rudi-maroon/80">
+                <div className="text-sm text-muted-foreground">
                   {program.terms || 'No special terms — keep it flexible.'}
                 </div>
               </div>
@@ -272,7 +272,7 @@ const Programs = () => {
               <div className="flex flex-wrap items-center gap-3">
                 <Button
                   variant="outline"
-                  className="rounded-2xl border-rudi-teal/30 text-rudi-teal hover:bg-rudi-teal/10"
+                  className="rounded-2xl border-primary/30 text-primary hover:bg-primary/10"
                   onClick={() => openEditModal(program)}
                 >
                   <PenSquare className="mr-2 h-4 w-4" />
@@ -287,7 +287,7 @@ const Programs = () => {
                 </Button>
                 <Button
                   variant="ghost"
-                  className="rounded-2xl px-3 py-2 text-rudi-coral hover:bg-rudi-coral/10"
+                  className="rounded-2xl px-3 py-2 text-accent hover:bg-accent/10"
                   onClick={() => handleDelete(program.id)}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -299,9 +299,9 @@ const Programs = () => {
         })}
 
         {!filteredPrograms.length && (
-          <div className="rounded-3xl bg-white p-8 text-center shadow-rudi-card">
-            <h3 className="font-heading text-lg text-rudi-maroon">No programs yet</h3>
-            <p className="mt-2 text-sm text-rudi-maroon/70">
+          <div className="rounded-3xl bg-card p-8 text-center shadow-lg">
+            <h3 className="font-heading text-lg text-foreground">No programs yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
               Launch your first loyalty adventure — your customers are ready.
             </p>
             <Button onClick={openCreateModal} className="btn-primary mt-4">
@@ -312,12 +312,12 @@ const Programs = () => {
       </section>
 
       <Dialog open={isModalOpen} onOpenChange={(open) => (open ? setIsModalOpen(true) : closeModal())}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl border-none p-0 shadow-2xl sm:max-w-xl">
-          <DialogHeader className="border-b border-rudi-teal/15 px-6 py-4">
-            <DialogTitle className="font-heading text-xl text-rudi-maroon">
+        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl border border-border p-0 shadow-2xl sm:max-w-xl">
+          <DialogHeader className="border-b border-border px-6 py-4">
+            <DialogTitle className="font-heading text-xl text-foreground">
               {editingProgram ? 'Edit Loyalty Program' : 'Create Loyalty Program'}
             </DialogTitle>
-            <p className="text-sm text-rudi-maroon/60">
+            <p className="text-sm text-muted-foreground">
               Step {formStep + 1} of 2 — keep your experience magical.
             </p>
           </DialogHeader>
@@ -325,7 +325,7 @@ const Programs = () => {
             {formStep === 0 && (
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-semibold text-rudi-maroon">
+                  <Label htmlFor="name" className="text-sm font-semibold text-foreground">
                     Program name
                   </Label>
                   <Input
@@ -333,11 +333,11 @@ const Programs = () => {
                     value={formData.name}
                     onChange={(event) => setFormData({ ...formData, name: event.target.value })}
                     required
-                    className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]"
+                    className="h-11 rounded-xl border-border bg-background"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-semibold text-rudi-maroon">
+                  <Label htmlFor="description" className="text-sm font-semibold text-foreground">
                     Description
                   </Label>
                   <Textarea
@@ -347,11 +347,11 @@ const Programs = () => {
                       setFormData({ ...formData, description: event.target.value })
                     }
                     placeholder="What heartwarming reward awaits loyal guests?"
-                    className="rounded-xl border-[#EADCC7] bg-[#FFF9F0]"
+                     className="rounded-xl border-border bg-background"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="logic_type" className="text-sm font-semibold text-rudi-maroon">
+                  <Label htmlFor="logic_type" className="text-sm font-semibold text-foreground">
                     Program type
                   </Label>
                   <Select
@@ -384,7 +384,7 @@ const Programs = () => {
                         setFormData({ ...formData, rewardThreshold: event.target.value })
                       }
                       required
-                      className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]"
+                      className="h-11 rounded-xl border-border bg-background"
                     />
                   </div>
                   <div className="space-y-2">
@@ -398,7 +398,7 @@ const Programs = () => {
                         setFormData({ ...formData, stampValue: event.target.value })
                       }
                       required
-                      className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]"
+                      className="h-11 rounded-xl border-border bg-background"
                     />
                   </div>
                 </div>
@@ -411,7 +411,7 @@ const Programs = () => {
                       type="date"
                       value={formData.expiry}
                       onChange={(event) => setFormData({ ...formData, expiry: event.target.value })}
-                      className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]"
+                      className="h-11 rounded-xl border-border bg-background"
                     />
                   </div>
                   <div className="space-y-2">
@@ -424,7 +424,7 @@ const Programs = () => {
                       onChange={(event) =>
                         setFormData({ ...formData, maxPerDay: event.target.value })
                       }
-                      className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]"
+                      className="h-11 rounded-xl border-border bg-background"
                     />
                   </div>
                 </div>
@@ -436,14 +436,14 @@ const Programs = () => {
                     value={formData.notes}
                     onChange={(event) => setFormData({ ...formData, notes: event.target.value })}
                     placeholder="Add any friendly reminders or terms for your guests."
-                    className="rounded-xl border-[#EADCC7] bg-[#FFF9F0]"
+                     className="rounded-xl border-border bg-background"
                   />
                 </div>
               </div>
             )}
 
             <DialogFooter className="flex items-center justify-between pt-4">
-              <div className="text-xs text-rudi-maroon/60">
+              <div className="text-xs text-muted-foreground">
                 {formStep === 0
                   ? 'Step 1: Set the tone for your experience.'
                   : 'Step 2: Final tweaks before liftoff.'}
@@ -453,7 +453,7 @@ const Programs = () => {
                   <Button
                     type="button"
                     variant="ghost"
-                    className="rounded-2xl px-4 py-2 text-rudi-maroon hover:bg-rudi-teal/10"
+                    className="rounded-2xl px-4 py-2 text-foreground hover:bg-muted"
                     onClick={() => setFormStep((step) => Math.max(step - 1, 0))}
                   >
                     Back
@@ -489,7 +489,7 @@ const StampIcon = () => (
     fill="none"
     strokeWidth="1.5"
     stroke="currentColor"
-    className="h-4 w-4 text-rudi-teal"
+    className="h-4 w-4 text-primary"
   >
     <path
       strokeLinecap="round"
