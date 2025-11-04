@@ -65,15 +65,28 @@ const Landing = () => {
       <NavBar />
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-12 min-h-screen flex items-center justify-center overflow-hidden">
-        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 960 320" preserveAspectRatio="xMidYMid slice">
-          <path d="M0,160 C320,120 640,200 960,160 L960,320 L0,320 Z" fill="#00C896" opacity="0.1" />
-          <path d="M0,200 C320,160 640,240 960,200 L960,320 L0,320 Z" fill="#00C896" opacity="0.15" />
-          <path d="M0,240 C320,200 640,280 960,240 L960,320 L0,320 Z" fill="#00C896" opacity="0.2" />
+      <section className="relative -mt-16 pt-0 pb-24 min-h-[110vh] flex items-center justify-center overflow-hidden">
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#00C896" />
+              <stop offset="100%" stopColor="#2196F3" />
+            </linearGradient>
+            <linearGradient id="waveGradient2" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#2196F3" />
+              <stop offset="100%" stopColor="#00C896" />
+            </linearGradient>
+          </defs>
+          <path d="M0,0 Q400,-80 720,0 T1440,0 V100 Q1120,200 720,100 Q320,0 0,100 Z" fill="url(#waveGradient1)" opacity="0.7" />
+          <path d="M0,50 Q520,-50 960,50 T1440,50 V150 Q1000,250 520,150 Q0,50 0,150 Z" fill="url(#waveGradient2)" opacity="0.5" />
+          <path d="M0,100 Q650,0 1200,100 T1440,100 V200 Q1280,300 650,200 Q0,100 0,200 Z" fill="#00C896" opacity="0.3" />
+          <path d="M0,630 Q400,730 720,630 T1440,630 V730 Q1100,630 720,730 Q340,830 0,730 Z" fill="url(#waveGradient1)" opacity="0.6" />
+          <path d="M0,680 Q520,780 960,680 T1440,680 V780 Q1000,680 520,780 Q0,880 0,780 Z" fill="url(#waveGradient2)" opacity="0.4" />
+          <path d="M0,730 Q650,830 1200,730 T1440,730 V830 Q1250,730 650,830 Q0,930 0,830 Z" fill="#00C896" opacity="0.2" />
         </svg>
-        <div className="absolute inset-0 bg-card/70"></div>
+
         <motion.div
-          className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center"
+          className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center mt-32"
           initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
           transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.8 }}
@@ -97,12 +110,41 @@ const Landing = () => {
       <section className="py-8 bg-card">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="text-center text-muted-foreground mb-6">Trusted by local cafés & shops</p>
-          <div className="flex justify-center items-center space-x-8 opacity-60">
-            <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
-            <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
-            <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
-            <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
-            <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
+          <div className="flex justify-center items-center space-x-12 opacity-80">
+            <svg className="w-20 h-20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="30" fill="#00C896" stroke="#00C896" strokeWidth="2"/>
+              <path d="M20 24h24v16c0 4-4 8-8 8H28c-4 0-8-4-8-8V24z" fill="white"/>
+              <rect x="26" y="20" width="12" height="4" fill="white"/>
+              <circle cx="32" cy="36" r="2" fill="white"/>
+            </svg>
+            <svg className="w-20 h-20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="30" fill="#00C896" stroke="#00C896" strokeWidth="2"/>
+              <path d="M16 40V24c0-4 4-8 8-8h16c4 0 8 4 8 8v16c0 4-4 8-8 8H24c-4 0-8-4-8-8z" fill="white"/>
+              <rect x="24" y="28" width="16" height="2" fill="white"/>
+              <rect x="24" y="32" width="12" height="2" fill="white"/>
+              <rect x="24" y="36" width="8" height="2" fill="white"/>
+            </svg>
+            <svg className="w-20 h-20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="30" fill="#00C896" stroke="#00C896" strokeWidth="2"/>
+              <path d="M20 20h24v20c0 4-4 8-8 8H28c-4 0-8-4-8-8V20z" fill="white"/>
+              <circle cx="26" cy="26" r="2" fill="white"/>
+              <circle cx="32" cy="26" r="2" fill="white"/>
+              <circle cx="38" cy="26" r="2" fill="white"/>
+              <circle cx="26" cy="32" r="2" fill="white"/>
+              <circle cx="32" cy="32" r="2" fill="white"/>
+            </svg>
+            <svg className="w-20 h-20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="30" fill="#00C896" stroke="#00C896" strokeWidth="2"/>
+              <path d="M24 20l8-8 8 8v20c0 4-4 8-8 8s-8-4-8-8V20z" fill="white"/>
+              <rect x="28" y="28" width="8" height="2" fill="white"/>
+              <rect x="30" y="32" width="4" height="2" fill="white"/>
+            </svg>
+            <svg className="w-20 h-20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="30" fill="#00C896" stroke="#00C896" strokeWidth="2"/>
+              <path d="M20 24h24v16c0 4-4 8-8 8H28c-4 0-8-4-8-8V24z" fill="white"/>
+              <path d="M24 28h16v4H24v-4z" fill="white"/>
+              <circle cx="32" cy="36" r="2" fill="white"/>
+            </svg>
           </div>
         </div>
       </section>
