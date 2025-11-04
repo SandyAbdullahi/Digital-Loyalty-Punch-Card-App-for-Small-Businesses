@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core';
-import { PlayStore, Apple } from 'lucide-react';
+import { Smartphone, Apple } from 'lucide-react';
 import NavBar from '../components/NavBar';
 
 const GetApp = () => {
@@ -14,7 +14,7 @@ const GetApp = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
-              leftSection={<PlayStore size={20} />}
+              leftSection={<Smartphone size={20} />}
               size="lg"
               variant="filled"
               color="primary"
