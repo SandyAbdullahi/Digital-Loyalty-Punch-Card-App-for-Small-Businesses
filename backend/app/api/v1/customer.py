@@ -33,27 +33,34 @@ def update_profile(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
-    user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    try:
+        user = get_user_by_email(db, current_user)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    update_data = {"name": name, "email": email}
+        update_data = {"name": name, "email": email}
 
-    if avatar:
-        # Create uploads directory if it doesn't exist
-        upload_dir = Path("uploads/avatars")
-        upload_dir.mkdir(parents=True, exist_ok=True)
+        if avatar and avatar.filename:
+            # Create uploads directory if it doesn't exist
+            upload_dir = Path("uploads/avatars")
+            upload_dir.mkdir(parents=True, exist_ok=True)
 
-        # Generate unique filename
-        file_extension = Path(avatar.filename).suffix
-        filename = f"{user.id}{file_extension}"
-        file_path = upload_dir / filename
+            # Generate unique filename
+            file_extension = Path(avatar.filename).suffix or ".jpg"
+            filename = f"{user.id}{file_extension}"
+            file_path = upload_dir / filename
 
-        # Save the file
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(avatar.file, buffer)
+            # Save the file
+            try:
+                with open(file_path, "wb") as buffer:
+                    shutil.copyfileobj(avatar.file, buffer)
+                update_data["avatar_url"] = f"/uploads/avatars/{filename}"
+            except Exception as e:
+                print(f"Error saving avatar: {e}")
+                # Continue without avatar
 
-        update_data["avatar_url"] = f"/uploads/avatars/{filename}"
-
-    profile = UserUpdate(**update_data)
-    return update_user(db, user, profile)
+        profile = UserUpdate(**update_data)
+        return update_user(db, user, profile)
+    except Exception as e:
+        print(f"Error in update_profile: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")

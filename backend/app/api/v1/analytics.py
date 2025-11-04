@@ -27,14 +27,17 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
     program_ids = [p.id for p in merchant.programs]
 
     # Recent ledger entries
-    recent_entries = db.query(LedgerEntry).filter(
-        LedgerEntry.program_id.in_(program_ids)
+    recent_entries = db.query(LedgerEntry).join(
+        CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
+    ).filter(
+        CustomerProgramMembership.program_id.in_(program_ids)
     ).order_by(desc(LedgerEntry.created_at)).limit(10).all()
 
     items = []
     for entry in recent_entries:
-        customer = db.query(User).filter(User.id == entry.customer_user_id).first()
-        program = next((p for p in merchant.programs if p.id == entry.program_id), None)
+        membership = db.query(CustomerProgramMembership).filter(CustomerProgramMembership.id == entry.membership_id).first()
+        customer = db.query(User).filter(User.id == membership.customer_user_id).first() if membership else None
+        program = next((p for p in merchant.programs if p.id == membership.program_id), None) if membership else None
         if entry.entry_type == 'earn':
             message = f"{program.name if program else 'Program'} added a stamp for {customer.name if customer and customer.name else customer.email if customer else 'Customer'}."
             type_ = 'stamp'
@@ -51,20 +54,24 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
         })
 
     # Unique customers
-    unique_customers = db.query(func.count(func.distinct(LedgerEntry.customer_user_id))).filter(
-        LedgerEntry.program_id.in_(program_ids)
+    unique_customers = db.query(func.count(func.distinct(CustomerProgramMembership.customer_user_id))).filter(
+        CustomerProgramMembership.program_id.in_(program_ids)
     ).scalar() or 0
 
     # Rewards redeemed
-    rewards_redeemed = db.query(func.sum(LedgerEntry.amount)).filter(
-        LedgerEntry.program_id.in_(program_ids),
+    rewards_redeemed = db.query(func.sum(LedgerEntry.amount)).join(
+        CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
+    ).filter(
+        CustomerProgramMembership.program_id.in_(program_ids),
         LedgerEntry.entry_type == 'redeem'
     ).scalar() or 0
 
     # Today scans
     today = datetime.utcnow().date()
-    today_scans = db.query(func.sum(LedgerEntry.amount)).filter(
-        LedgerEntry.program_id.in_(program_ids),
+    today_scans = db.query(func.sum(LedgerEntry.amount)).join(
+        CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
+    ).filter(
+        CustomerProgramMembership.program_id.in_(program_ids),
         LedgerEntry.entry_type == 'earn',
         func.date(LedgerEntry.created_at) == today
     ).scalar() or 0
@@ -91,8 +98,10 @@ def get_scans_last_7_days(db: Session = Depends(get_db), current_user: str = Dep
     scans = []
     for i in range(7):
         date = datetime.utcnow().date() - timedelta(days=6-i)
-        count = db.query(func.sum(LedgerEntry.amount)).filter(
-            LedgerEntry.program_id.in_(program_ids),
+        count = db.query(func.sum(LedgerEntry.amount)).join(
+            CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
+        ).filter(
+            CustomerProgramMembership.program_id.in_(program_ids),
             LedgerEntry.entry_type == 'earn',
             func.date(LedgerEntry.created_at) == date
         ).scalar() or 0

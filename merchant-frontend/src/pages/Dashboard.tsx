@@ -42,7 +42,7 @@ const Dashboard = () => {
       try {
         const [programsResponse, activityResponse, chartResponse] =
           await Promise.allSettled([
-            axios.get('/api/v1/programs'),
+            axios.get('/api/v1/programs/'),
             axios.get('/api/v1/analytics/recent-activity'),
             axios.get('/api/v1/analytics/scans-last-7-days'),
           ]);

@@ -5,7 +5,10 @@ from ...core.security import create_access_token, create_refresh_token
 from ...db.session import get_db
 from ...schemas.auth import AuthRequest, Token
 from ...schemas.user import UserCreate
-from ...services.auth import authenticate_user, create_user, get_user_by_email
+from ...schemas.merchant import MerchantCreate
+from ...services.auth import authenticate_user, create_user, get_user_by_email, _normalize_role  # type: ignore
+from ...services.merchant import create_merchant, get_merchants_by_owner
+from ...models.user import UserRole
 
 router = APIRouter()
 
@@ -13,6 +16,8 @@ router = APIRouter()
 @router.post("/login-or-register", response_model=Token)
 def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
     user = get_user_by_email(db, auth_data.email)
+    requested_role = _normalize_role(auth_data.role)
+
     if user:
         # Login
         if not authenticate_user(db, auth_data.email, auth_data.password):
@@ -20,14 +25,31 @@ def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Incorrect password",
             )
+        # Update role if provided
+        if requested_role and getattr(user.role, "value", user.role) != requested_role.value:
+            user.role = requested_role  # type: ignore[assignment]
+            db.commit()
+            db.refresh(user)
     else:
         # Register
         user_create = UserCreate(
             email=auth_data.email,
             password=auth_data.password,
-            role=auth_data.role,
+            role=requested_role,
         )
         user = create_user(db, user_create)
+
+    # Ensure merchant profile exists for merchant users
+    user_role_value = getattr(user.role, "value", user.role)
+    if user_role_value == UserRole.MERCHANT.value:
+        merchants = get_merchants_by_owner(db, user.id)
+        if not merchants:
+            fallback_name = (user.name or auth_data.email.split("@")[0]).title()
+            merchant_payload = MerchantCreate(
+                display_name=fallback_name,
+                legal_name=fallback_name,
+            )
+            create_merchant(db, merchant_payload, user.id)
 
     # Update last login
     from ...services.auth import update_last_login
@@ -40,5 +62,11 @@ def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
     return Token(
         access_token=access_token,
         refresh_token=refresh_token,
-        user={"id": user.id, "email": user.email, "role": user.role, "name": user.name, "avatar_url": user.avatar_url}
+        user={
+            "id": user.id,
+            "email": user.email,
+            "role": user_role_value,
+            "name": user.name,
+            "avatar_url": getattr(user, "avatar_url", None),
+        }
     )

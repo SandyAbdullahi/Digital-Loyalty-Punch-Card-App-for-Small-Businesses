@@ -1,7 +1,8 @@
+import json
 from typing import Dict, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class LoyaltyProgramBase(BaseModel):
@@ -11,6 +12,13 @@ class LoyaltyProgramBase(BaseModel):
     earn_rule: Dict
     redeem_rule: Dict
     terms: Optional[str] = None
+
+    @field_validator('earn_rule', 'redeem_rule', mode='before')
+    @classmethod
+    def parse_json(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
 
 
 class LoyaltyProgramCreate(LoyaltyProgramBase):

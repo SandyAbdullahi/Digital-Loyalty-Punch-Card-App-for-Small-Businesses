@@ -2,11 +2,6 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
   Label,
   Select,
@@ -72,9 +67,19 @@ const Programs = () => {
     fetchPrograms()
   }, [])
 
+  useEffect(() => {
+    if (!isModalOpen) {
+      setTimeout(() => {
+        setFormStep(0)
+        setEditingProgram(null)
+        setFormData(defaultFormState)
+      }, 200)
+    }
+  }, [isModalOpen])
+
   const fetchPrograms = async () => {
     try {
-      const response = await axios.get<Program[]>('/api/v1/programs')
+      const response = await axios.get<Program[]>('/api/v1/programs/')
       setPrograms(response.data)
     } catch (error) {
       console.error('Failed to fetch programs', error)
@@ -173,7 +178,7 @@ const Programs = () => {
       if (editingProgram) {
         await axios.put(`/api/v1/programs/${editingProgram.id}`, payload)
       } else {
-        await axios.post('/api/v1/programs', payload)
+        await axios.post('/api/v1/programs/', payload)
       }
       closeModal()
       fetchPrograms()
@@ -311,173 +316,187 @@ const Programs = () => {
         )}
       </section>
 
-      <Dialog open={isModalOpen} onOpenChange={(open) => (open ? setIsModalOpen(true) : closeModal())}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl border border-border p-0 shadow-2xl sm:max-w-xl">
-          <DialogHeader className="border-b border-border px-6 py-4">
-            <DialogTitle className="font-heading text-xl text-foreground">
-              {editingProgram ? 'Edit Loyalty Program' : 'Create Loyalty Program'}
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Step {formStep + 1} of 2 — keep your experience magical.
-            </p>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">
-            {formStep === 0 && (
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-semibold text-foreground">
-                    Program name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                    required
-                    className="h-11 rounded-xl border-border bg-background"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-semibold text-foreground">
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(event) =>
-                      setFormData({ ...formData, description: event.target.value })
-                    }
-                    placeholder="What heartwarming reward awaits loyal guests?"
-                     className="rounded-xl border-border bg-background"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="logic_type" className="text-sm font-semibold text-foreground">
-                    Program type
-                  </Label>
-                  <Select
-                    value={formData.logic_type}
-                    onValueChange={(value) => setFormData({ ...formData, logic_type: value })}
-                  >
-                    <SelectTrigger id="logic_type" className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]">
-                      <SelectValue placeholder="Select program type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="punch_card">Punch Card</SelectItem>
-                      <SelectItem value="points">Points</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {formStep === 1 && (
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={closeModal}>
+          <div className="max-h-[90vh] overflow-y-auto rounded-3xl border border-border bg-background p-6 shadow-2xl sm:max-w-xl w-full mx-4 relative" onClick={(e) => e.stopPropagation()}>
+            <button onClick={closeModal} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+              <span className="sr-only">Close</span>
+              ✕
+            </button>
+            <div className="border-b border-border pb-4 mb-4">
+              <h2 className="font-heading text-xl text-foreground">
+                {editingProgram ? 'Edit Loyalty Program' : 'Create Loyalty Program'}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Step {formStep + 1} of 2 - keep your experience magical.
+              </p>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {formStep === 0 && (
+                <div className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="rewardThreshold">Reward threshold</Label>
+                    <Label htmlFor="name" className="text-sm font-semibold text-foreground">
+                      Program name
+                    </Label>
                     <Input
-                      id="rewardThreshold"
-                      type="number"
-                      min={1}
-                      value={formData.rewardThreshold}
-                      onChange={(event) =>
-                        setFormData({ ...formData, rewardThreshold: event.target.value })
-                      }
+                      id="name"
+                      value={formData.name}
+                      onChange={(event) => setFormData({ ...formData, name: event.target.value })}
                       required
                       className="h-11 rounded-xl border-border bg-background"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="stampValue">Stamp value</Label>
-                    <Input
-                      id="stampValue"
-                      type="number"
-                      min={1}
-                      value={formData.stampValue}
+                    <Label htmlFor="description" className="text-sm font-semibold text-foreground">
+                      Description
+                    </Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
                       onChange={(event) =>
-                        setFormData({ ...formData, stampValue: event.target.value })
+                        setFormData({ ...formData, description: event.target.value })
                       }
-                      required
-                      className="h-11 rounded-xl border-border bg-background"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="expiry">Expiry date</Label>
-                    <Input
-                      id="expiry"
-                      type="date"
-                      value={formData.expiry}
-                      onChange={(event) => setFormData({ ...formData, expiry: event.target.value })}
-                      className="h-11 rounded-xl border-border bg-background"
+                      placeholder="What heartwarming reward awaits loyal guests?"
+                       className="rounded-xl border-border bg-background"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="maxPerDay">Max scans per day</Label>
-                    <Input
-                      id="maxPerDay"
-                      type="number"
-                      min={0}
-                      value={formData.maxPerDay}
-                      onChange={(event) =>
-                        setFormData({ ...formData, maxPerDay: event.target.value })
-                      }
-                      className="h-11 rounded-xl border-border bg-background"
+                    <Label htmlFor="logic_type" className="text-sm font-semibold text-foreground">
+                      Program type
+                    </Label>
+                    <Select
+                      value={formData.logic_type}
+                      onValueChange={(value) => setFormData({ ...formData, logic_type: value })}
+                    >
+                      <SelectTrigger id="logic_type" className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]">
+                        <SelectValue placeholder="Select program type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="punch_card">Punch Card</SelectItem>
+                        <SelectItem value="points">Points</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {formStep === 1 && (
+                <div className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="rewardThreshold">Reward threshold</Label>
+                      <Input
+                        id="rewardThreshold"
+                        type="number"
+                        min={1}
+                        value={formData.rewardThreshold}
+                        onChange={(event) =>
+                          setFormData({ ...formData, rewardThreshold: event.target.value })
+                        }
+                        required
+                        className="h-11 rounded-xl border-border bg-background"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="stampValue">Stamp value</Label>
+                      <Input
+                        id="stampValue"
+                        type="number"
+                        min={1}
+                        value={formData.stampValue}
+                        onChange={(event) =>
+                          setFormData({ ...formData, stampValue: event.target.value })
+                        }
+                        required
+                        className="h-11 rounded-xl border-border bg-background"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="expiry">Expiry date</Label>
+                      <Input
+                        id="expiry"
+                        type="date"
+                        value={formData.expiry}
+                        onChange={(event) => setFormData({ ...formData, expiry: event.target.value })}
+                        className="h-11 rounded-xl border-border bg-background"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maxPerDay">Max scans per day</Label>
+                      <Input
+                        id="maxPerDay"
+                        type="number"
+                        min={0}
+                        value={formData.maxPerDay}
+                        onChange={(event) =>
+                          setFormData({ ...formData, maxPerDay: event.target.value })
+                        }
+                        className="h-11 rounded-xl border-border bg-background"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes / Terms</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(event) => setFormData({ ...formData, notes: event.target.value })}
+                      placeholder="Add any friendly reminders or terms for your guests."
+                       className="rounded-xl border-border bg-background"
                     />
                   </div>
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes / Terms</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(event) => setFormData({ ...formData, notes: event.target.value })}
-                    placeholder="Add any friendly reminders or terms for your guests."
-                     className="rounded-xl border-border bg-background"
-                  />
+              <div className="flex items-center justify-between pt-4">
+                <div className="text-xs text-muted-foreground">
+                  {formStep === 0
+                    ? 'Step 1: Set the tone for your experience.'
+                    : 'Step 2: Final tweaks before liftoff.'}
                 </div>
-              </div>
-            )}
-
-            <DialogFooter className="flex items-center justify-between pt-4">
-              <div className="text-xs text-muted-foreground">
-                {formStep === 0
-                  ? 'Step 1: Set the tone for your experience.'
-                  : 'Step 2: Final tweaks before liftoff.'}
-              </div>
-              <div className="flex gap-2">
-                {formStep > 0 && (
+                <div className="flex gap-2">
                   <Button
                     type="button"
                     variant="ghost"
                     className="rounded-2xl px-4 py-2 text-foreground hover:bg-muted"
-                    onClick={() => setFormStep((step) => Math.max(step - 1, 0))}
+                    onClick={closeModal}
                   >
-                    Back
+                    Cancel
                   </Button>
-                )}
-                {formStep < 1 && (
-                  <Button
-                    type="button"
-                    className="btn-primary"
-                    onClick={() => setFormStep((step) => Math.min(step + 1, 1))}
-                  >
-                    Next
-                  </Button>
-                )}
-                {formStep === 1 && (
-                  <Button type="submit" className="btn-primary">
-                    {editingProgram ? 'Save changes' : 'Save program'}
-                  </Button>
-                )}
+                  {formStep > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="rounded-2xl px-4 py-2 text-foreground hover:bg-muted"
+                      onClick={() => setFormStep((step) => Math.max(step - 1, 0))}
+                    >
+                      Back
+                    </Button>
+                  )}
+                  {formStep < 1 && (
+                    <Button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => setFormStep((step) => Math.min(step + 1, 1))}
+                    >
+                      Next
+                    </Button>
+                  )}
+                  {formStep === 1 && (
+                    <Button type="submit" className="btn-primary">
+                      {editingProgram ? 'Save changes' : 'Save program'}
+                    </Button>
+                  )}
+                </div>
               </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

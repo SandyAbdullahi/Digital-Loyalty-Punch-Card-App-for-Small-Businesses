@@ -3,8 +3,19 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from ..core.security import get_password_hash, verify_password
-from ..models.user import User
+from ..models.user import User, UserRole
 from ..schemas.user import UserCreate, UserUpdate
+
+
+def _normalize_role(role: str | UserRole | None) -> UserRole:
+    if role is None:
+        return UserRole.CUSTOMER
+    if isinstance(role, UserRole):
+        return role
+    try:
+        return UserRole(role)
+    except ValueError:
+        return UserRole(role.lower())
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -13,12 +24,13 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 
 def create_user(db: Session, user: UserCreate) -> User:
     hashed_password = get_password_hash(user.password)
+    role_value = _normalize_role(user.role)
     db_user = User(
         id=uuid4(),
         email=user.email,
         name=user.name,
         phone=user.phone,
-        role=user.role,
+        role=role_value,
         password_hash=hashed_password,
     )
     db.add(db_user)
@@ -46,7 +58,10 @@ def update_user(db: Session, user: User, updates: UserUpdate) -> User:
         if key == "password" and value:
             setattr(user, "password_hash", get_password_hash(value))
         elif key != "password":
-            setattr(user, key, value)
+            if key == "role":
+                setattr(user, key, _normalize_role(value))
+            else:
+                setattr(user, key, value)
     db.commit()
     db.refresh(user)
     return user

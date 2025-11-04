@@ -34,7 +34,7 @@ def create_merchant_endpoint(
     current_user: str = Depends(get_current_user),
 ):
     # Assume current_user is email, get user id
-    from ....services.auth import get_user_by_email
+    from ...services.auth import get_user_by_email
     user = get_user_by_email(db, current_user)
     if not user or user.role != "merchant":
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -45,7 +45,9 @@ def create_merchant_endpoint(
 def read_merchants(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -57,7 +59,8 @@ def read_merchant(
     merchant_id: UUID,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
     merchant = get_merchant(db, merchant_id)
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
@@ -73,7 +76,8 @@ def update_merchant_endpoint(
     merchant_update: MerchantUpdate,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
     merchant = get_merchant(db, merchant_id)
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
@@ -91,7 +95,8 @@ def delete_merchant_endpoint(
     merchant_id: UUID,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
     merchant = get_merchant(db, merchant_id)
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
@@ -110,7 +115,8 @@ def create_location_endpoint(
     location: LocationCreate,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
     merchant = get_merchant(db, merchant_id)
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
@@ -125,7 +131,8 @@ def read_locations(
     merchant_id: UUID,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
     merchant = get_merchant(db, merchant_id)
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
@@ -142,7 +149,8 @@ def update_location_endpoint(
     location_update: LocationUpdate,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
     merchant = get_merchant(db, merchant_id)
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
@@ -164,7 +172,8 @@ def delete_location_endpoint(
     location_id: UUID,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
     merchant = get_merchant(db, merchant_id)
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
@@ -182,6 +191,8 @@ def delete_location_endpoint(
 # Merchant customers
 @router.get("/customers")
 def get_merchant_customers(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -207,15 +218,19 @@ def get_merchant_customers(db: Session = Depends(get_db), current_user: str = De
         if not customer:
             continue
 
-        total_stamps = db.query(func.sum(LedgerEntry.amount)).filter(
-            LedgerEntry.customer_user_id == customer.id,
-            LedgerEntry.program_id.in_(program_ids),
+        total_stamps = db.query(func.sum(LedgerEntry.amount)).join(
+            CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
+        ).filter(
+            CustomerProgramMembership.customer_user_id == customer.id,
+            CustomerProgramMembership.program_id.in_(program_ids),
             LedgerEntry.entry_type == 'earn'
         ).scalar() or 0
 
-        last_visit = db.query(LedgerEntry.created_at).filter(
-            LedgerEntry.customer_user_id == customer.id,
-            LedgerEntry.program_id.in_(program_ids)
+        last_visit = db.query(LedgerEntry.created_at).join(
+            CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
+        ).filter(
+            CustomerProgramMembership.customer_user_id == customer.id,
+            CustomerProgramMembership.program_id.in_(program_ids)
         ).order_by(desc(LedgerEntry.created_at)).first()
 
         programs = [{
@@ -253,15 +268,18 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
     from ...models.ledger_entry import LedgerEntry
     from ...models.user import User
 
-    redeem_entries = db.query(LedgerEntry).filter(
-        LedgerEntry.program_id.in_(program_ids),
+    redeem_entries = db.query(LedgerEntry).join(
+        CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
+    ).filter(
+        CustomerProgramMembership.program_id.in_(program_ids),
         LedgerEntry.entry_type == 'redeem'
     ).order_by(desc(LedgerEntry.created_at)).all()
 
     rewards = []
     for entry in redeem_entries:
-        customer = db.query(User).filter(User.id == entry.customer_user_id).first()
-        program = next((p for p in merchant.programs if p.id == entry.program_id), None)
+        membership = db.query(CustomerProgramMembership).filter(CustomerProgramMembership.id == entry.membership_id).first()
+        customer = db.query(User).filter(User.id == membership.customer_user_id).first() if membership else None
+        program = next((p for p in merchant.programs if p.id == membership.program_id), None) if membership else None
         rewards.append({
             "id": str(entry.id),
             "program": program.name if program else 'Program',

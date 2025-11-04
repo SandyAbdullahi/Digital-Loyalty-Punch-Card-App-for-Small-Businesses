@@ -27,10 +27,12 @@ def create_program(
     current_user: str = Depends(get_current_user),
 ):
     # Assume current_user is email, get user and merchant
-    from ....services.auth import get_user_by_email
-    from ....services.merchant import get_merchants_by_owner
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+    from ...models.user import UserRole
     user = get_user_by_email(db, current_user)
-    if not user or user.role != "merchant":
+    role_value = getattr(user.role, "value", user.role) if user else None
+    if not user or role_value not in ("merchant", UserRole.MERCHANT.value):
         raise HTTPException(status_code=403, detail="Not authorized")
     merchants = get_merchants_by_owner(db, user.id)
     if not merchants:
@@ -43,10 +45,14 @@ def create_program(
 def read_programs(
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+    from ...models.user import UserRole
     user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    role_value = getattr(user.role, "value", user.role) if user else None
+    if not user or role_value not in ("merchant", UserRole.MERCHANT.value):
+        raise HTTPException(status_code=403, detail="Not authorized")
     merchants = get_merchants_by_owner(db, user.id)
     if not merchants:
         return []
@@ -59,12 +65,15 @@ def read_program(
     program_id: UUID,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+    from ...models.user import UserRole
     program = get_loyalty_program(db, program_id)
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
     user = get_user_by_email(db, current_user)
-    merchants = get_merchants_by_owner(db, user.id)
+    merchants = get_merchants_by_owner(db, user.id) if user else []
     if not merchants or program.merchant_id != merchants[0].id:
         raise HTTPException(status_code=403, detail="Not authorized")
     return program
@@ -76,12 +85,15 @@ def update_program(
     program_update: LoyaltyProgramUpdate,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+    from ...models.user import UserRole
     program = get_loyalty_program(db, program_id)
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
     user = get_user_by_email(db, current_user)
-    merchants = get_merchants_by_owner(db, user.id)
+    merchants = get_merchants_by_owner(db, user.id) if user else []
     if not merchants or program.merchant_id != merchants[0].id:
         raise HTTPException(status_code=403, detail="Not authorized")
     updated_program = update_loyalty_program(db, program_id, program_update)
@@ -95,12 +107,15 @@ def delete_program(
     program_id: UUID,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
+ ):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+    from ...models.user import UserRole
     program = get_loyalty_program(db, program_id)
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
     user = get_user_by_email(db, current_user)
-    merchants = get_merchants_by_owner(db, user.id)
+    merchants = get_merchants_by_owner(db, user.id) if user else []
     if not merchants or program.merchant_id != merchants[0].id:
         raise HTTPException(status_code=403, detail="Not authorized")
     if delete_loyalty_program(db, program_id):
