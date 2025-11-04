@@ -17,7 +17,10 @@ class LoyaltyProgramBase(BaseModel):
     @classmethod
     def parse_json(cls, v):
         if isinstance(v, str):
-            return json.loads(v)
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return {}
         return v
 
 

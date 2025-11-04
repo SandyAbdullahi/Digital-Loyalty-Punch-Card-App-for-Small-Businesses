@@ -15,6 +15,7 @@ class Location(Base):
     merchant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False
     )
+    name: Mapped[str] = mapped_column(String, nullable=False)
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lng: Mapped[float] = mapped_column(Float, nullable=False)
     address: Mapped[str] = mapped_column(String, nullable=False)

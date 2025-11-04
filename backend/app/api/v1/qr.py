@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jws
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from pydantic import BaseModel as PydanticBaseModel
 
 from ...core.config import settings
 from ...core.limiter import limiter
@@ -16,7 +17,7 @@ from ...db.session import get_db
 from ...api.deps import get_current_user
 from ...services.membership import get_membership_by_customer_and_program, earn_stamps
 from ...services.auth import get_user_by_email
-from ...services.merchant import get_location
+from ...services.loyalty_program import get_loyalty_program
 
 router = APIRouter()
 
@@ -32,6 +33,20 @@ class ScanRequest(BaseModel):
     lat: float | None = None
     lng: float | None = None
     device_fingerprint: str | None = None
+
+
+class IssueJoinRequest(PydanticBaseModel):
+    program_id: UUID
+
+
+class IssueStampRequest(PydanticBaseModel):
+    program_id: UUID
+    purchase_total: float | None = None
+
+
+class IssueRedeemRequest(PydanticBaseModel):
+    program_id: UUID
+    amount: int
 
 
 def verify_token(token: str) -> dict:
@@ -54,17 +69,17 @@ def check_geofence(user_lat: float, user_lng: float, location_lat: float, locati
 
 
 @router.post("/issue-join", response_model=QRToken)
-def issue_join_qr(location_id: UUID, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+def issue_join_qr(request: IssueJoinRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     user = get_user_by_email(db, current_user)
     if not user or user.role != "merchant":
         raise HTTPException(status_code=403, detail="Not authorized")
-    location = get_location(db, location_id)
-    if not location or location.merchant.owner_user_id != user.id:
-        raise HTTPException(status_code=404, detail="Location not found")
-    
+    program = get_loyalty_program(db, request.program_id)
+    if not program or program.merchant.owner_user_id != user.id:
+        raise HTTPException(status_code=404, detail="Program not found")
+
     payload = {
         "type": "join",
-        "location_id": str(location_id),
+        "program_id": str(request.program_id),
         "exp": (datetime.utcnow() + timedelta(seconds=90)).timestamp(),
         "nonce": str(uuid.uuid4()),  # Simple nonce
     }
@@ -73,18 +88,18 @@ def issue_join_qr(location_id: UUID, db: Session = Depends(get_db), current_user
 
 
 @router.post("/issue-stamp", response_model=QRToken)
-def issue_stamp_qr(location_id: UUID, purchase_total: float | None = None, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+def issue_stamp_qr(request: IssueStampRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     user = get_user_by_email(db, current_user)
     if not user or user.role != "merchant":
         raise HTTPException(status_code=403, detail="Not authorized")
-    location = get_location(db, location_id)
-    if not location or location.merchant.owner_user_id != user.id:
-        raise HTTPException(status_code=404, detail="Location not found")
-    
+    program = get_loyalty_program(db, request.program_id)
+    if not program or program.merchant.owner_user_id != user.id:
+        raise HTTPException(status_code=404, detail="Program not found")
+
     payload = {
         "type": "stamp",
-        "location_id": str(location_id),
-        "purchase_total": purchase_total,
+        "program_id": str(request.program_id),
+        "purchase_total": request.purchase_total,
         "exp": (datetime.utcnow() + timedelta(seconds=90)).timestamp(),
         "nonce": str(uuid.uuid4()),
     }
@@ -106,28 +121,25 @@ def scan_join(request: ScanRequest, db: Session = Depends(get_db), current_user:
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
 
-    location_id = UUID(payload["location_id"])
-    location = get_location(db, location_id)
-    if not location:
-        raise HTTPException(status_code=404, detail="Location not found")
+    program_id = UUID(payload["program_id"])
+    program = get_loyalty_program(db, program_id)
+    if not program:
+        raise HTTPException(status_code=404, detail="Program not found")
 
-    # Geofence check
-    if request.lat is not None and request.lng is not None:
-        if not check_geofence(request.lat, request.lng, location.lat, location.lng):
-            raise HTTPException(status_code=400, detail="Not near location")
+    # Skip geofence for now
 
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # Create membership if not exists
-    membership = get_membership_by_customer_and_program(db, user.id, location.merchant.programs[0].id)  # Assume first program
+    membership = get_membership_by_customer_and_program(db, user.id, program_id)
     if not membership:
         from ...services.membership import create_membership
         from ...schemas.customer_program_membership import CustomerProgramMembershipCreate
         membership = create_membership(db, CustomerProgramMembershipCreate(
             customer_user_id=user.id,
-            program_id=location.merchant.programs[0].id,
+            program_id=program_id,
         ))
 
     # Mark nonce as used
@@ -149,20 +161,18 @@ def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
 
-    location_id = UUID(payload["location_id"])
-    location = get_location(db, location_id)
-    if not location:
-        raise HTTPException(status_code=404, detail="Location not found")
+    program_id = UUID(payload["program_id"])
+    program = get_loyalty_program(db, program_id)
+    if not program:
+        raise HTTPException(status_code=404, detail="Program not found")
 
-    if request.lat is not None and request.lng is not None:
-        if not check_geofence(request.lat, request.lng, location.lat, location.lng):
-            raise HTTPException(status_code=400, detail="Not near location")
+    # Skip geofence for now
 
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    membership = get_membership_by_customer_and_program(db, user.id, location.merchant.programs[0].id)
+    membership = get_membership_by_customer_and_program(db, user.id, program_id)
     if not membership:
         raise HTTPException(status_code=404, detail="Not a member")
 
@@ -176,18 +186,18 @@ def scan_stamp(request: ScanRequest, db: Session = Depends(get_db), current_user
 
 
 @router.post("/issue-redeem", response_model=QRToken)
-def issue_redeem_qr(location_id: UUID, amount: int, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+def issue_redeem_qr(request: IssueRedeemRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     user = get_user_by_email(db, current_user)
     if not user or user.role != "merchant":
         raise HTTPException(status_code=403, detail="Not authorized")
-    location = get_location(db, location_id)
-    if not location or location.merchant.owner_user_id != user.id:
-        raise HTTPException(status_code=404, detail="Location not found")
+    program = get_loyalty_program(db, request.program_id)
+    if not program or program.merchant.owner_user_id != user.id:
+        raise HTTPException(status_code=404, detail="Program not found")
 
     payload = {
         "type": "redeem",
-        "location_id": str(location_id),
-        "amount": amount,
+        "program_id": str(request.program_id),
+        "amount": request.amount,
         "exp": (datetime.utcnow() + timedelta(seconds=120)).timestamp(),
         "nonce": str(uuid.uuid4()),
     }
@@ -208,20 +218,18 @@ def scan_redeem(request: ScanRequest, db: Session = Depends(get_db), current_use
     if datetime.utcnow().timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="Token expired")
 
-    location_id = UUID(payload["location_id"])
-    location = get_location(db, location_id)
-    if not location:
-        raise HTTPException(status_code=404, detail="Location not found")
+    program_id = UUID(payload["program_id"])
+    program = get_loyalty_program(db, program_id)
+    if not program:
+        raise HTTPException(status_code=404, detail="Program not found")
 
-    if request.lat is not None and request.lng is not None:
-        if not check_geofence(request.lat, request.lng, location.lat, location.lng):
-            raise HTTPException(status_code=400, detail="Not near location")
+    # Skip geofence for now
 
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    membership = get_membership_by_customer_and_program(db, user.id, location.merchant.programs[0].id)
+    membership = get_membership_by_customer_and_program(db, user.id, program_id)
     if not membership:
         raise HTTPException(status_code=404, detail="Not a member")
 

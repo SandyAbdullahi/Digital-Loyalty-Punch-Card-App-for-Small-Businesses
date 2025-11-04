@@ -7,12 +7,25 @@ interface User {
   role: string
 }
 
+interface Merchant {
+  id: string
+  display_name: string
+  address: string
+  phone?: string
+  email: string
+  logo_url?: string
+  description?: string
+}
+
 interface AuthContextType {
   user: User | null
+  merchant: Merchant | null
   token: string | null
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string) => Promise<void>
   logout: () => void
+  updateUser: (user: User) => void
+  updateMerchant: (merchant: Merchant) => void
   loading: boolean
 }
 
@@ -30,6 +43,7 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null)
+  const [merchant, setMerchant] = useState<Merchant | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -59,8 +73,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = (email: string, password: string) => authenticate(email, password)
   const register = (email: string, password: string) => authenticate(email, password)
 
+  const updateUser = (newUser: User) => {
+    setUser(newUser)
+    localStorage.setItem('user', JSON.stringify(newUser))
+  }
+
+  const updateMerchant = (newMerchant: Merchant) => {
+    setMerchant(newMerchant)
+  }
+
   const logout = () => {
     setUser(null)
+    setMerchant(null)
     setToken(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -68,7 +92,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, merchant, token, login, register, logout, updateUser, updateMerchant, loading }}>
       {children}
     </AuthContext.Provider>
   )

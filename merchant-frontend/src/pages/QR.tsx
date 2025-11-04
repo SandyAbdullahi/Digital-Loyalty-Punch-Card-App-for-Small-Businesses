@@ -6,15 +6,10 @@ import {
   Button,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from '@rudi/ui'
 import { Copy, Download, Loader2 } from 'lucide-react'
 
-type Location = {
+type Program = {
   id: string
   name: string
 }
@@ -22,8 +17,8 @@ type Location = {
 type QrType = 'join' | 'stamp' | 'redeem'
 
 const QR = () => {
-  const [locations, setLocations] = useState<Location[]>([])
-  const [selectedLocation, setSelectedLocation] = useState<string>('')
+  const [programs, setPrograms] = useState<Program[]>([])
+  const [selectedProgram, setSelectedProgram] = useState<string>('')
   const [qrType, setQrType] = useState<QrType>('join')
   const [amount, setAmount] = useState<string>('')
   const [qrData, setQrData] = useState<string>('')
@@ -33,18 +28,18 @@ const QR = () => {
   const downloadRef = useRef<HTMLAnchorElement | null>(null)
 
   useEffect(() => {
-    const fetchLocations = async () => {
+    const fetchPrograms = async () => {
       try {
-        const response = await axios.get('/api/v1/merchants/locations')
-        setLocations(response.data)
+        const response = await axios.get('/api/v1/programs/')
+        setPrograms(response.data)
         if (response.data.length) {
-          setSelectedLocation(response.data[0].id)
+          setSelectedProgram(response.data[0].id)
         }
       } catch (error) {
-        console.error('Failed to fetch locations', error)
+        console.error('Failed to fetch programs', error)
       }
     }
-    fetchLocations()
+    fetchPrograms()
   }, [])
 
   const showFeedback = (message: string) => {
@@ -53,11 +48,11 @@ const QR = () => {
   }
 
   const generateQR = async () => {
-    if (!selectedLocation) return
+    if (!selectedProgram) return
     setIsGenerating(true)
     try {
       let endpoint = '/api/v1/qr/issue-join'
-      const payload: Record<string, unknown> = { location_id: selectedLocation }
+      const payload: Record<string, unknown> = { program_id: selectedProgram }
 
       if (qrType === 'stamp') {
         endpoint = '/api/v1/qr/issue-stamp'
@@ -113,35 +108,34 @@ const QR = () => {
         </div>
 
         <div className="grid w-full gap-4 text-left md:grid-cols-2">
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Location</Label>
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="h-12 rounded-2xl border-border bg-background px-4">
-                <SelectValue placeholder="Select a location" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((location) => (
-                  <SelectItem key={location.id} value={location.id}>
-                    {location.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+           <div className="space-y-2">
+             <Label className="text-sm font-semibold text-foreground">Program</Label>
+             <select
+               value={selectedProgram}
+               onChange={(e) => setSelectedProgram(e.target.value)}
+               className="h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm"
+             >
+               <option value="" disabled>Select a program</option>
+               {programs.map((program) => (
+                 <option key={program.id} value={program.id}>
+                   {program.name}
+                 </option>
+               ))}
+             </select>
+           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">QR purpose</Label>
-            <Select value={qrType} onValueChange={(value: QrType) => setQrType(value)}>
-              <SelectTrigger className="h-12 rounded-2xl border-border bg-background px-4">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="join">Join program</SelectItem>
-                <SelectItem value="stamp">Award stamp</SelectItem>
-                <SelectItem value="redeem">Redeem reward</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+           <div className="space-y-2">
+             <Label className="text-sm font-semibold text-foreground">QR purpose</Label>
+             <select
+               value={qrType}
+               onChange={(e) => setQrType(e.target.value as QrType)}
+               className="h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm"
+             >
+               <option value="join">Join program</option>
+               <option value="stamp">Award stamp</option>
+               <option value="redeem">Redeem reward</option>
+             </select>
+           </div>
 
           {qrType === 'redeem' && (
             <div className="space-y-2">
@@ -163,7 +157,7 @@ const QR = () => {
         <Button
           className="btn-primary mt-2 h-11 px-6"
           onClick={generateQR}
-          disabled={!selectedLocation || (qrType === 'redeem' && !amount) || isGenerating}
+          disabled={!selectedProgram || (qrType === 'redeem' && !amount) || isGenerating}
         >
           {isGenerating ? (
             <>

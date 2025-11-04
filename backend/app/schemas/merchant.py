@@ -11,6 +11,10 @@ class MerchantBase(BaseModel):
     legal_name: Optional[str] = None
     logo_url: Optional[str] = None
     category: Optional[str] = None
+    address: Optional[str] = None
+    description: Optional[str] = None
+    website: Optional[str] = None
+    phone: Optional[str] = None
 
 
 class MerchantCreate(MerchantBase):

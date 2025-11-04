@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class LocationBase(BaseModel):
+    name: str
     lat: float
     lng: float
     address: str

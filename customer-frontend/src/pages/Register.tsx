@@ -31,7 +31,7 @@ const Register = () => {
     <div
       style={{
         minHeight: '100vh',
-        backgroundColor: '#FDF6EC',
+        backgroundColor: 'var(--rudi-background)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -59,7 +59,7 @@ const Register = () => {
             fontSize: 'clamp(3rem, 4.8vw, 3.6rem)',
             marginTop: '0',
             marginBottom: '1.5rem',
-            color: '#3B1F1E',
+            color: 'var(--rudi-text)',
           }}
         >
           rudi
@@ -78,7 +78,7 @@ const Register = () => {
             style={{
               fontSize: '1.5rem',
               fontWeight: 'bold',
-              color: '#3B1F1E',
+              color: 'var(--rudi-text)',
               textAlign: 'center',
               marginBottom: '1rem',
             }}
@@ -87,56 +87,56 @@ const Register = () => {
           </h3>
           <form onSubmit={handleSubmit} noValidate>
             <Stack gap="md">
-              <TextInput
-                placeholder="Email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                required
-                styles={{
-                  input: {
-                    height: '3rem',
-                    borderRadius: '0.75rem',
-                    backgroundColor: '#FFF9F0',
-                    borderColor: '#EADCC7',
-                    color: '#3B1F1E',
-                    fontWeight: 600,
-                    paddingLeft: '1rem',
-                    paddingRight: '1rem',
-                    transition: 'all 200ms ease',
-                    '&:focus': {
-                      outline: 'none',
-                      ring: '2px solid #009688',
-                    },
-                  },
-                }}
-              />
-              <TextInput
-                placeholder="Password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="new-password"
-                required
-                styles={{
-                  input: {
-                    height: '3rem',
-                    borderRadius: '0.75rem',
-                    backgroundColor: '#FFF9F0',
-                    borderColor: '#EADCC7',
-                    color: '#3B1F1E',
-                    fontWeight: 600,
-                    paddingLeft: '1rem',
-                    paddingRight: '1rem',
-                    transition: 'all 200ms ease',
-                    '&:focus': {
-                      outline: 'none',
-                      ring: '2px solid #009688',
-                    },
-                  },
-                }}
-              />
+               <TextInput
+                 placeholder="Email"
+                 type="email"
+                 value={email}
+                 onChange={(event) => setEmail(event.target.value)}
+                 autoComplete="email"
+                 required
+                 styles={{
+                   input: {
+                     height: '3rem',
+                     borderRadius: '0.75rem',
+                     backgroundColor: 'var(--rudi-input-bg)',
+                     borderColor: 'var(--rudi-input-border)',
+                     color: 'var(--rudi-text)',
+                     fontWeight: 600,
+                     paddingLeft: '1rem',
+                     paddingRight: '1rem',
+                     transition: 'all 200ms ease',
+                     '&:focus': {
+                       outline: 'none',
+                       ring: '2px solid var(--rudi-primary)',
+                     },
+                   },
+                 }}
+               />
+               <TextInput
+                 placeholder="Password"
+                 type="password"
+                 value={password}
+                 onChange={(event) => setPassword(event.target.value)}
+                 autoComplete="new-password"
+                 required
+                 styles={{
+                   input: {
+                     height: '3rem',
+                     borderRadius: '0.75rem',
+                     backgroundColor: 'var(--rudi-input-bg)',
+                     borderColor: 'var(--rudi-input-border)',
+                     color: 'var(--rudi-text)',
+                     fontWeight: 600,
+                     paddingLeft: '1rem',
+                     paddingRight: '1rem',
+                     transition: 'all 200ms ease',
+                     '&:focus': {
+                       outline: 'none',
+                       ring: '2px solid var(--rudi-primary)',
+                     },
+                   },
+                 }}
+               />
               {error && (
                 <Alert color="red" variant="light">
                   {error}
@@ -151,14 +151,14 @@ const Register = () => {
                   style={{
                     height: '3rem',
                     borderRadius: '0.75rem',
-                    backgroundColor: '#FF6F61',
+                    backgroundColor: 'var(--rudi-primary)',
                     transition: 'all 200ms ease',
                     '&:hover': {
-                      backgroundColor: '#E55A50',
+                      backgroundColor: '#00B386',
                     },
                     '&:focus': {
                       outline: 'none',
-                      boxShadow: '2px solid #009688',
+                      boxShadow: '2px solid var(--rudi-primary)',
                     },
                   }}
                 >
@@ -173,15 +173,15 @@ const Register = () => {
                   style={{
                     height: '3rem',
                     borderRadius: '0.75rem',
-                    backgroundColor: '#FFB300',
-                    color: '#3B1F1E',
+                    backgroundColor: 'var(--rudi-secondary)',
+                    color: 'white',
                     transition: 'all 200ms ease',
                     '&:hover': {
-                      backgroundColor: '#FFC633',
+                      backgroundColor: '#1976D2',
                     },
                     '&:focus': {
                       outline: 'none',
-                      boxShadow: '2px solid #009688',
+                      boxShadow: '2px solid var(--rudi-secondary)',
                     },
                   }}
                 >
@@ -196,7 +196,7 @@ const Register = () => {
             to="/how-it-works"
             style={{
               fontSize: '0.875rem',
-              color: '#3B1F1E',
+              color: 'var(--rudi-text)',
               textDecoration: 'none',
               transition: 'all 200ms ease',
               fontWeight: 'bold',
@@ -213,7 +213,7 @@ const Register = () => {
           >
             <span
               style={{
-                backgroundColor: '#FFB300',
+                backgroundColor: 'var(--rudi-accent)',
                 borderRadius: '50%',
                 width: '1rem',
                 height: '1rem',
@@ -222,7 +222,7 @@ const Register = () => {
                 justifyContent: 'center',
                 fontSize: '0.75rem',
                 fontWeight: 'bold',
-                color: '#3B1F1E',
+                color: 'white',
               }}
             >
               !

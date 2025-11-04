@@ -1,7 +1,10 @@
+import os
+import shutil
+from pathlib import Path
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Form, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -24,6 +27,83 @@ from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
 
 router = APIRouter()
+
+
+# Merchant profile
+@router.put("/profile")
+def update_merchant_profile(
+    name: str = Form(None),
+    description: str = Form(None),
+    website: str = Form(None),
+    address: str = Form(None),
+    phone: str = Form(None),
+    logo: UploadFile = File(None),
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner, update_merchant
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+
+    merchant = merchants[0]
+    update_data = {}
+    if name is not None:
+        update_data["display_name"] = name
+    if description is not None:
+        update_data["description"] = description
+    if website is not None:
+        update_data["website"] = website
+    if address is not None:
+        update_data["address"] = address
+    if phone is not None:
+        update_data["phone"] = phone
+
+    if logo and logo.filename:
+        # Create uploads directory if it doesn't exist
+        upload_dir = Path("uploads/logos")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate unique filename
+        file_extension = Path(logo.filename).suffix or ".png"
+        filename = f"{merchant.id}{file_extension}"
+        file_path = upload_dir / filename
+
+        # Save the file
+        try:
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(logo.file, buffer)
+            update_data["logo_url"] = f"/uploads/logos/{filename}"
+        except Exception as e:
+            print(f"Error saving logo: {e}")
+            # Continue without logo
+
+    if update_data:
+        merchant_update = MerchantUpdate(**update_data)
+        updated_merchant = update_merchant(db, merchant.id, merchant_update)
+        if not updated_merchant:
+            raise HTTPException(status_code=404, detail="Merchant not found")
+        return updated_merchant
+    return merchant
+
+# Merchant locations
+@router.get("/locations", response_model=List[Location])
+def get_merchant_locations(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        return []
+
+    merchant = merchants[0]
+    return get_locations_by_merchant(db, merchant.id)
 
 
 # Owner CRUD for merchants
