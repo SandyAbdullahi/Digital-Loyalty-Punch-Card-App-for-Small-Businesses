@@ -77,15 +77,15 @@ const NavBar = () => {
                >
                  {isDark ? <Sun size={20} /> : <Moon size={20} />}
                </Button>
-               <Button
-                 onClick={() => window.location.href = 'http://localhost:3002/register'}
-                 variant="filled"
-                 color="primary"
-                 size="sm"
-                 className="custom-nav-button"
-               >
-                 Get the App
-               </Button>
+                <Button
+                  onClick={() => navigate('/get-app')}
+                  variant="filled"
+                  color="primary"
+                  size="sm"
+                  className="custom-nav-button"
+                >
+                  Get the App
+                </Button>
                <Button
                  onClick={() => navigate('/login')}
                  variant="filled"
@@ -134,9 +134,9 @@ const NavBar = () => {
           <Button onClick={toggleTheme} variant="subtle" leftSection={isDark ? <Sun size={20} /> : <Moon size={20} />}>
             Toggle Theme
           </Button>
-          <Button onClick={() => { window.location.href = 'http://localhost:3002/register'; closeDrawer(); }} variant="filled" color="primary" className="custom-nav-button">
-            Get the App
-          </Button>
+           <Button onClick={() => { navigate('/get-app'); closeDrawer(); }} variant="filled" color="primary" className="custom-nav-button">
+             Get the App
+           </Button>
           <Button onClick={() => { navigate('/login'); closeDrawer(); }} variant="filled" color="secondary" className="custom-nav-button">
             Merchant Login
           </Button>

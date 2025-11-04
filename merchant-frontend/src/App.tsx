@@ -16,6 +16,7 @@ import Settings from './pages/Settings'
 import Layout from './components/Layout'
 import Locations from './pages/Locations'
 import GetStarted from './pages/GetStarted'
+import GetApp from './pages/GetApp'
 import DemoDashboard from './pages/DemoDashboard'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -43,6 +44,7 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/get-started" element={<GetStarted />} />
+        <Route path="/get-app" element={<GetApp />} />
         <Route path="/demo" element={<DemoDashboard />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
         <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
