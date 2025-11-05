@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import StampDots from '../components/StampDots';
@@ -205,7 +205,7 @@ const ProgramDetail = () => {
   }
 
   const rawThreshold =
-    membership.program?.earn_rule?.threshold ??
+    membership.program?.earn_rule?.stamps_needed ??
     membership.program?.redeem_rule?.reward_threshold ??
     membership.program?.redeem_rule?.max_value ??
     10;
