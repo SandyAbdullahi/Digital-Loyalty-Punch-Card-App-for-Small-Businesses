@@ -1,11 +1,15 @@
 from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
+from datetime import datetime, timedelta, timezone
+import secrets
 
 from ..models.customer_program_membership import CustomerProgramMembership
 from ..models.loyalty_program import LoyaltyProgram
 from ..models.ledger_entry import LedgerEntry, LedgerEntryType
+from ..models.redeem_code import RedeemCode
 from ..schemas.customer_program_membership import CustomerProgramMembershipCreate, CustomerProgramMembershipWithDetails
 from ..schemas.ledger_entry import LedgerEntryCreate
+from ..core.config import settings
 
 
 def get_membership(db: Session, membership_id: UUID) -> CustomerProgramMembership | None:
@@ -128,3 +132,75 @@ def adjust_balance(db: Session, membership_id: UUID, adjustment: int, notes: str
             notes=notes,
         ))
     return membership
+
+
+def redeem_stamps_with_code(db: Session, membership_id: UUID, amount: int, idempotency_key: str | None = None, device_fingerprint: str | None = None) -> dict | None:
+    """Redeem stamps and generate a redeem code valid for 10 minutes."""
+    membership = get_membership(db, membership_id)
+    if not membership or membership.current_balance < amount:
+        return None
+
+    # Check idempotency if provided
+    if idempotency_key:
+        existing_code = db.query(RedeemCode).filter(
+            RedeemCode.membership_id == membership_id,
+            RedeemCode.code.like(f"%{idempotency_key}%")  # Simple check, could be improved
+        ).first()
+        if existing_code:
+            # Return existing code if not expired
+            expires_at_existing = existing_code.expires_at
+            if expires_at_existing is not None and (expires_at_existing.tzinfo is None or expires_at_existing.tzinfo.utcoffset(expires_at_existing) is None):
+                expires_at_existing = expires_at_existing.replace(tzinfo=timezone.utc)
+            now_utc = datetime.now(timezone.utc)
+            if expires_at_existing and expires_at_existing > now_utc:
+                return {
+                    "code": existing_code.code,
+                    "expires_at": expires_at_existing.isoformat(),
+                    "amount": existing_code.amount,
+                    "status": "claimed",
+                }
+            else:
+                return None  # Expired, don't allow retry
+
+    # Generate JTI redeem code
+    jti = secrets.token_urlsafe(16)  # 22 chars
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=600)
+
+    # Atomic balance reduction
+    membership.current_balance -= amount
+    db.commit()
+    db.refresh(membership)
+
+    # Create redeem code
+    redeem_code = RedeemCode(
+        code=jti,
+        membership_id=membership_id,
+        program_id=membership.program_id,
+        customer_user_id=membership.customer_user_id,
+        merchant_id=membership.program.merchant_id,
+        amount=str(amount),  # Store as string for JSON
+        expires_at=expires_at,
+        is_used="false"
+    )
+    db.add(redeem_code)
+    db.commit()
+    db.refresh(redeem_code)
+
+    # Write to ledger
+    create_ledger_entry(db, LedgerEntryCreate(
+        membership_id=membership_id,
+        entry_type=LedgerEntryType.REDEEM,
+        amount=amount,
+        tx_ref=jti,
+        device_fingerprint=device_fingerprint,
+    ))
+
+    reward_description = getattr(membership.program, "reward_description", None)
+    return {
+        "code": jti,
+        "expires_at": expires_at.isoformat(),
+        "amount": str(amount),
+        "status": "claimed",
+        "reward_description": reward_description,
+        "stamps_redeemed": amount,
+    }

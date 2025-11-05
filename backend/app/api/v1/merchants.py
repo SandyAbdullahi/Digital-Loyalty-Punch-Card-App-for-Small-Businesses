@@ -1,15 +1,17 @@
 import os
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Form, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 
 from ...db.session import get_db
 from ...api.deps import get_current_user
+from ...services.auth import get_user_by_email
 from ...services.merchant import (
     create_merchant,
     get_merchant,
@@ -25,6 +27,7 @@ from ...services.merchant import (
 )
 from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
+from ...schemas.reward import Reward, RedeemCodeConfirm
 
 router = APIRouter()
 
@@ -228,6 +231,96 @@ def get_merchant_customers(
     return customers
 
 
+# Merchant rewards
+@router.get("/rewards", response_model=List[Reward])
+def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        return []
+
+    merchant = merchants[0]
+
+    from ...models.redeem_code import RedeemCode
+
+    redeem_codes = (
+        db.query(RedeemCode)
+        .options(
+            joinedload(RedeemCode.program),
+            joinedload(RedeemCode.customer),
+        )
+        .filter(
+            RedeemCode.merchant_id == merchant.id
+        )
+        .order_by(desc(RedeemCode.created_at))
+        .limit(100)
+        .all()
+    )
+
+    rewards: List[Reward] = []
+    now_utc = datetime.now(timezone.utc)
+
+    for code in redeem_codes:
+        program_obj = getattr(code, "program", None)
+        program_name = (
+            getattr(program_obj, "name", None)
+            or getattr(program_obj, "display_name", None)
+            or "Program"
+        ) if program_obj else "Program"
+
+        customer_obj = getattr(code, "customer", None)
+        if customer_obj:
+            raw_name = (getattr(customer_obj, "name", "") or "").strip()
+            if raw_name:
+                customer_label = raw_name
+            else:
+                email_value = (getattr(customer_obj, "email", "") or "").strip()
+                customer_label = email_value.split("@")[0] if email_value else "Customer"
+        else:
+            customer_label = "Customer"
+
+        expires_at = code.expires_at
+        if expires_at is not None and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        timestamp = code.created_at or datetime.utcnow()
+        if timestamp.tzinfo is None or timestamp.tzinfo.utcoffset(timestamp) is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+
+        is_used = str(code.is_used).lower() == "true"
+        if is_used:
+            status = "redeemed"
+            if code.used_at:
+                timestamp = code.used_at
+                if timestamp.tzinfo is None or timestamp.tzinfo.utcoffset(timestamp) is None:
+                    timestamp = timestamp.replace(tzinfo=timezone.utc)
+        elif expires_at and expires_at < now_utc:
+            status = "expired"
+            timestamp = expires_at
+        else:
+            status = "claimed"
+
+        amount_value = (code.amount or "").strip()
+        safe_amount = amount_value if amount_value else "1"
+
+        rewards.append(
+            Reward(
+                id=str(code.id),
+                program=program_name,
+                customer=customer_label,
+                date=timestamp.strftime('%B %d, %Y - %I:%M %p'),
+                status=status,
+                amount=safe_amount,
+                code=code.code if status == "claimed" else None,
+                expires_at=expires_at.isoformat() if expires_at else None,
+            )
+        )
+
+    return [reward.model_dump() for reward in rewards]
+
+
 @router.get("/{merchant_id}", response_model=Merchant)
 def read_merchant(
     merchant_id: UUID,
@@ -362,43 +455,65 @@ def delete_location_endpoint(
     raise HTTPException(status_code=404, detail="Location not found")
 
 
-# Merchant rewards
-@router.get("/rewards")
-def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+# Redeem code verification
+@router.post("/redeem-code")
+def redeem_code(
+    payload: RedeemCodeConfirm,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     merchants = get_merchants_by_owner(db, user.id)
     if not merchants:
-        return []
+        raise HTTPException(status_code=404, detail="Merchant not found")
 
     merchant = merchants[0]
-    program_ids = [p.id for p in merchant.programs]
 
-    from ...models.ledger_entry import LedgerEntry
+    from ...models.redeem_code import RedeemCode
     from ...models.user import User
 
-    redeem_entries = db.query(LedgerEntry).join(
-        CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
-    ).filter(
-        CustomerProgramMembership.program_id.in_(program_ids),
-        LedgerEntry.entry_type == 'redeem'
-    ).order_by(desc(LedgerEntry.created_at)).all()
+    code_value = payload.code.strip()
+    if not code_value:
+        raise HTTPException(status_code=400, detail="Redeem code is required")
 
-    rewards = []
-    for entry in redeem_entries:
-        membership = db.query(CustomerProgramMembership).filter(CustomerProgramMembership.id == entry.membership_id).first()
-        customer = db.query(User).filter(User.id == membership.customer_user_id).first() if membership else None
-        program = next((p for p in merchant.programs if p.id == membership.program_id), None) if membership else None
-        rewards.append({
-            "id": str(entry.id),
-            "program": program.name if program else 'Program',
-            "customer": customer.name or customer.email.split('@')[0] if customer else 'Customer',
-            "date": entry.created_at.strftime('%B %d, %Y - %I:%M %p'),
-            "status": 'redeemed'
-        })
+    redeem_code = db.query(RedeemCode).filter(
+        RedeemCode.code == code_value,
+        RedeemCode.merchant_id == merchant.id,
+        RedeemCode.is_used == "false"
+    ).first()
 
-    return rewards
+    if not redeem_code:
+        raise HTTPException(status_code=404, detail="Invalid or already used code")
+
+    expires_at = redeem_code.expires_at
+    now = datetime.now(timezone.utc)
+    if expires_at:
+        expires_at_check = expires_at
+        if expires_at_check.tzinfo is None or expires_at_check.tzinfo.utcoffset(expires_at_check) is None:
+            expires_at_check = expires_at_check.replace(tzinfo=timezone.utc)
+        if expires_at_check < now:
+            raise HTTPException(status_code=400, detail="Code has expired")
+    else:
+        raise HTTPException(status_code=400, detail="Code has expired")
+
+    # Mark as used
+    redeem_code.is_used = "true"
+    redeem_code.used_at = now
+    db.commit()
+
+    customer = db.query(User).filter(User.id == redeem_code.customer_user_id).first()
+    program = next((p for p in merchant.programs if p.id == redeem_code.program_id), None)
+
+    return {
+        "id": str(redeem_code.id),
+        "program": program.name if program else 'Program',
+        "customer": customer.name or customer.email.split('@')[0] if customer else 'Customer',
+        "amount": redeem_code.amount,
+        "status": "redeemed"
+    }
+
 
 # Manual stamp actions
 @router.post("/customers/{customer_id}/add-stamp")

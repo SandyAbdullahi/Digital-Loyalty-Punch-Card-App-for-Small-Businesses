@@ -1,8 +1,10 @@
+from datetime import datetime, timezone
 from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy import desc
+from sqlalchemy.orm import Session, joinedload
 
 from ...db.session import get_db
 from ...api.deps import get_current_user
@@ -15,6 +17,7 @@ from ...services.loyalty_program import (
     get_public_loyalty_programs,
 )
 from ...schemas.loyalty_program import LoyaltyProgram, LoyaltyProgramCreate, LoyaltyProgramUpdate
+from ...schemas.reward import RedeemRequest, CustomerRedemption
 
 router = APIRouter()
 
@@ -127,3 +130,131 @@ def delete_program(
 @router.get("/public", response_model=List[LoyaltyProgram])
 def read_public_programs(db: Session = Depends(get_db)):
     return get_public_loyalty_programs(db)
+
+
+# Customer redeem
+@router.post("/{program_id}/redeem")
+def redeem_stamps(
+    program_id: UUID,
+    request: RedeemRequest,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    from ...services.membership import get_membership_by_customer_and_program, redeem_stamps_with_code
+
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    membership = get_membership_by_customer_and_program(db, user.id, program_id)
+    if not membership:
+        raise HTTPException(status_code=404, detail="Membership not found")
+
+    # Get redeem rule to check max value
+    program = membership.program
+    if program.redeem_rule:
+        import json
+        try:
+            redeem_rule = json.loads(program.redeem_rule) if isinstance(program.redeem_rule, str) else program.redeem_rule
+            max_value = redeem_rule.get("max_value", 10)  # Default 10
+            if request.amount > max_value:
+                raise HTTPException(status_code=400, detail=f"Cannot redeem more than {max_value} stamps at once")
+        except (json.JSONDecodeError, TypeError):
+            pass  # Use default
+
+    result = redeem_stamps_with_code(db, membership.id, request.amount, request.idempotency_key)
+    if not result:
+        raise HTTPException(status_code=400, detail="Insufficient balance or invalid request")
+
+    return result
+
+
+@router.get("/{program_id}/redemptions", response_model=List[CustomerRedemption])
+def get_redemptions_for_customer(
+    program_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    from ...services.membership import get_membership_by_customer_and_program
+    from ...models.redeem_code import RedeemCode
+
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    membership = get_membership_by_customer_and_program(db, user.id, program_id)
+    if not membership:
+        raise HTTPException(status_code=404, detail="Membership not found")
+
+    codes = (
+        db.query(RedeemCode)
+        .options(joinedload(RedeemCode.program).joinedload(LoyaltyProgram.merchant))
+        .filter(RedeemCode.membership_id == membership.id)
+        .order_by(desc(RedeemCode.created_at))
+        .limit(30)
+        .all()
+    )
+
+    now_utc = datetime.now(timezone.utc)
+    redemptions: List[CustomerRedemption] = []
+
+    for code in codes:
+        created_at = code.created_at or datetime.utcnow()
+        if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+
+        expires_at = code.expires_at
+        if expires_at is not None and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        used_at = code.used_at
+        if used_at is not None and (used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None):
+            used_at = used_at.replace(tzinfo=timezone.utc)
+
+        is_used = str(code.is_used).lower() == "true"
+        if is_used:
+            status = "redeemed"
+        elif expires_at and expires_at < now_utc:
+            status = "expired"
+        else:
+            status = "claimed"
+
+        program_obj = getattr(code, "program", None)
+        merchant_obj = getattr(program_obj, "merchant", None) if program_obj else None
+        program_name = (
+            getattr(program_obj, "name", None)
+            or getattr(program_obj, "display_name", None)
+            or "Programme"
+        )
+        merchant_name = (
+            getattr(merchant_obj, "display_name", None)
+            or getattr(merchant_obj, "legal_name", None)
+            or "Merchant"
+        )
+        reward_description = getattr(program_obj, "reward_description", None) if program_obj else None
+
+        amount_raw = (code.amount or "0").strip() or "0"
+        try:
+            stamps_redeemed = int(amount_raw)
+        except ValueError:
+            stamps_redeemed = None
+
+        redemptions.append(
+            CustomerRedemption(
+                id=str(code.id),
+                code=code.code,
+                status=status,
+                amount=amount_raw,
+                created_at=created_at.isoformat(),
+                expires_at=expires_at.isoformat() if expires_at else None,
+                used_at=used_at.isoformat() if used_at else None,
+                program_name=program_name,
+                merchant_name=merchant_name,
+                reward_description=reward_description,
+                stamps_redeemed=stamps_redeemed,
+            )
+        )
+
+    return redemptions
