@@ -80,7 +80,7 @@ def issue_join_qr(request: IssueJoinRequest, db: Session = Depends(get_db), curr
     payload = {
         "type": "join",
         "program_id": str(request.program_id),
-        "exp": (datetime.utcnow() + timedelta(seconds=300)).timestamp(),
+        "exp": (datetime.utcnow() + timedelta(seconds=60)).timestamp(),
         "nonce": str(uuid.uuid4()),  # Simple nonce
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
@@ -100,7 +100,7 @@ def issue_stamp_qr(request: IssueStampRequest, db: Session = Depends(get_db), cu
         "type": "stamp",
         "program_id": str(request.program_id),
         "purchase_total": request.purchase_total,
-        "exp": (datetime.utcnow() + timedelta(seconds=300)).timestamp(),
+        "exp": (datetime.utcnow() + timedelta(seconds=60)).timestamp(),
         "nonce": str(uuid.uuid4()),
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
@@ -113,12 +113,15 @@ def _scan_join_logic(request: ScanRequest, db: Session, user):
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     nonce = payload["nonce"]
-    # if redis_client.exists(nonce):
-    #     raise HTTPException(status_code=400, detail="Token already used")
+    try:
+        if redis_client.exists(nonce):
+            raise HTTPException(status_code=400, detail="QR code has already been used. Please request a new one.")
+    except Exception:
+        pass  # Skip nonce check if Redis unavailable
 
     # Check expiration
     if datetime.utcnow().timestamp() > payload["exp"]:
-        raise HTTPException(status_code=400, detail="Token expired")
+        raise HTTPException(status_code=400, detail="QR code has expired. Please request a new one from the merchant.")
 
     program_id_str = payload.get("program_id") or payload.get("location_id")
     if not program_id_str:
@@ -141,7 +144,10 @@ def _scan_join_logic(request: ScanRequest, db: Session, user):
         ))
 
     # Mark nonce as used
-    # redis_client.setex(nonce, 300, "used")
+    try:
+        redis_client.setex(nonce, 60, "used")
+    except Exception:
+        pass  # Skip if Redis unavailable
 
     return {"message": "Joined program", "membership_id": membership.id}
 
@@ -160,11 +166,14 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     nonce = payload["nonce"]
-    # if redis_client.exists(nonce):
-    #     raise HTTPException(status_code=400, detail="Token already used")
+    try:
+        if redis_client.exists(nonce):
+            raise HTTPException(status_code=400, detail="QR code has already been used. Please request a new one.")
+    except Exception:
+        pass  # Skip nonce check if Redis unavailable
 
     if datetime.utcnow().timestamp() > payload["exp"]:
-        raise HTTPException(status_code=400, detail="Token expired")
+        raise HTTPException(status_code=400, detail="QR code has expired. Please request a new one from the merchant.")
 
     program_id_str = payload.get("program_id") or payload.get("location_id")
     if not program_id_str:
@@ -178,13 +187,16 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
 
     membership = get_membership_by_customer_and_program(db, user.id, program_id)
     if not membership:
-        raise HTTPException(status_code=404, detail="Not a member")
+        raise HTTPException(status_code=400, detail="You are not a member of this program. Please join first.")
 
     # Earn stamps
     updated_membership = earn_stamps(db, membership.id, 1, tx_ref=nonce, device_fingerprint=request.device_fingerprint)
 
     # Mark nonce as used
-    # redis_client.setex(nonce, 300, "used")
+    try:
+        redis_client.setex(nonce, 60, "used")
+    except Exception:
+        pass  # Skip if Redis unavailable
 
     return {"message": "Stamp earned", "new_balance": updated_membership.current_balance if updated_membership else membership.current_balance + 1}
 
@@ -210,7 +222,7 @@ def issue_redeem_qr(request: IssueRedeemRequest, db: Session = Depends(get_db), 
         "type": "redeem",
         "program_id": str(request.program_id),
         "amount": request.amount,
-        "exp": (datetime.utcnow() + timedelta(seconds=300)).timestamp(),
+        "exp": (datetime.utcnow() + timedelta(seconds=60)).timestamp(),
         "nonce": str(uuid.uuid4()),
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
@@ -223,11 +235,14 @@ def _scan_redeem_logic(request: ScanRequest, db: Session, user):
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     nonce = payload["nonce"]
-    # if redis_client.exists(nonce):
-    #     raise HTTPException(status_code=400, detail="Token already used")
+    try:
+        if redis_client.exists(nonce):
+            raise HTTPException(status_code=400, detail="QR code has already been used. Please request a new one.")
+    except Exception:
+        pass  # Skip nonce check if Redis unavailable
 
     if datetime.utcnow().timestamp() > payload["exp"]:
-        raise HTTPException(status_code=400, detail="Token expired")
+        raise HTTPException(status_code=400, detail="QR code has expired. Please request a new one from the merchant.")
 
     program_id_str = payload.get("program_id") or payload.get("location_id")
     if not program_id_str:
@@ -241,7 +256,7 @@ def _scan_redeem_logic(request: ScanRequest, db: Session, user):
 
     membership = get_membership_by_customer_and_program(db, user.id, program_id)
     if not membership:
-        raise HTTPException(status_code=404, detail="Not a member")
+        raise HTTPException(status_code=400, detail="You are not a member of this program. Please join first.")
 
     amount = payload["amount"]
     if membership.current_balance < amount:
@@ -254,7 +269,10 @@ def _scan_redeem_logic(request: ScanRequest, db: Session, user):
         raise HTTPException(status_code=400, detail="Redeem failed")
 
     # Mark nonce as used
-    # redis_client.setex(nonce, 300, "used")
+    try:
+        redis_client.setex(nonce, 60, "used")
+    except Exception:
+        pass  # Skip if Redis unavailable
 
     return {"message": "Stamps redeemed", "new_balance": updated_membership.current_balance}
 
