@@ -45,7 +45,7 @@ const ProgramCard = ({
     <button
       type="button"
       onClick={onAction}
-      className="h-8 px-3 rounded-lg bg-[var(--rudi-secondary)] text-[var(--rudi-text)] text-sm font-semibold hover:bg-[var(--rudi-secondary)]/90 transition-colors whitespace-nowrap"
+      className="h-8 px-3 rounded-lg bg-[var(--rudi-secondary)] text-white text-sm font-semibold hover:bg-[var(--rudi-secondary)]/90 transition-colors whitespace-nowrap"
     >
       {actionLabel}
     </button>

@@ -408,7 +408,9 @@ def add_manual_stamp(
     program_id: str = Form(...),
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
- ):
+  ):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
     from ...services.membership import earn_stamps
     from ...models.customer_program_membership import CustomerProgramMembership
 
@@ -449,8 +451,9 @@ def revoke_manual_stamp(
     program_id: str = Form(...),
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
- ):
+  ):
     from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
     from ...services.membership import adjust_balance
     from ...models.customer_program_membership import CustomerProgramMembership
 
@@ -483,6 +486,37 @@ def revoke_manual_stamp(
     if result:
         return {"message": "Stamp revoked successfully"}
     raise HTTPException(status_code=400, detail="Failed to revoke stamp")
+
+
+@router.delete("/customers/{customer_id}")
+def delete_customer(
+    customer_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+    from ...models.customer_program_membership import CustomerProgramMembership
+
+    # Verify merchant
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+    merchant = merchants[0]
+    program_ids = [p.id for p in merchant.programs]
+
+    # Delete all memberships for this customer in the merchant's programs
+    memberships = db.query(CustomerProgramMembership).filter(
+        CustomerProgramMembership.customer_user_id == customer_id,
+        CustomerProgramMembership.program_id.in_(program_ids)
+    ).all()
+    for membership in memberships:
+        db.delete(membership)
+    db.commit()
+    return {"message": "Customer removed from all programs"}
 
 
 # Public search

@@ -89,7 +89,7 @@ const Dashboard = () => {
   };
 
   const actionLabelFor = (membership: Membership) =>
-    membership.current_balance >= thresholdFor(membership) ? 'View' : 'Scan QR';
+    membership.current_balance >= thresholdFor(membership) ? 'View' : 'Add stamp';
 
   const actionHandlerFor = (membership: Membership) =>
     membership.current_balance >= thresholdFor(membership)
@@ -110,15 +110,22 @@ const Dashboard = () => {
             className="h-10 w-10 rounded-full object-cover"
           />
         </div>
-          <div className="mx-4 mb-3">
-            <input
-              type="search"
-              placeholder="Search programs..."
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="w-full h-11 rounded-full bg-white/80 backdrop-blur px-4 py-2 mb-2 shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[var(--rudi-primary)] focus:border-transparent"
-            />
-          </div>
+           <div className="mx-4 mb-3">
+             <input
+               type="search"
+               placeholder="Search programs..."
+               value={query}
+               onChange={(event) => setQuery(event.target.value)}
+               className="w-full h-11 rounded-full bg-white/80 backdrop-blur px-4 py-2 mb-2 shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[var(--rudi-primary)] focus:border-transparent"
+             />
+             <button
+               type="button"
+               onClick={() => navigate('/scan')}
+               className="w-full h-12 rounded-xl bg-[var(--rudi-primary)] text-white font-semibold hover:bg-[var(--rudi-primary)]/90 transition-colors"
+             >
+               Join program
+             </button>
+           </div>
         </header>
 
         <section className="overflow-y-auto">

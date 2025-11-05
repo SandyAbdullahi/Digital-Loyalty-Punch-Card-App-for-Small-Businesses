@@ -12,12 +12,13 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "boring-avatars": "^1.0.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mantine/core": "^8.3.6",
     "@mantine/hooks": "^8.3.6",
+    "@untitled-ui/icons-react": "^0.1.4",
     "axios": "^1.6.2",
+    "boring-avatars": "^1.0.1",
     "lucide-react": "^0.344.0",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.3",

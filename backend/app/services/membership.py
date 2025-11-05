@@ -78,17 +78,13 @@ def earn_stamps(db: Session, membership_id: UUID, amount: int, tx_ref: str | Non
         db.commit()
         db.refresh(membership)
         # Write to ledger
-        try:
-            create_ledger_entry(db, LedgerEntryCreate(
-                membership_id=membership_id,
-                entry_type=LedgerEntryType.EARN,
-                amount=amount,
-                tx_ref=tx_ref,
-                device_fingerprint=device_fingerprint,
-            ))
-        except Exception as e:
-            print(f"Failed to create ledger entry: {e}")
-            # Continue without ledger
+        create_ledger_entry(db, LedgerEntryCreate(
+            membership_id=membership_id,
+            entry_type=LedgerEntryType.EARN,
+            amount=amount,
+            tx_ref=tx_ref,
+            device_fingerprint=device_fingerprint,
+        ))
     return membership
 
 
@@ -99,17 +95,13 @@ def redeem_stamps(db: Session, membership_id: UUID, amount: int, tx_ref: str | N
         db.commit()
         db.refresh(membership)
         # Write to ledger
-        try:
-            create_ledger_entry(db, LedgerEntryCreate(
-                membership_id=membership_id,
-                entry_type=LedgerEntryType.REDEEM,
-                amount=amount,
-                tx_ref=tx_ref,
-                device_fingerprint=device_fingerprint,
-            ))
-        except Exception as e:
-            print(f"Failed to create ledger entry: {e}")
-            # Continue without ledger
+        create_ledger_entry(db, LedgerEntryCreate(
+            membership_id=membership_id,
+            entry_type=LedgerEntryType.REDEEM,
+            amount=amount,
+            tx_ref=tx_ref,
+            device_fingerprint=device_fingerprint,
+        ))
     return membership
 
 
@@ -120,15 +112,11 @@ def adjust_balance(db: Session, membership_id: UUID, adjustment: int, notes: str
         db.commit()
         db.refresh(membership)
         # Write to ledger
-        try:
-            create_ledger_entry(db, LedgerEntryCreate(
-                membership_id=membership_id,
-                entry_type=LedgerEntryType.ADJUST,
-                amount=adjustment,
-                device_fingerprint=device_fingerprint,
-                notes=notes,
-            ))
-        except Exception as e:
-            print(f"Failed to create ledger entry: {e}")
-            # Continue without ledger
+        create_ledger_entry(db, LedgerEntryCreate(
+            membership_id=membership_id,
+            entry_type=LedgerEntryType.ADJUST,
+            amount=adjustment,
+            device_fingerprint=device_fingerprint,
+            notes=notes,
+        ))
     return membership

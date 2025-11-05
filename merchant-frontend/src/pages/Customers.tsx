@@ -28,6 +28,7 @@ const Customers = () => {
   const [customers, setCustomers] = useState<CustomerRecord[]>([])
   const [query, setQuery] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'info'; message: string } | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -116,6 +117,20 @@ const Customers = () => {
       }
     } catch (error) {
       showToast('info', 'Action failed - please try again.')
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!selectedCustomer) return
+    try {
+      await axios.delete(`/api/v1/merchants/customers/${selectedCustomer.id}`)
+      showToast('success', 'Customer removed successfully.')
+      setSelectedCustomer(null)
+      setConfirmDelete(false)
+      // Refetch customers
+      fetchCustomers()
+    } catch (error) {
+      showToast('info', 'Failed to delete customer.')
     }
   }
 
@@ -234,23 +249,38 @@ const Customers = () => {
             <div className="text-xs text-muted-foreground">
               Nice work - another happy customer!
             </div>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                className="rounded-2xl bg-red-500 text-white px-4 py-2 text-sm font-semibold hover:bg-red-600"
-                onClick={() => handleManualAction('revoke')}
-              >
-                Revoke stamp
-              </Button>
-              <Button type="button" className="btn-primary" onClick={() => handleManualAction('add')}>
-                Add manual stamp
-              </Button>
-            </div>
+             <div className="flex gap-3">
+               <Button
+                 type="button"
+                 className="rounded-2xl bg-red-700 text-white px-4 py-2 text-sm font-semibold hover:bg-red-800"
+                 onClick={() => setConfirmDelete(true)}
+               >
+                 Delete Customer
+               </Button>
+               <Button
+                 type="button"
+                 className="rounded-2xl bg-red-500 text-white px-4 py-2 text-sm font-semibold hover:bg-red-600"
+                 onClick={() => handleManualAction('revoke')}
+               >
+                 Revoke stamp
+               </Button>
+               <Button type="button" className="btn-primary" onClick={() => handleManualAction('add')}>
+                 Add manual stamp
+               </Button>
+             </div>
           </div>
         </div>
-      </Modal>
+       </Modal>
 
-      {toast && (
+       <Modal opened={confirmDelete} onClose={() => setConfirmDelete(false)} title="Confirm Deletion" size="sm">
+         <p>Are you sure you want to remove {selectedCustomer?.name} from all your programs? This action cannot be undone.</p>
+         <div className="flex gap-3 mt-4">
+           <Button onClick={() => setConfirmDelete(false)}>Cancel</Button>
+           <Button color="red" onClick={handleDelete}>Delete</Button>
+         </div>
+       </Modal>
+
+       {toast && (
         <div
           className={`fixed bottom-8 right-6 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg ${
             toast.type === 'success' ? 'bg-primary' : 'bg-secondary'

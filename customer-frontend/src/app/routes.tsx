@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 import HowItWorks from '../pages/HowItWorks';
+import Terms from '../pages/Terms';
 import Dashboard from '../pages/Dashboard';
 import ProgramDetail from '../pages/ProgramDetail';
 import Scan from '../pages/Scan';
@@ -37,6 +38,7 @@ export const AppRoutes = () => (
       <Route path="/register" element={<Register />} />
     </Route>
     <Route path="/how-it-works" element={<HowItWorks />} />
+    <Route path="/terms" element={<Terms />} />
     <Route element={<ProtectedRoute />}>
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/program/:id" element={<ProgramDetail />} />

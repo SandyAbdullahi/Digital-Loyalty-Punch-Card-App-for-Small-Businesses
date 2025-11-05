@@ -136,13 +136,13 @@ const ProgramDetail = () => {
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              className="rudi-btn rudi-btn--primary w-full"
-              onClick={() => navigate('/scan')}
-            >
-              Scan QR
-            </button>
+             <button
+               type="button"
+               className="rudi-btn rudi-btn--primary w-full"
+               onClick={() => navigate('/scan')}
+             >
+               Add stamp
+             </button>
             <button
               type="button"
               className="rudi-btn w-full border border-rudi-teal text-rudi-teal bg-transparent disabled:opacity-60"
