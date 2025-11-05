@@ -150,23 +150,25 @@ const ProgramDetail = () => {
                <StampDots threshold={threshold} earned={membership.current_balance} size="lg" icon={membership.program?.stamp_icon} />
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+           <div className="grid gap-3 sm:grid-cols-2">
+             {!canRedeem && (
+               <button
+                 type="button"
+                 className="rudi-btn rudi-btn--primary w-full"
+                 onClick={() => navigate('/scan')}
+               >
+                 Add stamp
+               </button>
+             )}
              <button
                type="button"
-               className="rudi-btn rudi-btn--primary w-full"
-               onClick={() => navigate('/scan')}
+               className="rudi-btn w-full border border-rudi-teal text-rudi-teal bg-transparent disabled:opacity-60"
+               onClick={handleRedeem}
+               disabled={!canRedeem || redeeming}
              >
-               Add stamp
+               {canRedeem ? (redeeming ? 'Checking…' : 'Redeem reward') : 'Keep earning'}
              </button>
-            <button
-              type="button"
-              className="rudi-btn w-full border border-rudi-teal text-rudi-teal bg-transparent disabled:opacity-60"
-              onClick={handleRedeem}
-              disabled={!canRedeem || redeeming}
-            >
-              {canRedeem ? (redeeming ? 'Checking…' : 'Redeem reward') : 'Keep earning'}
-            </button>
-          </div>
+           </div>
           {canRedeem && (
             <p className="text-sm text-[var(--rudi-text)]/80">
               {membership.program?.reward_description ?? 'Show this screen to staff to confirm your reward.'}
