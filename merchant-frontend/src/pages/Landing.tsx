@@ -274,15 +274,11 @@ const Landing = () => {
     <div className="min-h-screen bg-[#FDF6EC] font-body">
       <NavBar />
 
-       <section className="relative -mt-16 flex h-screen items-center overflow-hidden bg-gradient-to-b from-[#FDF6EC] via-white to-white">
-         <div className="absolute inset-x-0 -top-48 h-96 rounded-full bg-[radial-gradient(circle_at_top,rgba(0,150,136,0.28),transparent)]" />
-         <div className="absolute -right-24 top-16 h-72 w-72 rounded-full bg-rudi-yellow/40 blur-3xl" />
-         <div className="absolute -left-16 bottom-0 h-80 w-72 rounded-full bg-rudi-teal/30 blur-3xl" />
-
-         <div className="relative w-full">
+       <section className="relative -mt-16 flex h-screen items-center overflow-hidden">
+         <div className="relative w-full pl-28 sm:pl-32 lg:pl-36 pr-12 sm:pr-16 lg:pr-20">
           <div className="grid items-center gap-16 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-            <AnimatedSection>
-              <div className="max-w-xl space-y-6">
+             <AnimatedSection>
+               <div className="max-w-xl space-y-6 pt-12">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-rudi-maroon shadow-sm backdrop-blur">
                   <span className="h-1.5 w-1.5 rounded-full bg-rudi-teal" />
                   Loyalty OS for emerging brands
@@ -295,12 +291,12 @@ const Landing = () => {
                   offers, and surface real-time insight without a single engineering ticket.
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <button
-                    onClick={() => navigate('/register')}
-                    className="flex h-12 items-center justify-center rounded-2xl bg-rudi-teal px-6 font-semibold text-white shadow-lg shadow-rudi-teal/20 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rudi-teal"
-                  >
-                    Launch free pilot
-                  </button>
+                   <button
+                     onClick={() => navigate('/demo')}
+                     className="flex h-12 items-center justify-center rounded-2xl bg-rudi-teal px-6 font-semibold text-white shadow-lg shadow-rudi-teal/20 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rudi-teal"
+                   >
+                     Launch free pilot
+                   </button>
                   <button
                     onClick={() => setDemoModalOpen(true)}
                     className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-rudi-maroon/20 bg-white/80 px-6 font-semibold text-rudi-maroon transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rudi-maroon/40"
@@ -450,8 +446,7 @@ const Landing = () => {
       </section>
 
       <section className="relative overflow-hidden py-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-rudi-maroon via-[#3B1F1E] to-black" />
-        <div className="absolute inset-x-0 -top-24 h-72 bg-[radial-gradient(circle_at_top,rgba(255,179,0,0.28),transparent)]" />
+        <div className="absolute inset-0 bg-rudi-maroon" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <AnimatedSection>
             <div className="max-w-2xl">
@@ -461,10 +456,9 @@ const Landing = () => {
               <h2 className="mt-4 font-heading text-3xl text-white sm:text-4xl">
                 Manage loyalty, rewards, and analytics from one powerful hub.
               </h2>
-              <p className="mt-4 text-base text-white/70">
-                Rudi combines automations, messaging, and business intelligence into a clear, actionable canvas your
-                whole team can run.
-              </p>
+               <p className="mt-4 text-base text-white/70">
+                 Rudi turns loyalty, messaging, and insights into a smart system that helps every business keep customers coming back.
+               </p>
             </div>
           </AnimatedSection>
           <div className="mt-12 grid gap-8 lg:grid-cols-3">

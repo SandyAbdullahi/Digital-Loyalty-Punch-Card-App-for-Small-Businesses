@@ -9,6 +9,7 @@ from jose import jws
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from pydantic import BaseModel as PydanticBaseModel
+from sqlalchemy import text
 
 from ...core.config import settings
 from ...core.limiter import limiter
@@ -68,6 +69,44 @@ def check_geofence(user_lat: float, user_lng: float, location_lat: float, locati
     return distance <= max_distance_m
 
 
+def _claim_nonce_or_raise(db: Session, raw_nonce: str):
+    try:
+        nonce_uuid = uuid.UUID(raw_nonce)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid QR code nonce")
+
+    try:
+        db.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS qr_token_usage (
+                    nonce uuid PRIMARY KEY,
+                    used_at timestamptz DEFAULT now()
+                )
+                """
+            )
+        )
+        result = db.execute(
+            text(
+                """
+                INSERT INTO qr_token_usage (nonce)
+                VALUES (:nonce)
+                ON CONFLICT DO NOTHING
+                """
+            ),
+            {"nonce": str(nonce_uuid)},
+        )
+        if result.rowcount == 0:
+            raise HTTPException(status_code=400, detail="QR code has already been used. Please request a new one.")
+        db.commit()
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise
+
+
 @router.post("/issue-join", response_model=QRToken)
 def issue_join_qr(request: IssueJoinRequest, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     user = get_user_by_email(db, current_user)
@@ -113,6 +152,9 @@ def _scan_join_logic(request: ScanRequest, db: Session, user):
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     nonce = payload["nonce"]
+
+    _claim_nonce_or_raise(db, nonce)
+
     try:
         if redis_client.exists(nonce):
             raise HTTPException(status_code=400, detail="QR code has already been used. Please request a new one.")
@@ -166,6 +208,9 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     nonce = payload["nonce"]
+
+    _claim_nonce_or_raise(db, nonce)
+
     try:
         if redis_client.exists(nonce):
             raise HTTPException(status_code=400, detail="QR code has already been used. Please request a new one.")
@@ -235,6 +280,9 @@ def _scan_redeem_logic(request: ScanRequest, db: Session, user):
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     nonce = payload["nonce"]
+
+    _claim_nonce_or_raise(db, nonce)
+
     try:
         if redis_client.exists(nonce):
             raise HTTPException(status_code=400, detail="QR code has already been used. Please request a new one.")

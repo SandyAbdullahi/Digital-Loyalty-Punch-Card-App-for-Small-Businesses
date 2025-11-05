@@ -8,7 +8,7 @@ from ...db.session import get_db
 from ...api.deps import get_current_user
 from ...services.auth import get_user_by_email
 from ...services.merchant import get_merchants_by_owner
-from ...models.ledger_entry import LedgerEntry
+from ...models.ledger_entry import LedgerEntry, LedgerEntryType
 from ...models.customer_program_membership import CustomerProgramMembership
 from ...models.user import User
 
@@ -38,19 +38,32 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
         membership = db.query(CustomerProgramMembership).filter(CustomerProgramMembership.id == entry.membership_id).first()
         customer = db.query(User).filter(User.id == membership.customer_user_id).first() if membership else None
         program = next((p for p in merchant.programs if p.id == membership.program_id), None) if membership else None
-        if entry.entry_type == 'earn':
-            message = f"{program.name if program else 'Program'} added a stamp for {customer.name if customer and customer.name else customer.email if customer else 'Customer'}."
+
+        customer_name = (customer.name or "").strip() if customer and customer.name else None
+        customer_email = customer.email if customer else None
+        display_name = customer_name or customer_email or "Customer"
+        program_name = program.name if program else "Programme"
+
+        if entry.entry_type in (LedgerEntryType.EARN, LedgerEntryType.EARN.value):
+            stamp_phrase = "stamp" if entry.amount == 1 else "stamps"
+            message = f"{program_name} added {entry.amount} {stamp_phrase} for {display_name}."
             type_ = 'stamp'
-        elif entry.entry_type == 'redeem':
-            message = f"{entry.amount} stamps redeemed by {customer.name if customer and customer.name else customer.email if customer else 'Customer'}."
+        elif entry.entry_type in (LedgerEntryType.REDEEM, LedgerEntryType.REDEEM.value):
+            stamp_phrase = "stamp" if entry.amount == 1 else "stamps"
+            message = f"{entry.amount} {stamp_phrase} redeemed by {display_name}."
             type_ = 'reward'
         else:
             continue
+
         items.append({
             "id": str(entry.id),
             "type": type_,
             "message": message,
-            "timestamp": entry.created_at.isoformat()
+            "timestamp": entry.created_at.isoformat(),
+            "customer_name": customer_name,
+            "customer_email": customer_email,
+            "program_name": program.name if program else None,
+            "amount": entry.amount,
         })
 
     # Unique customers
@@ -63,7 +76,7 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
         CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
     ).filter(
         CustomerProgramMembership.program_id.in_(program_ids),
-        LedgerEntry.entry_type == 'redeem'
+        LedgerEntry.entry_type == LedgerEntryType.REDEEM.value
     ).scalar() or 0
 
     # Today scans
@@ -72,7 +85,7 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
         CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
     ).filter(
         CustomerProgramMembership.program_id.in_(program_ids),
-        LedgerEntry.entry_type == 'earn',
+        LedgerEntry.entry_type == LedgerEntryType.EARN.value,
         func.date(LedgerEntry.created_at) == today
     ).scalar() or 0
 
@@ -96,15 +109,17 @@ def get_scans_last_7_days(db: Session = Depends(get_db), current_user: str = Dep
     program_ids = [p.id for p in merchant.programs]
 
     scans = []
+    labels = []
     for i in range(7):
         date = datetime.utcnow().date() - timedelta(days=6-i)
+        labels.append(date.strftime('%a'))
         count = db.query(func.sum(LedgerEntry.amount)).join(
             CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id
         ).filter(
             CustomerProgramMembership.program_id.in_(program_ids),
-            LedgerEntry.entry_type == 'earn',
+            LedgerEntry.entry_type == LedgerEntryType.EARN.value,
             func.date(LedgerEntry.created_at) == date
         ).scalar() or 0
-        scans.append(count)
+        scans.append(int(count))
 
-    return {"scans": scans}
+    return {"scans": scans, "labels": labels}

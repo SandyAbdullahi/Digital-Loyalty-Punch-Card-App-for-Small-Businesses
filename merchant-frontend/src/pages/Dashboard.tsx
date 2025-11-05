@@ -14,6 +14,10 @@ type ActivityItem = {
   type: 'stamp' | 'reward' | 'join';
   message: string;
   timestamp: string;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  program_name?: string | null;
+  amount?: number;
 };
 
 const accentStyles: Record<SummaryMetric['accent'], string> = {
@@ -33,8 +37,10 @@ const Dashboard = () => {
   const [summary, setSummary] = useState<SummaryMetric[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [chartData, setChartData] = useState<number[]>([]);
+  const [chartLabels, setChartLabels] = useState<string[]>(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const barPalette = ['#009688', '#FFB300', '#FF6F61', '#3B1F1E', '#7C3AED', '#0EA5E9', '#F97316'];
 
   useEffect(() => {
     const fetchSnapshot = async () => {
@@ -52,6 +58,21 @@ const Dashboard = () => {
             ? programsResponse.value.data.length
             : 0;
 
+        const todayScans =
+          activityResponse.status === 'fulfilled'
+            ? Number(activityResponse.value.data.today_scans ?? 0)
+            : 0;
+
+        const rewardsRedeemed =
+          activityResponse.status === 'fulfilled'
+            ? Number(activityResponse.value.data.rewards_redeemed ?? 0)
+            : 0;
+
+        const totalCustomers =
+          activityResponse.status === 'fulfilled'
+            ? Number(activityResponse.value.data.unique_customers ?? 0)
+            : 0;
+
         const derivedSummary: SummaryMetric[] = [
           {
             label: 'Active programs',
@@ -64,28 +85,19 @@ const Dashboard = () => {
           },
           {
             label: 'Total customers',
-            value:
-              activityResponse.status === 'fulfilled'
-                ? activityResponse.value.data.unique_customers ?? '0'
-                : '0',
+            value: totalCustomers.toString(),
             accent: 'secondary',
             helper: 'Growing community momentum',
           },
           {
             label: 'Rewards redeemed',
-            value:
-              activityResponse.status === 'fulfilled'
-                ? activityResponse.value.data.rewards_redeemed ?? '0'
-                : '0',
+            value: rewardsRedeemed.toString(),
             accent: 'accent',
             helper: 'Keep delighting your regulars',
           },
           {
             label: "Today's scans",
-            value:
-              activityResponse.status === 'fulfilled'
-                ? activityResponse.value.data.today_scans ?? '0'
-                : '0',
+            value: todayScans.toString(),
             accent: 'primary',
             helper: 'Another round of smiles',
           },
@@ -94,22 +106,74 @@ const Dashboard = () => {
         setSummary(derivedSummary);
 
         if (chartResponse.status === 'fulfilled') {
-          setChartData(chartResponse.value.data.scans ?? [0, 0, 0, 0, 0, 0, 0]);
+          const rawScans = chartResponse.value?.data?.scans;
+          const scans = Array.isArray(rawScans)
+            ? rawScans.map((value: unknown) => {
+                const numeric = Number(value ?? 0);
+                return Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+              })
+            : [0, 0, 0, 0, 0, 0, 0];
+          setChartData(scans);
+          const labels = Array.isArray(chartResponse.value?.data?.labels)
+            ? chartResponse.value.data.labels.map((label: unknown) =>
+                typeof label === 'string' && label.trim().length > 0 ? label : ''
+              )
+            : [];
+          if (labels.length === scans.length && labels.length > 0) {
+            setChartLabels(labels);
+          } else {
+            setChartLabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+          }
         } else {
           setChartData([0, 0, 0, 0, 0, 0, 0]);
+          setChartLabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
         }
 
         if (activityResponse.status === 'fulfilled') {
           const records = activityResponse.value.data.items ?? [];
           setActivity(
-            records.map((item: any, index: number) => ({
-              id: item.id ?? `activity-${index}`,
-              type: (item.type as ActivityItem['type']) ?? 'stamp',
-              message: item.message ?? 'Activity recorded',
-              timestamp: item.timestamp
-                ? new Date(item.timestamp).toLocaleString()
-                : new Date().toLocaleString(),
-            }))
+            records.map((item: any, index: number) => {
+              const type = (item.type as ActivityItem['type']) ?? 'stamp';
+              const customerName: string | undefined =
+                typeof item.customer_name === 'string' && item.customer_name.trim().length > 0
+                  ? item.customer_name.trim()
+                  : undefined;
+              const customerEmail: string | undefined =
+                typeof item.customer_email === 'string' && item.customer_email.trim().length > 0
+                  ? item.customer_email.trim()
+                  : undefined;
+              const programName: string | undefined =
+                typeof item.program_name === 'string' && item.program_name.trim().length > 0
+                  ? item.program_name.trim()
+                  : undefined;
+              const amount = Number(item.amount ?? 0);
+              const displayName = customerName ?? customerEmail ?? 'Customer';
+              const resolvedProgram = programName ?? 'Programme';
+              let computedMessage = 'Activity recorded';
+
+              if (type === 'reward') {
+                const stampWord = amount === 1 ? 'stamp' : 'stamps';
+                computedMessage = `${amount} ${stampWord} redeemed by ${displayName}.`;
+              } else if (type === 'stamp') {
+                const stampWord = amount === 1 ? 'stamp' : 'stamps';
+                computedMessage = `${resolvedProgram} added ${amount} ${stampWord} for ${displayName}.`;
+              } else if (typeof item.message === 'string') {
+                computedMessage = item.message;
+              }
+
+              return {
+                id: item.id ?? `activity-${index}`,
+                type,
+                message: computedMessage,
+                timestamp: item.timestamp
+                  ? new Date(item.timestamp).toLocaleString()
+                  : new Date().toLocaleString(),
+                customer_name: customerName,
+                customer_email: customerEmail,
+                program_name: programName,
+                amount: amount,
+              };
+            })
           );
         } else {
           setActivity([
@@ -253,47 +317,53 @@ const Dashboard = () => {
             </div>
             {loading ? (
               <div className="h-64 flex items-end justify-between gap-2">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(
-                  (day) => (
-                    <div
-                      key={day}
-                      className="flex flex-col items-center gap-2 flex-1"
-                    >
-                      <div
-                        className="w-full bg-primary/10 rounded-t animate-pulse"
-                        style={{ height: '40%' }}
-                      ></div>
-                      <span className="text-xs text-muted-foreground">{day}</span>
-                    </div>
-                  )
-                )}
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                  <div key={day} className="flex flex-col items-center gap-2 flex-1">
+                    <div className="w-full bg-primary/10 rounded-t animate-pulse" style={{ height: '40%' }}></div>
+                    <span className="text-xs text-muted-foreground">{day}</span>
+                  </div>
+                ))}
+              </div>
+            ) : chartData.every((value) => !value) ? (
+              <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-primary/20 bg-primary/5 text-center">
+                <p className="text-sm font-medium text-primary">No scans recorded yet</p>
+                <p className="text-xs text-muted-foreground">
+                  Issue a QR scan to populate your weekly analytics.
+                </p>
               </div>
             ) : (
               <div className="h-64 flex items-end justify-between gap-2">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(
-                  (day, index) => {
-                    const max = Math.max(...chartData, 1);
-                    const height = (chartData[index] / max) * 80 + 20;
-                    return (
-                      <div
-                        key={day}
-                        className="flex flex-col items-center gap-2 flex-1"
-                      >
-                        <div
-                          className="relative w-full bg-primary/20 rounded-t transition-all hover:bg-primary/40 group cursor-help"
-                          style={{ height: `${height}%` }}
-                        >
-                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                            {chartData[index]} scans
+                {chartLabels.map((dayLabel, index) => {
+                  const max = Math.max(...chartData, 1);
+                  const containerHeight = 256; // Tailwind h-64
+                  const minHeight = 52;
+                  const value = chartData[index] ?? 0;
+                  const barHeight =
+                    value > 0 ? (value / max) * (containerHeight - minHeight) + minHeight : 0;
+
+                  return (
+                    <div key={`${dayLabel}-${index}`} className="relative flex-1 h-full">
+                      {barHeight > 0 && (
+                        <div className="absolute inset-x-1 bottom-6">
+                          <div
+                            className="group cursor-help rounded-t transition-all hover:opacity-80"
+                            style={{
+                              height: `${barHeight}px`,
+                              backgroundColor: barPalette[index % barPalette.length],
+                            }}
+                          >
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
+                              {value} scans
+                            </div>
                           </div>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {day}
-                        </span>
-                      </div>
-                    );
-                  }
-                )}
+                      )}
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">
+                        {dayLabel || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

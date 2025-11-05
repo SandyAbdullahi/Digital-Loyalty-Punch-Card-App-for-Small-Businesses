@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrCode, Users, Gift, TrendingUp, ArrowLeft } from 'lucide-react';
+import { TrendingUp, ArrowLeft, Zap, MessageSquare, BarChart3 } from 'lucide-react';
+import Sidebar from '../components/Sidebar';
+import TopBar from '../components/TopBar';
 
 type SummaryMetric = {
   label: string;
@@ -30,31 +32,39 @@ const activityAccent: Record<ActivityItem['type'], string> = {
 
 const DemoDashboard = () => {
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [summary, setSummary] = useState<SummaryMetric[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [chartData, setChartData] = useState<{stamps: number[], redemptions: number[]}>({stamps: [], redemptions: []});
+  const [chartData, setChartData] = useState<{ stamps: number[]; redemptions: number[] }>({ stamps: [], redemptions: [] });
   const [loading, setLoading] = useState(true);
+  const barPalette = ['#009688', '#FFB300', '#FF6F61', '#3B1F1E', '#7C3AED', '#0EA5E9', '#F97316'];
 
   useEffect(() => {
     // Mock data
     const mockSummary: SummaryMetric[] = [
       {
-        label: 'Active Programs',
+        label: 'Active programs',
         value: '3',
         accent: 'primary',
-        helper: 'Loyalty programs running',
+        helper: 'All systems humming',
       },
       {
-        label: 'Total Customers',
+        label: 'Total customers',
         value: '247',
         accent: 'secondary',
-        helper: 'Registered customers',
+        helper: 'Growing community momentum',
       },
       {
-        label: 'Stamps Collected',
-        value: '1,429',
+        label: 'Rewards redeemed',
+        value: '89',
         accent: 'accent',
-        helper: 'This month',
+        helper: 'Keep delighting your regulars',
+      },
+      {
+        label: "Today's scans",
+        value: '12',
+        accent: 'primary',
+        helper: 'Another round of smiles',
       },
     ];
 
@@ -92,16 +102,14 @@ const DemoDashboard = () => {
     ];
 
     const mockChartData = {
-      stamps: [12, 19, 15, 25, 22, 30, 28],
-      redemptions: [2, 3, 1, 4, 3, 5, 4]
+      stamps: [18, 24, 20, 32, 28, 35, 30],
+      redemptions: [3, 4, 2, 5, 4, 6, 5]
     };
 
-    setTimeout(() => {
-      setSummary(mockSummary);
-      setActivity(mockActivity);
-      setChartData(mockChartData);
-      setLoading(false);
-    }, 1000);
+    setSummary(mockSummary);
+    setActivity(mockActivity);
+    setChartData(mockChartData);
+    setLoading(false);
   }, []);
 
   if (loading) {
@@ -116,145 +124,216 @@ const DemoDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="bg-card shadow-sm border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/')}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded px-2 py-1"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to home
-              </button>
-              <div className="flex items-center gap-2">
-                <img src="/logo-1.png" alt="Rudi" className="h-8 w-auto" />
-                <span className="font-heading text-xl font-bold text-foreground">rudi</span>
-                <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">Demo</span>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex flex-1 flex-col lg:ml-60">
+        <TopBar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
+        <main className="flex-1 overflow-y-auto px-4 pb-10 pt-4 sm:px-6 lg:px-8">
+          <div className="space-y-6 lg:space-y-8">
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-heading text-2xl font-bold text-foreground">
+                  Dashboard
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Monitor your loyalty programs and customer engagement
+                </p>
               </div>
-            </div>
-            <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/register')}
-                className="bg-primary text-primary-foreground rounded-2xl h-10 px-4 hover:opacity-90 transition-colors font-medium text-sm"
+                onClick={() => navigate('/programs')}
+                className="btn-primary w-full sm:w-auto group"
               >
-                Sign Up for Real
+                Create Program
+                <span className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5">
+                  →
+                </span>
               </button>
-            </div>
-          </div>
-        </div>
-      </div>
+            </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="font-heading text-3xl font-bold text-foreground mb-2">
-            Welcome to your dashboard
-          </h1>
-          <p className="text-muted-foreground">
-            This is a demo of what your Rudi dashboard would look like with real data.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summary.map((metric, index) => (
             <div
-              key={index}
-              className="bg-card rounded-2xl p-6 shadow-sm border border-border"
+              key={metric.label}
+              className="card-hover rounded-2xl bg-card p-5 shadow-lg animate-slide-up"
+              style={{ animationDelay: `${index * 0.05}s` }}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {metric.label}
-                  </p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {metric.value}
-                  </p>
-                </div>
-                <div className={`p-3 rounded-xl ${accentStyles[metric.accent]}`}>
-                  {metric.accent === 'teal' && <QrCode className="h-6 w-6" />}
-                  {metric.accent === 'yellow' && <Users className="h-6 w-6" />}
-                  {metric.accent === 'coral' && <Gift className="h-6 w-6" />}
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">{metric.helper}</p>
+              <p className="font-heading text-xs uppercase tracking-wide text-muted-foreground">
+                {metric.label}
+              </p>
+              <p className="mt-2 font-heading text-3xl font-bold text-foreground">
+                {metric.value}
+              </p>
+              <span
+                className={`mt-3 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  accentStyles[metric.accent]
+                }`}
+              >
+                {metric.helper}
+              </span>
             </div>
           ))}
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
-            <h2 className="font-heading text-xl font-semibold text-foreground mb-4">
-              Recent Activity
-            </h2>
-            <div className="space-y-4">
-              {activity.map((item) => (
-                <div key={item.id} className="flex items-start gap-3">
-                  <div className={`w-2 h-2 rounded-full mt-2 ${activityAccent[item.type]}`}></div>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">{item.message}</p>
-                    <p className="text-xs text-muted-foreground">{item.timestamp}</p>
-                  </div>
+          {loading && (
+            <>
+              {[...Array(4)].map((_, index) => (
+                <div
+                  key={index}
+                  className="animate-pulse rounded-2xl bg-card p-5 shadow-lg"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <div className="h-3 w-20 rounded-full bg-muted"></div>
+                  <div className="mt-2 h-8 w-16 rounded-lg bg-muted/50"></div>
+                  <div className="mt-3 h-5 w-32 rounded-full bg-muted/50"></div>
                 </div>
               ))}
-            </div>
-          </div>
+            </>
+          )}
+        </section>
 
-          <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
-            <h2 className="font-heading text-xl font-semibold text-foreground mb-4">
-              Activity This Week
-            </h2>
-            <div className="flex items-end gap-2 h-40">
-              {chartData.stamps.map((stamps, index) => (
-                <div key={index} className="flex-1 flex flex-col items-center">
-                  <div className="flex flex-col items-end w-full h-32">
-                    <div
-                      className="w-full bg-primary rounded-t mb-1"
-                      style={{ height: `${(stamps / 35) * 100}%` }}
-                      title={`Stamps: ${stamps}`}
-                    ></div>
-                    <div
-                      className="w-full bg-secondary rounded-t"
-                      style={{ height: `${(chartData.redemptions[index] / 6) * 100}%` }}
-                      title={`Redemptions: ${chartData.redemptions[index]}`}
-                    ></div>
-                  </div>
-                  <span className="text-xs text-muted-foreground mt-2">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
-                  </span>
+        <div className="grid gap-6 lg:grid-cols-5 lg:gap-8">
+          <section className="lg:col-span-3">
+            <div className="rounded-3xl bg-card p-6 shadow-lg animate-slide-up">
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="font-heading text-xl font-semibold text-foreground">
+                    Analytics Overview
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Scans over the last 7 days
+                  </p>
                 </div>
-              ))}
-            </div>
-            <div className="flex justify-center gap-6 mt-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-primary rounded"></div>
-                <span className="text-xs text-muted-foreground">Stamps</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-secondary rounded"></div>
-                <span className="text-xs text-muted-foreground">Redemptions</span>
-              </div>
-            </div>
-          </div>
-        </div>
+              {loading ? (
+                <div className="h-64 flex items-end justify-between gap-2">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(
+                    (day) => (
+                      <div
+                        key={day}
+                        className="flex flex-col items-center gap-2 flex-1"
+                      >
+                        <div
+                          className="w-full bg-primary/10 rounded-t animate-pulse"
+                          style={{ height: '40%' }}
+                        ></div>
+                        <span className="text-xs text-muted-foreground">{day}</span>
+                      </div>
+                    )
+                  )}
+                </div>
+              ) : (
+                <div className="h-64 flex items-end justify-between gap-2">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+                    const max = Math.max(...chartData.stamps, 1);
+                    const containerHeight = 256; // tailwind h-64
+                    const minHeight = 52;
+                    const barHeight =
+                      (chartData.stamps[index] / max) * (containerHeight - minHeight) + minHeight;
 
-        <div className="mt-8 bg-secondary/10 rounded-2xl p-6 border border-secondary/20">
-          <div className="flex items-center gap-3 mb-4">
-            <TrendingUp className="h-6 w-6 text-secondary" />
-            <h3 className="font-heading text-lg font-semibold text-foreground">
-              Ready to get started?
-            </h3>
+                    return (
+                      <div key={day} className="relative flex-1 h-full">
+                        <div className="absolute inset-x-1 bottom-6">
+                          <div
+                            className="group cursor-help rounded-t transition-all hover:opacity-80"
+                            style={{
+                              height: `${barHeight}px`,
+                              backgroundColor: barPalette[index % barPalette.length],
+                            }}
+                          >
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
+                              {chartData.stamps[index]} scans
+                            </div>
+                          </div>
+                        </div>
+                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">
+                          {day}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="lg:col-span-2">
+            <div className="rounded-3xl bg-card p-6 shadow-lg animate-slide-up h-full">
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="font-heading text-xl font-semibold text-foreground">
+                    Recent Activity
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Latest customer interactions
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => navigate('/qr')}
+                    className="btn-secondary text-sm"
+                  >
+                    Generate QR
+                  </button>
+                </div>
+              </div>
+              <div className="mt-6 space-y-4">
+                {loading && (
+                  <>
+                    {[...Array(3)].map((_, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-4 rounded-2xl border border-primary/10 bg-card/80 px-4 py-3 animate-pulse"
+                      >
+                        <div className="mt-1 h-3 w-3 rounded-full bg-muted"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 w-3/4 rounded bg-muted/50"></div>
+                          <div className="h-3 w-1/4 rounded bg-muted/50"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {activity.length === 0 && !loading && (
+                  <div className="rounded-xl bg-muted/60 p-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No activity yet - your first customer interaction will appear here
+                    </p>
+                    <button
+                      onClick={() => navigate('/qr')}
+                      className="btn-secondary mt-4 text-sm"
+                    >
+                      Generate Your First QR Code
+                    </button>
+                  </div>
+                )}
+
+                {activity.map((entry, index) => (
+                  <div
+                    key={entry.id}
+                    className="group flex items-start gap-4 rounded-2xl border border-primary/10 bg-card/80 px-4 py-3 shadow-sm animate-slide-up hover:border-primary/20 hover:bg-card transition-colors"
+                    style={{ animationDelay: `${index * 0.04}s` }}
+                  >
+                    <span
+                      className={`mt-1 inline-flex h-3 w-3 flex-shrink-0 rounded-full ${
+                        activityAccent[entry.type]
+                      } transition-transform duration-200 group-hover:scale-110`}
+                    />
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {entry.message}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {entry.timestamp}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+         </div>
           </div>
-          <p className="text-muted-foreground mb-4">
-            This demo shows just a glimpse of what Rudi can do for your business. Sign up now to start building customer loyalty.
-          </p>
-          <button
-            onClick={() => navigate('/register')}
-            className="bg-primary text-primary-foreground rounded-2xl h-12 px-6 hover:opacity-90 transition-colors font-medium"
-          >
-            Create Your Account
-          </button>
-        </div>
+        </main>
       </div>
     </div>
   );

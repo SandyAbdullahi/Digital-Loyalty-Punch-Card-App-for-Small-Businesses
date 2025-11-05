@@ -20,7 +20,7 @@ type CustomerRecord = {
   email: string
   avatar?: string
   totalStamps: number
-  lastVisit: string
+  lastVisit: string | null
   programs: CustomerProgram[]
 }
 
@@ -31,6 +31,45 @@ const Customers = () => {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'info'; message: string } | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const apiBaseUrl =
+    (import.meta as any)?.env?.VITE_API_URL ||
+    (import.meta as any)?.env?.VITE_MERCHANT_API_URL ||
+    axios.defaults.baseURL ||
+    window.location.origin;
+
+  const resolveAvatarUrl = (rawValue: unknown): string | null => {
+    if (!rawValue || typeof rawValue !== 'string') return null;
+    const trimmed = rawValue.trim();
+    if (!trimmed) return null;
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      return `${apiBaseUrl.replace(/\/$/, '')}${trimmed}`;
+    }
+    return trimmed;
+  };
+
+  const formatLastVisit = (rawValue: unknown): string | null => {
+    if (!rawValue) return null
+    if (typeof rawValue !== 'string') return null
+    const normalized = rawValue.trim()
+    if (!normalized || normalized.toLowerCase() === 'never') {
+      return null
+    }
+    const date = new Date(normalized)
+    if (Number.isNaN(date.getTime())) {
+      return normalized
+    }
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
 
   const fetchCustomers = async () => {
     setLoading(true)
@@ -45,12 +84,16 @@ const Customers = () => {
               progress: program.progress ?? 0,
               threshold: program.threshold ?? 10,
             }))
+            const formattedLastVisit =
+              formatLastVisit(item.last_visit_display ?? item.last_visit) ??
+              (programs.length > 0 ? 'Never' : null)
             return {
               id: item.id ?? crypto.randomUUID(),
               name: item.name ?? item.email ?? 'Valued Guest',
               email: item.email ?? 'unknown',
               totalStamps: programs.reduce((sum, p) => sum + p.progress, 0),
-              lastVisit: item.last_visit ?? 'Never',
+              avatar: resolveAvatarUrl(item.avatar),
+              lastVisit: formattedLastVisit,
               programs,
             }
           })
@@ -102,7 +145,9 @@ const Customers = () => {
           name: item.name ?? item.email ?? 'Valued Guest',
           email: item.email ?? 'unknown',
           totalStamps: item.total_stamps ?? 0,
-          lastVisit: item.last_visit ?? 'Just now',
+          avatar: resolveAvatarUrl(item.avatar),
+          lastVisit:
+            formatLastVisit(item.last_visit_display ?? item.last_visit) ?? 'Just now',
           programs: (item.programs ?? []).map((program: any) => ({
             id: program.id ?? crypto.randomUUID(),
             name: program.name ?? 'Program',
@@ -167,9 +212,17 @@ const Customers = () => {
             style={{ animationDelay: `${index * 0.05}s` }}
           >
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-heading text-lg font-semibold text-primary">
-                {customer.name[0]?.toUpperCase()}
-              </div>
+              {customer.avatar ? (
+                <img
+                  src={customer.avatar}
+                  alt={customer.name}
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-heading text-lg font-semibold text-primary">
+                  {customer.name[0]?.toUpperCase()}
+                </div>
+              )}
               <div>
                 <p className="text-base font-semibold text-foreground">{customer.name}</p>
                 <p className="text-sm text-muted-foreground">{customer.email}</p>
@@ -180,7 +233,7 @@ const Customers = () => {
                 Total stamps:{' '}
                 <strong className="text-foreground">{customer.totalStamps}</strong>
               </span>
-              <span>Last visit: {customer.lastVisit}</span>
+              <span>Last visit: {customer.lastVisit ?? 'Never'}</span>
             </div>
             <Button className="btn-secondary" type="button" onClick={() => setSelectedCustomer(customer)}>
               View
@@ -200,14 +253,30 @@ const Customers = () => {
 
       <Modal opened={Boolean(selectedCustomer)} onClose={() => setSelectedCustomer(null)} title={selectedCustomer?.name} size="xl">
         <div className="space-y-5">
-          <p className="text-sm text-muted-foreground">{selectedCustomer?.email}</p>
+          <div className="flex items-center gap-4">
+            {selectedCustomer?.avatar ? (
+              <img
+                src={selectedCustomer.avatar}
+                alt={selectedCustomer.name}
+                className="h-12 w-12 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-heading text-lg font-semibold text-primary">
+                {selectedCustomer?.name?.[0]?.toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-base font-semibold text-foreground">{selectedCustomer?.name}</p>
+              <p className="text-sm text-muted-foreground">{selectedCustomer?.email}</p>
+            </div>
+          </div>
 
           <div className="grid gap-4 rounded-2xl border border-primary/15 bg-muted/50 p-4 text-sm text-muted-foreground sm:grid-cols-2">
             <div>
               <span className="font-semibold text-foreground">{selectedCustomer?.programs.reduce((sum, p) => sum + p.progress, 0)}</span>{' '}
               total stamps
             </div>
-            <div>Last visit: {selectedCustomer?.lastVisit}</div>
+            <div>Last visit: {selectedCustomer?.lastVisit ?? 'Never'}</div>
           </div>
 
           <div className="space-y-3">
@@ -294,4 +363,3 @@ const Customers = () => {
 }
 
 export default Customers
-

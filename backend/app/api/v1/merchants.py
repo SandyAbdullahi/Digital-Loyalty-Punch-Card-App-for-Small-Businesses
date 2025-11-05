@@ -219,9 +219,8 @@ def get_merchant_customers(
                 "email": customer.email,
                 "avatar": customer.avatar_url,
                 "totalStamps": total_stamps,
-                "lastVisit": last_visit[0].strftime('%B %d, %Y - %I:%M %p')
-                if last_visit
-                else "Never",
+                "last_visit": last_visit[0].isoformat() if last_visit else None,
+                "last_visit_display": last_visit[0].strftime('%B %d, %Y - %I:%M %p') if last_visit else None,
                 "programs": programs,
             }
         )
