@@ -173,7 +173,7 @@ const Scan = () => {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[var(--rudi-background)] text-[var(--rudi-text)] flex flex-col">
+    <main className="min-h-screen bg-gradient-to-br from-[var(--rudi-background)] to-rudi-coolblue/10 text-[var(--rudi-text)] flex flex-col">
       <header className="px-4 pt-6 pb-4 flex items-center justify-between max-w-md mx-auto">
         <Button
           variant="subtle"
@@ -183,21 +183,21 @@ const Scan = () => {
         >
           Back
         </Button>
-        <h1 className="font-heading text-lg font-semibold">Scan QR</h1>
+        <h1 className="font-heading text-lg font-semibold text-rudi-coolblue">Scan QR</h1>
         <span aria-hidden="true" className="w-10" />
       </header>
       <section className="flex-1 px-4 pb-16 flex flex-col items-center justify-center gap-6 max-w-md mx-auto">
         <div className="relative w-full max-w-[286px] aspect-[3/4] rounded-[32px] bg-black overflow-hidden">
           <video ref={videoRef} className="h-full w-full object-cover opacity-80" />
           <div className="absolute inset-0 border-4 border-transparent">
-            <div className="absolute top-6 left-6 w-14 h-14 border-4 border-rudi-teal rounded-tl-[32px]" />
-            <div className="absolute top-6 right-6 w-14 h-14 border-4 border-rudi-teal rounded-tr-[32px]" />
-            <div className="absolute bottom-6 left-6 w-14 h-14 border-4 border-rudi-teal rounded-bl-[32px]" />
-            <div className="absolute bottom-6 right-6 w-14 h-14 border-4 border-rudi-teal rounded-br-[32px]" />
+            <div className="absolute top-6 left-6 w-14 h-14 border-4 border-rudi-coolblue rounded-tl-[32px]" />
+            <div className="absolute top-6 right-6 w-14 h-14 border-4 border-rudi-coolblue rounded-tr-[32px]" />
+            <div className="absolute bottom-6 left-6 w-14 h-14 border-4 border-rudi-coolblue rounded-bl-[32px]" />
+            <div className="absolute bottom-6 right-6 w-14 h-14 border-4 border-rudi-coolblue rounded-br-[32px]" />
           </div>
         </div>
         <div className="text-center space-y-2">
-          <h2 className="font-heading text-xl font-semibold">Align QR code within the frame</h2>
+          <h2 className="font-heading text-xl font-semibold text-rudi-coolblue">Align QR code within the frame</h2>
           <p className="text-sm text-[var(--rudi-text)]/70">
             We&apos;ll confirm your visit with the merchant automatically.
           </p>

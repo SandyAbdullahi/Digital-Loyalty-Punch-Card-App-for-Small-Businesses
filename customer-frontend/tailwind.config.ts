@@ -7,6 +7,8 @@ const config: Config = {
       colors: {
         rudi: {
           teal: '#009688',
+          mint: '#98FB98',
+          coolblue: '#00BFFF',
           yellow: '#FFB300',
           coral: '#FF6F61',
           sand: '#FDF6EC',
