@@ -120,20 +120,26 @@ const ProgramDetail = () => {
           ← Back
         </button>
         <article className="rudi-card p-6 space-y-4">
-          <header>
-            <p className="text-xs uppercase tracking-wide text-[var(--rudi-text)]/60">Merchant</p>
-            <h1 className="font-heading text-2xl font-semibold">
-              {membership.program?.merchant?.name ?? `Programme ${membership.program_id}`}
-            </h1>
-            {membership.program?.merchant?.address && (
-              <p className="text-sm text-[var(--rudi-text)]/70">{membership.program.merchant.address}</p>
-            )}
-          </header>
-          <div className="space-y-3">
-            <p className="text-sm text-[var(--rudi-text)]/75">
-              {membership.program?.description ??
-                'Collect stamps each visit and redeem your reward once you complete the punch card.'}
-            </p>
+           <header>
+             {membership.program?.merchant?.logo_url && (
+               <img
+                 src={membership.program.merchant.logo_url}
+                 alt={`${membership.program.merchant.display_name ?? membership.program.merchant.name} logo`}
+                 className="w-16 h-16 rounded-full object-cover mx-auto mb-4"
+               />
+             )}
+             <h1 className="font-heading text-2xl font-semibold">
+               {membership.program?.merchant?.display_name ?? membership.program?.merchant?.name ?? 'Unknown Merchant'}
+             </h1>
+             <p className="text-sm text-[var(--rudi-text)]/75 mt-2">
+               {membership.program?.description ??
+                 'Collect stamps each visit and redeem your reward once you complete the punch card.'}
+             </p>
+             {membership.program?.merchant?.address && (
+               <p className="text-sm text-[var(--rudi-text)]/70 mt-1">{membership.program.merchant.address}</p>
+             )}
+           </header>
+           <div className="space-y-3">
             <div className="rudi-card bg-[var(--rudi-background)]/60 shadow-none border border-[var(--rudi-text)]/10 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">Your progress</span>

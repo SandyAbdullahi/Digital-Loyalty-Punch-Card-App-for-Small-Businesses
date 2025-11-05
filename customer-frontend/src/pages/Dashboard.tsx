@@ -206,11 +206,16 @@ const Dashboard = () => {
   return (
     <>
       <main className="min-h-screen bg-[var(--rudi-background)]">
-        <header className="bg-white shadow-sm">
+        <header className="bg-white shadow-sm pb-4">
         <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-black text-[var(--rudi-text)]">
-            Welcome, {firstName}
-          </h1>
+          <div>
+            <h1 className="text-2xl font-black text-[var(--rudi-text)]">
+              Welcome, {firstName}
+            </h1>
+            <p className="text-sm text-[var(--rudi-text)]/70 mt-1">
+              Discover amazing rewards from local businesses!
+            </p>
+          </div>
           <img
             src={
               user?.avatar_url
@@ -285,7 +290,7 @@ const Dashboard = () => {
           <button
             type="button"
             onClick={() => navigate('/scan')}
-            className="w-full h-12 rounded-xl bg-[var(--rudi-primary)] text-white font-semibold hover:bg-[var(--rudi-primary)]/90 transition-colors"
+            className="w-full h-12 rounded-xl bg-[var(--rudi-primary)] text-white font-semibold hover:bg-[var(--rudi-primary)]/90 transition-colors mb-6"
           >
             Join program
           </button>
