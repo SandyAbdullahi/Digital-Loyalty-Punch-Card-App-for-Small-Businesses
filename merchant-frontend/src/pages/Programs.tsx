@@ -22,6 +22,7 @@ interface Program {
   earn_rule: Record<string, any>
   redeem_rule: Record<string, any>
   terms?: string
+  stamp_icon?: string
   is_active: boolean
   expires_at?: string | null
 }
@@ -35,6 +36,7 @@ type ProgramFormState = {
   expiry: string
   maxPerDay: string
   notes: string
+  stampIcon: string
 }
 
 const defaultFormState: ProgramFormState = {
@@ -46,6 +48,7 @@ const defaultFormState: ProgramFormState = {
   expiry: '',
   maxPerDay: '',
   notes: '',
+  stampIcon: '',
 }
 
 const statusBadge = (isActive: boolean) =>
@@ -123,6 +126,7 @@ const Programs = () => {
         '',
       maxPerDay: String(earnRule.max_per_day ?? ''),
       notes: program.terms ?? '',
+      stampIcon: program.stamp_icon ?? '',
     })
     setFormStep(0)
     setIsModalOpen(true)
@@ -167,6 +171,7 @@ const Programs = () => {
       earn_rule: earnRule,
       redeem_rule: redeemRule,
       terms: formData.notes,
+      stamp_icon: formData.stampIcon,
     }
   }
 
@@ -193,7 +198,7 @@ const Programs = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-3xl font-semibold text-foreground">
@@ -316,12 +321,25 @@ const Programs = () => {
         )}
       </section>
 
+      <style>{`span[data-radix-select-item-indicator]{display:none!important;}`}</style>
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={closeModal}>
-          <div className="max-h-[90vh] overflow-y-auto rounded-3xl border border-border bg-background p-6 shadow-2xl sm:max-w-xl w-full mx-4 relative" onClick={(e) => e.stopPropagation()}>
-            <button onClick={closeModal} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+        <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center bg-background/80 px-4 backdrop-blur-md sm:px-6" onClick={closeModal}>
+          <div className="relative mx-auto w-full max-w-xl max-h-[calc(100vh-4rem)] overflow-y-auto rounded-3xl border border-border bg-background p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={closeModal}
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+            >
               <span className="sr-only">Close</span>
-              ✕
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth="1.5"
+                stroke="currentColor"
+                className="h-4 w-4"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
             </button>
             <div className="border-b border-border pb-4 mb-4">
               <h2 className="font-heading text-xl text-foreground">
@@ -360,23 +378,48 @@ const Programs = () => {
                        className="rounded-xl border-border bg-background"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="logic_type" className="text-sm font-semibold text-foreground">
-                      Program type
-                    </Label>
-                    <Select
-                      value={formData.logic_type}
-                      onValueChange={(value) => setFormData({ ...formData, logic_type: value })}
-                    >
-                      <SelectTrigger id="logic_type" className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]">
-                        <SelectValue placeholder="Select program type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="punch_card">Punch Card</SelectItem>
-                        <SelectItem value="points">Points</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="logic_type" className="text-sm font-semibold text-foreground">
+                       Program type
+                     </Label>
+                     <Select
+                       value={formData.logic_type}
+                       onValueChange={(value) => setFormData({ ...formData, logic_type: value })}
+                     >
+                       <SelectTrigger id="logic_type" className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]">
+                         <SelectValue placeholder="Select program type" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="punch_card">Punch Card</SelectItem>
+                         <SelectItem value="points">Points</SelectItem>
+                       </SelectContent>
+                     </Select>
+                   </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="stampIcon" className="text-sm font-semibold text-foreground">
+                       Stamp icon
+                     </Label>
+                      <Select
+                        value={formData.stampIcon}
+                        onValueChange={(value) => setFormData({ ...formData, stampIcon: value })}
+                      >
+                        <SelectTrigger id="stampIcon" className="h-11 rounded-xl border-[#EADCC7] bg-white">
+                          <SelectValue placeholder="Select stamp icon" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-border p-2">
+                          <SelectItem value="default" className={formData.stampIcon === "default" ? "bg-blue-100" : ""}>Default (dots)</SelectItem>
+                          <SelectItem value="star" className={formData.stampIcon === "star" ? "bg-blue-100" : ""}>⭐ Star</SelectItem>
+                          <SelectItem value="heart" className={formData.stampIcon === "heart" ? "bg-blue-100" : ""}>❤️ Heart</SelectItem>
+                          <SelectItem value="coffee" className={formData.stampIcon === "coffee" ? "bg-blue-100" : ""}>☕ Coffee</SelectItem>
+                          <SelectItem value="pizza" className={formData.stampIcon === "pizza" ? "bg-blue-100" : ""}>🍕 Pizza</SelectItem>
+                          <SelectItem value="burger" className={formData.stampIcon === "burger" ? "bg-blue-100" : ""}>🍔 Burger</SelectItem>
+                          <SelectItem value="icecream" className={formData.stampIcon === "icecream" ? "bg-blue-100" : ""}>🍦 Ice Cream</SelectItem>
+                          <SelectItem value="cake" className={formData.stampIcon === "cake" ? "bg-blue-100" : ""}>🍰 Cake</SelectItem>
+                          <SelectItem value="beer" className={formData.stampIcon === "beer" ? "bg-blue-100" : ""}>🍺 Beer</SelectItem>
+                          <SelectItem value="donut" className={formData.stampIcon === "donut" ? "bg-blue-100" : ""}>🍩 Donut</SelectItem>
+                        </SelectContent>
+                     </Select>
+                   </div>
                 </div>
               )}
 

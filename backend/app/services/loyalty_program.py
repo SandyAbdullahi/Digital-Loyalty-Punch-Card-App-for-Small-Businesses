@@ -23,6 +23,7 @@ def create_loyalty_program(db: Session, program: LoyaltyProgramCreate, merchant_
         earn_rule=json.dumps(program.earn_rule),
         redeem_rule=json.dumps(program.redeem_rule),
         terms=program.terms,
+        stamp_icon=program.stamp_icon,
     )
     db.add(db_program)
     db.commit()
@@ -35,7 +36,10 @@ def update_loyalty_program(db: Session, program_id: UUID, program_update: Loyalt
     if db_program:
         update_data = program_update.model_dump(exclude_unset=True)
         for field, value in update_data.items():
-            setattr(db_program, field, value)
+            if field in ['earn_rule', 'redeem_rule']:
+                setattr(db_program, field, json.dumps(value))
+            else:
+                setattr(db_program, field, value)
         db.commit()
         db.refresh(db_program)
     return db_program

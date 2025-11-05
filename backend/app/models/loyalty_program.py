@@ -21,6 +21,7 @@ class LoyaltyProgram(Base):
     earn_rule: Mapped[str] = mapped_column(Text, nullable=False)
     redeem_rule: Mapped[str] = mapped_column(Text, nullable=False)
     terms: Mapped[str] = mapped_column(Text, nullable=True)
+    stamp_icon: Mapped[str] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationship

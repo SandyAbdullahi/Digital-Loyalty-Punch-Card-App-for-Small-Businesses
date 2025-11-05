@@ -178,6 +178,7 @@ const Dashboard = () => {
                   earned={membership.current_balance}
                   threshold={thresholdFor(membership)}
                   actionLabel={actionLabelFor(membership)}
+                  stampIcon={membership.program.stamp_icon}
                   onAction={actionHandlerFor(membership)}
                   logoUrl={membership.program.merchant?.logo_url}
                 />

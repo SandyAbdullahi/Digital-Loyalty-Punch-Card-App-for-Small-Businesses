@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import StampDots from '../components/StampDots';
@@ -14,6 +14,7 @@ type Membership = {
     description?: string;
     reward_threshold?: number;
     reward_description?: string;
+    stamp_icon?: string;
     merchant?: {
       name?: string;
       address?: string;
@@ -33,6 +34,7 @@ const ProgramDetail = () => {
   const [error, setError] = useState('');
   const [showConfetti, setShowConfetti] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
+  const prevBalanceRef = useRef<number>(initialMembership?.current_balance ?? 0);
 
   useEffect(() => {
     if (membership || !id) return;
@@ -56,6 +58,13 @@ const ProgramDetail = () => {
 
     fetchMembership();
   }, [id, membership]);
+
+  useEffect(() => {
+    if (membership && membership.current_balance > prevBalanceRef.current) {
+      setShowConfetti(true);
+    }
+    prevBalanceRef.current = membership?.current_balance ?? 0;
+  }, [membership?.current_balance]);
 
   if (loading) {
     return (
@@ -132,7 +141,7 @@ const ProgramDetail = () => {
                   {membership.current_balance}/{threshold}
                 </span>
               </div>
-              <StampDots threshold={threshold} earned={membership.current_balance} size="lg" />
+               <StampDots threshold={threshold} earned={membership.current_balance} size="lg" icon={membership.program?.stamp_icon} />
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">

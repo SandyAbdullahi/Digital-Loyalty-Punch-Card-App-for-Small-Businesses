@@ -19,6 +19,7 @@
     "@untitled-ui/icons-react": "^0.1.4",
     "axios": "^1.6.2",
     "boring-avatars": "^1.0.1",
+    "canvas-confetti": "^1.9.4",
     "lucide-react": "^0.344.0",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.3",

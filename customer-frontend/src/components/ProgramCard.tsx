@@ -10,6 +10,7 @@ type ProgramCardProps = {
   actionLabel?: string;
   onAction?: () => void;
   logoUrl?: string;
+  stampIcon?: string;
 };
 
 const ProgramCard = ({
@@ -21,6 +22,7 @@ const ProgramCard = ({
   actionLabel = 'View',
   onAction,
   logoUrl,
+  stampIcon,
 }: ProgramCardProps) => (
   <article className="bg-white p-4 rounded-2xl shadow-md flex gap-3 items-start">
     <div className="h-12 w-12 rounded-full bg-[var(--rudi-primary)]/10 text-[var(--rudi-primary)] flex items-center justify-center font-heading font-semibold overflow-hidden">
@@ -40,7 +42,7 @@ const ProgramCard = ({
       {merchantAddress && (
         <p className="text-sm text-[var(--rudi-text)]/70">{merchantAddress}</p>
       )}
-      <StampDots earned={earned} threshold={threshold} />
+      <StampDots earned={earned} threshold={threshold} icon={stampIcon} />
     </div>
     <button
       type="button"

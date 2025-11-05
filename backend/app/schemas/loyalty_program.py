@@ -12,6 +12,7 @@ class LoyaltyProgramBase(BaseModel):
     earn_rule: Dict
     redeem_rule: Dict
     terms: Optional[str] = None
+    stamp_icon: Optional[str] = None
 
     @field_validator('earn_rule', 'redeem_rule', mode='before')
     @classmethod
