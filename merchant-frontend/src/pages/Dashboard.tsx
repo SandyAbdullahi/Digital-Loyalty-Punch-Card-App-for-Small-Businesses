@@ -11,7 +11,7 @@ type SummaryMetric = {
 
 type ActivityItem = {
   id: string;
-  type: 'stamp' | 'reward' | 'join';
+  type: 'stamp' | 'reward' | 'join' | 'manual_issue' | 'manual_revoke';
   message: string;
   timestamp: string;
   customer_name?: string | null;
@@ -30,6 +30,8 @@ const activityAccent: Record<ActivityItem['type'], string> = {
   stamp: 'bg-primary',
   reward: 'bg-secondary',
   join: 'bg-accent',
+  manual_issue: 'bg-primary',
+  manual_revoke: 'bg-[#FF6F61]',
 };
 
 const Dashboard = () => {
@@ -146,12 +148,27 @@ const Dashboard = () => {
                 typeof item.program_name === 'string' && item.program_name.trim().length > 0
                   ? item.program_name.trim()
                   : undefined;
-              const amount = Number(item.amount ?? 0);
+              const rawAmount = Number(item.amount ?? 0);
+              const amount = type === 'manual_revoke' ? Math.abs(rawAmount) : rawAmount;
               const displayName = customerName ?? customerEmail ?? 'Customer';
               const resolvedProgram = programName ?? 'Programme';
               let computedMessage = 'Activity recorded';
 
-              if (type === 'reward') {
+              if (type === 'manual_issue') {
+                if (typeof item.message === 'string' && item.message.trim().length > 0) {
+                  computedMessage = item.message;
+                } else {
+                  const stampWord = amount === 1 ? 'stamp' : 'stamps';
+                  computedMessage = `${resolvedProgram} manually added ${amount} ${stampWord} for ${displayName}.`;
+                }
+              } else if (type === 'manual_revoke') {
+                if (typeof item.message === 'string' && item.message.trim().length > 0) {
+                  computedMessage = item.message;
+                } else {
+                  const stampWord = amount === 1 ? 'stamp' : 'stamps';
+                  computedMessage = `${amount} ${stampWord} were manually revoked for ${displayName} in ${resolvedProgram}.`;
+                }
+              } else if (type === 'reward') {
                 const stampWord = amount === 1 ? 'stamp' : 'stamps';
                 computedMessage = `${amount} ${stampWord} redeemed by ${displayName}.`;
               } else if (type === 'stamp') {
@@ -389,7 +406,7 @@ const Dashboard = () => {
                 </button>
               </div>
             </div>
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-4 max-h-72 overflow-y-auto pr-1 md:pr-2">
               {loading && (
                 <>
                   {[...Array(3)].map((_, index) => (

@@ -149,14 +149,13 @@ const Scan = () => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     prefersReducedMotionRef.current = mediaQuery.matches;
 
-    const handleChange = (event: MediaQueryListEvent | MediaQueryList) => {
-      prefersReducedMotionRef.current =
-        'matches' in event ? event.matches : event.currentTarget?.matches ?? false;
+    const handleChange = (event: MediaQueryListEvent) => {
+      prefersReducedMotionRef.current = event.matches;
     };
 
-    if ('addEventListener' in mediaQuery) {
+    if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleChange);
-    } else {
+    } else if (typeof mediaQuery.addListener === 'function') {
       mediaQuery.addListener(handleChange);
     }
 
@@ -165,9 +164,9 @@ const Scan = () => {
         window.clearInterval(confettiIntervalRef.current);
       }
 
-      if ('removeEventListener' in mediaQuery) {
+      if (typeof mediaQuery.removeEventListener === 'function') {
         mediaQuery.removeEventListener('change', handleChange);
-      } else {
+      } else if (typeof mediaQuery.removeListener === 'function') {
         mediaQuery.removeListener(handleChange);
       }
     };

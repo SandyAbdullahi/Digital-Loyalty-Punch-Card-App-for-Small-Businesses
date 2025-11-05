@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, or_
 from datetime import datetime, timedelta
 
 from ...db.session import get_db
@@ -46,12 +46,20 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
 
         if entry.entry_type in (LedgerEntryType.EARN, LedgerEntryType.EARN.value):
             stamp_phrase = "stamp" if entry.amount == 1 else "stamps"
-            message = f"{program_name} added {entry.amount} {stamp_phrase} for {display_name}."
-            type_ = 'stamp'
+            if entry.notes == "manual_issue":
+                message = f"{display_name} was manually awarded {entry.amount} {stamp_phrase} in {program_name}."
+                type_ = 'manual_issue'
+            else:
+                message = f"{program_name} added {entry.amount} {stamp_phrase} for {display_name}."
+                type_ = 'stamp'
         elif entry.entry_type in (LedgerEntryType.REDEEM, LedgerEntryType.REDEEM.value):
             stamp_phrase = "stamp" if entry.amount == 1 else "stamps"
             message = f"{entry.amount} {stamp_phrase} redeemed by {display_name}."
             type_ = 'reward'
+        elif entry.entry_type in (LedgerEntryType.ADJUST, LedgerEntryType.ADJUST.value) and entry.amount < 0 and entry.notes == "manual_revoke":
+            stamp_phrase = "stamp" if abs(entry.amount) == 1 else "stamps"
+            message = f"{display_name} had {abs(entry.amount)} {stamp_phrase} manually revoked in {program_name}."
+            type_ = 'manual_revoke'
         else:
             continue
 
@@ -86,7 +94,8 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
     ).filter(
         CustomerProgramMembership.program_id.in_(program_ids),
         LedgerEntry.entry_type == LedgerEntryType.EARN.value,
-        func.date(LedgerEntry.created_at) == today
+        func.date(LedgerEntry.created_at) == today,
+        or_(LedgerEntry.notes.is_(None), LedgerEntry.notes != "manual_issue")
     ).scalar() or 0
 
     return {

@@ -438,7 +438,7 @@ def add_manual_stamp(
         raise HTTPException(status_code=404, detail="Membership not found")
 
     # Add stamp
-    result = earn_stamps(db, membership.id, 1, "manual", "manual")
+    result = earn_stamps(db, membership.id, 1, "manual", "manual", notes="manual_issue")
     if result:
         return {"message": "Stamp added successfully"}
     raise HTTPException(status_code=400, detail="Failed to add stamp")
@@ -481,7 +481,7 @@ def revoke_manual_stamp(
         raise HTTPException(status_code=404, detail="Membership not found")
 
     # Revoke stamp (adjust by -1)
-    result = adjust_balance(db, membership.id, -1, "manual revoke", "manual")
+    result = adjust_balance(db, membership.id, -1, "manual_revoke", "manual")
     if result:
         return {"message": "Stamp revoked successfully"}
     raise HTTPException(status_code=400, detail="Failed to revoke stamp")

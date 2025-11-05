@@ -71,7 +71,14 @@ def create_ledger_entry(db: Session, entry: LedgerEntryCreate) -> LedgerEntry:
     return db_entry
 
 
-def earn_stamps(db: Session, membership_id: UUID, amount: int, tx_ref: str | None = None, device_fingerprint: str | None = None) -> CustomerProgramMembership | None:
+def earn_stamps(
+    db: Session,
+    membership_id: UUID,
+    amount: int,
+    tx_ref: str | None = None,
+    device_fingerprint: str | None = None,
+    notes: str | None = None,
+) -> CustomerProgramMembership | None:
     membership = get_membership(db, membership_id)
     if membership:
         membership.current_balance += amount
@@ -84,6 +91,7 @@ def earn_stamps(db: Session, membership_id: UUID, amount: int, tx_ref: str | Non
             amount=amount,
             tx_ref=tx_ref,
             device_fingerprint=device_fingerprint,
+            notes=notes,
         ))
     return membership
 
