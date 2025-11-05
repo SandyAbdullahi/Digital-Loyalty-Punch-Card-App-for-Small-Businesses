@@ -1,51 +1,59 @@
-import { useNavigate } from 'react-router-dom';
-import Logo from '../components/Logo';
+import { useNavigate } from "react-router-dom";
+import { Button } from "@mantine/core";
+import { QrCode02, ClipboardCheck, Gift01, ShieldTick } from "@untitled-ui/icons-react";
+import Logo from "../components/Logo";
 
-const steps = [
+type Step = {
+  title: string;
+  description: string;
+  Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+};
+
+const steps: Step[] = [
   {
-    title: 'Join a programme',
-    description: 'Visit your favourite shop and scan their QR code to connect.',
-    emoji: '📱',
+    title: "Join a programme",
+    description: "Visit your favourite shop and scan their QR code to connect instantly.",
+    Icon: QrCode02,
   },
   {
-    title: 'Collect stamps',
-    description: 'Staff approve each visit so your punch card fills up honestly.',
-    emoji: '🏷️',
+    title: "Collect stamps",
+    description: "Staff approve each visit so your punch card fills up honestly.",
+    Icon: ClipboardCheck,
   },
   {
-    title: 'Redeem rewards',
-    description: 'Celebrate progress—confetti and feel-good copy included!',
-    emoji: '🎉',
+    title: "Redeem rewards",
+    description: "Celebrate progress�confetti and feel-good copy included!",
+    Icon: Gift01,
   },
   {
-    title: 'Privacy & security',
-    description: 'Only validated scans count. Your data stays secure with us.',
-    emoji: '🔒',
+    title: "Privacy & security",
+    description: "Only validated scans count. Your data stays secure with us.",
+    Icon: ShieldTick,
   },
 ];
 
 const containerStyle: React.CSSProperties = {
-  minHeight: '100vh',
-  backgroundColor: '#F5F5F5',
-  display: 'flex',
-  flexDirection: 'column',
+  minHeight: "100vh",
+  backgroundColor: "#F5F5F5",
+  display: "flex",
+  flexDirection: "column",
 };
 
 const contentWrapperStyle: React.CSSProperties = {
   flex: 1,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '1rem',
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "1.25rem",
 };
 
 const cardStyle: React.CSSProperties = {
-  width: '100%',
-  maxWidth: '28rem',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
+  width: "100%",
+  maxWidth: "28rem",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
 };
 
 const HowItWorks = () => {
@@ -58,80 +66,97 @@ const HowItWorks = () => {
           <Logo
             size="xl"
             style={{
-              transform: 'scale(4.8)',
-              transformOrigin: 'center',
-              marginTop: '4rem',
-              marginBottom: '2rem',
+              transform: "scale(4.5)",
+              transformOrigin: "center",
+              marginTop: "3.75rem",
+              marginBottom: "2rem",
             }}
           />
           <h2
             style={{
-              fontFamily: 'Poppins',
-              fontWeight: 'bold',
-              fontSize: 'clamp(3rem, 4.8vw, 3.6rem)',
+              fontFamily: "Poppins",
+              fontWeight: "bold",
+              fontSize: "clamp(3rem, 4.8vw, 3.6rem)",
               marginTop: 0,
-              marginBottom: '1rem',
-              color: '#1A1A1A',
+              marginBottom: "1rem",
+              color: "#1A1A1A",
             }}
           >
             rudi
           </h2>
-          <div style={{ width: '100%', padding: '0.25rem' }}>
-            <header style={{ marginBottom: '1rem' }}>
+          <div style={{ width: "100%", padding: "0.25rem" }}>
+            <header style={{ marginBottom: "1.5rem", textAlign: "center" }}>
               <h1
                 style={{
-                  fontFamily: 'Poppins',
-                  fontSize: '1.875rem',
+                  fontFamily: "Poppins",
+                  fontSize: "1.875rem",
                   fontWeight: 600,
-                  color: '#1A1A1A',
-                  textAlign: 'center',
-                  marginBottom: '0.5rem',
+                  color: "#1A1A1A",
+                  marginBottom: "0.5rem",
                 }}
               >
                 How it works
               </h1>
               <p
                 style={{
-                  color: '#1A1A1A',
+                  color: "#1A1A1A",
                   opacity: 0.75,
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
+                  fontSize: "0.9rem",
+                  margin: 0,
                 }}
               >
                 Rudi makes it easy to earn rewards at local businesses while keeping every stamp verified.
               </p>
             </header>
-            <ol style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <ol style={{ display: "flex", flexDirection: "column", gap: "1rem", margin: 0, padding: 0 }}>
               {steps.map((step, index) => (
                 <li
                   key={step.title}
                   style={{
-                    backgroundColor: 'white',
-                    borderRadius: '1rem',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    padding: '1rem',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '0.75rem',
+                    listStyle: "none",
+                    backgroundColor: "white",
+                    borderRadius: "1rem",
+                    boxShadow: "0 12px 32px -18px rgba(17, 24, 39, 0.2)",
+                    padding: "1rem",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "0.85rem",
+                    border: "1px solid #EEF1F6",
                   }}
                 >
-                  <span style={{ fontSize: '1.5rem' }}>{step.emoji}</span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "2.5rem",
+                      height: "2.5rem",
+                      borderRadius: "0.75rem",
+                      backgroundColor: "#E6FCF5",
+                      color: "#00A47A",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <step.Icon width={20} height={20} strokeWidth={1.8} />
+                  </span>
                   <div style={{ flex: 1 }}>
                     <h2
                       style={{
-                        fontFamily: 'Poppins',
-                        fontSize: '1.125rem',
+                        fontFamily: "Poppins",
+                        fontSize: "1.125rem",
                         fontWeight: 600,
-                        color: '#1A1A1A',
+                        color: "#1A1A1A",
+                        margin: 0,
                       }}
                     >
                       {index + 1}. {step.title}
                     </h2>
                     <p
                       style={{
-                        fontSize: '0.875rem',
-                        color: '#1A1A1A',
+                        fontSize: "0.9rem",
+                        color: "#1A1A1A",
                         opacity: 0.8,
+                        margin: "0.35rem 0 0",
                       }}
                     >
                       {step.description}
@@ -140,37 +165,37 @@ const HowItWorks = () => {
                 </li>
               ))}
             </ol>
-            <div style={{ marginTop: '4rem' }}>
-              <button
-                type='button'
+            <div style={{ marginTop: "2.5rem" }}>
+              <Button
+                type="button"
+                fullWidth
+                size="md"
                 onClick={() => navigate(-1)}
-                style={{
-                  width: '100%',
-                  height: '3rem',
-                  borderRadius: '0.75rem',
-                  backgroundColor: '#00C896',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  border: 'none',
-                  transition: 'all 200ms ease',
-                  cursor: 'pointer',
+                styles={{
+                  root: {
+                    height: "3rem",
+                    borderRadius: "0.85rem",
+                    backgroundColor: "#00C896",
+                    fontWeight: 600,
+                  },
                 }}
               >
                 Back to login
-              </button>
+              </Button>
             </div>
           </div>
         </div>
         <div
           style={{
-            textAlign: 'center',
-            fontSize: '0.75rem',
-            color: '#1A1A1A',
+            textAlign: "center",
+            fontSize: "0.75rem",
+            color: "#1A1A1A",
             opacity: 0.6,
-            padding: '1rem',
+            padding: "1rem",
+            marginTop: "2rem",
           }}
         >
-          © 2025 Rudi. All rights reserved.
+          � 2025 Rudi. All rights reserved.
         </div>
       </div>
     </div>
@@ -178,4 +203,3 @@ const HowItWorks = () => {
 };
 
 export default HowItWorks;
-
