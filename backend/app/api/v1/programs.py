@@ -17,6 +17,7 @@ from ...services.loyalty_program import (
     get_public_loyalty_programs,
 )
 from ...schemas.loyalty_program import LoyaltyProgram, LoyaltyProgramCreate, LoyaltyProgramUpdate
+from ...models.loyalty_program import LoyaltyProgram as LoyaltyProgramModel
 from ...schemas.reward import RedeemRequest, CustomerRedemption
 
 router = APIRouter()
@@ -190,7 +191,7 @@ def get_redemptions_for_customer(
 
     codes = (
         db.query(RedeemCode)
-        .options(joinedload(RedeemCode.program).joinedload(LoyaltyProgram.merchant))
+        .options(joinedload(RedeemCode.program).joinedload(LoyaltyProgramModel.merchant))
         .filter(RedeemCode.membership_id == membership.id)
         .order_by(desc(RedeemCode.created_at))
         .limit(30)

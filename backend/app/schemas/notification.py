@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 class CustomerNotification(BaseModel):
     id: UUID
-    type: Literal["manual_issue", "manual_revoke"]
+    type: Literal["manual_issue", "manual_revoke", "scan_earn", "reward_redeemed"]
     message: str
     timestamp: datetime
     program_name: str

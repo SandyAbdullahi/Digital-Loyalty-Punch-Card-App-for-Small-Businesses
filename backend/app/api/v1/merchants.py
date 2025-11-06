@@ -28,6 +28,8 @@ from ...services.merchant import (
 from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
 from ...schemas.reward import Reward, RedeemCodeConfirm
+from ...models.ledger_entry import LedgerEntry
+from ...models.redeem_code import RedeemCode
 
 router = APIRouter()
 
@@ -627,6 +629,16 @@ def delete_customer(
         CustomerProgramMembership.customer_user_id == customer_id,
         CustomerProgramMembership.program_id.in_(program_ids)
     ).all()
+
+    # Delete related records first to avoid foreign key constraint violations
+    membership_ids = [m.id for m in memberships]
+    if membership_ids:
+        # Delete redeem codes
+        db.query(RedeemCode).filter(RedeemCode.membership_id.in_(membership_ids)).delete()
+        # Delete ledger entries
+        db.query(LedgerEntry).filter(LedgerEntry.membership_id.in_(membership_ids)).delete()
+
+    # Now delete the memberships
     for membership in memberships:
         db.delete(membership)
     db.commit()

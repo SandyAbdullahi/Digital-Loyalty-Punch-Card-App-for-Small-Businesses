@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { BottomNav } from '../components/BottomNav';
 
@@ -125,7 +125,7 @@ const Rewards = () => {
           See every perk you have unlocked and anything still waiting to be claimed.
         </p>
       </header>
-      <section className="px-4 space-y-6">
+      <section className="px-4 space-y-6 mb-16">
         {loading && <p className="text-sm text-[var(--rudi-text)]/70">Loading rewards...</p>}
         {error && !loading && (
           <p className="text-sm text-[var(--rudi-accent)] bg-[var(--rudi-accent)]/10 px-3 py-2 rounded-md">

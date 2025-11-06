@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gift01, AlertTriangle } from '@untitled-ui/icons-react';
 import ProgramCard from '../components/ProgramCard';
+import MerchantModal from '../components/MerchantModal';
 import { BottomNav } from '../components/BottomNav';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -43,12 +44,13 @@ type Membership = {
 
 type NotificationItem = {
   id: string;
-  type: 'manual_issue' | 'manual_revoke';
+  type: 'manual_issue' | 'manual_revoke' | 'scan_earn' | 'reward_redeemed';
   message: string;
   timestamp: string;
   program_name: string;
   merchant_name: string;
   amount: number;
+  read?: boolean;
 };
 
 const Dashboard = () => {
@@ -57,9 +59,16 @@ const Dashboard = () => {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedMerchant, setSelectedMerchant] = useState<Membership['program']['merchant'] | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<Membership['program'] | null>(null);
+  const [selectedProgramId, setSelectedProgramId] = useState<string | undefined>(undefined);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationError, setNotificationError] = useState('');
   const [query, setQuery] = useState('');
+
+  const unreadCount = notifications.filter(note => !readNotifications.has(note.id)).length;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -156,9 +165,53 @@ const Dashboard = () => {
 
   const firstName = user?.name || user?.email?.split('@')[0] || 'Explorer';
 
+  // Load read notifications from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('readNotifications');
+    if (stored) {
+      try {
+        const readIds = JSON.parse(stored);
+        setReadNotifications(new Set(readIds));
+      } catch (e) {
+        // Ignore invalid data
+      }
+    }
+  }, []);
+
+  // Save read notifications to localStorage
+  const markAsRead = (notificationId: string) => {
+    const newRead = new Set(readNotifications);
+    newRead.add(notificationId);
+    setReadNotifications(newRead);
+    localStorage.setItem('readNotifications', JSON.stringify([...newRead]));
+  };
+
+  const handleExitProgram = async () => {
+    // Refresh memberships after exiting (the modal handles the actual deletion)
+    try {
+      const membershipsResult = await axios.get<Membership[]>('/api/v1/customer/memberships');
+      setMemberships(membershipsResult.data);
+    } catch (error: any) {
+      console.error('Failed to refresh memberships:', error);
+    }
+  };
+
+  const resolveLogoUrl = (rawValue: unknown): string | undefined => {
+    if (!rawValue || typeof rawValue !== 'string') return undefined;
+    const trimmed = rawValue.trim();
+    if (!trimmed) return undefined;
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      return `${window.location.origin}${trimmed}`;
+    }
+    return trimmed;
+  };
+
   const thresholdFor = (membership: Membership) => {
     if (membership.program.logic_type === 'punch_card') {
-      return membership.program.earn_rule?.threshold ?? 10;
+      return membership.program.earn_rule?.stamps_needed ?? 10;
     }
     return 10; // default for points or other types
   };
@@ -201,12 +254,24 @@ const Dashboard = () => {
       iconColor: 'text-[#FF6F61]',
       label: 'Stamp removed',
     },
+    scan_earn: {
+      icon: Gift01,
+      accent: 'bg-[#E8F5E8]',
+      iconColor: 'text-[#4CAF50]',
+      label: 'Stamp scanned',
+    },
+    reward_redeemed: {
+      icon: Gift01,
+      accent: 'bg-[#F3E5F5]',
+      iconColor: 'text-[#9C27B0]',
+      label: 'Reward redeemed',
+    },
   } as const;
 
   return (
     <>
-      <main className="min-h-screen bg-[var(--rudi-background)]">
-        <header className="bg-white shadow-sm pb-4">
+      <main className="min-h-screen bg-[var(--rudi-background)] pb-16">
+        <header className="bg-white shadow-sm pt-4 pb-4">
         <div className="flex items-center justify-between p-4">
           <div>
             <h1 className="text-2xl font-black text-[var(--rudi-text)]">
@@ -229,47 +294,60 @@ const Dashboard = () => {
         <div className="mx-4 mb-3 space-y-3">
           {notifications.length > 0 && (
             <div className="rounded-2xl bg-white/95 p-4 shadow-md">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="font-heading text-base font-semibold text-[var(--rudi-text)]">
-                  Updates from your merchants
-                </h2>
-                <span className="text-xs text-[var(--rudi-text)]/60">
-                  We&apos;ll notify you about manual changes
-                </span>
-              </div>
+               <div className="flex items-center justify-between gap-3">
+                 <h2 className="font-heading text-base font-semibold text-[var(--rudi-text)]">
+                   Updates from your merchants {unreadCount > 0 && (
+                     <span className="ml-2 inline-flex items-center justify-center h-5 w-5 rounded-full bg-[var(--rudi-primary)] text-white text-xs font-bold">
+                       {unreadCount}
+                     </span>
+                   )}
+                 </h2>
+                 <span className="text-xs text-[var(--rudi-text)]/60">
+                   Recent activity from your merchants
+                 </span>
+               </div>
               <div className="mt-3 max-h-48 space-y-3 overflow-y-auto pr-1">
-                {notifications.map((note) => {
-                  const decor = notificationDecor[note.type];
-                  const Icon = decor.icon;
-                  return (
-                    <div
-                      key={note.id}
-                      className="flex items-start gap-3 rounded-2xl border border-white/60 bg-white p-3 shadow-sm"
-                    >
-                      <span
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl ${decor.accent}`}
-                      >
-                        <Icon className={`h-5 w-5 ${decor.iconColor}`} />
-                      </span>
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--rudi-text)]/70">
-                            {decor.label}
-                          </span>
-                          <time className="text-xs text-[var(--rudi-text)]/60">
-                            {formatTimestamp(note.timestamp)}
-                          </time>
-                        </div>
-                        <p className="mt-2 text-sm font-medium text-[var(--rudi-text)]">
-                          {note.message}
-                        </p>
-                        <p className="mt-1 text-xs text-[var(--rudi-text)]/70">
-                          {note.merchant_name} · {note.program_name}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                 {notifications.map((note) => {
+                   const decor = notificationDecor[note.type];
+                   const Icon = decor.icon;
+                   const isUnread = !readNotifications.has(note.id);
+                   return (
+                     <div
+                       key={note.id}
+                       onClick={() => markAsRead(note.id)}
+                       className={`flex items-start gap-3 rounded-2xl border bg-white p-3 shadow-sm cursor-pointer transition-colors hover:bg-gray-50 ${
+                         isUnread
+                           ? 'border-[var(--rudi-primary)]/30 bg-[var(--rudi-primary)]/5'
+                           : 'border-white/60'
+                       }`}
+                     >
+                       <span
+                         className={`flex h-10 w-10 items-center justify-center rounded-xl ${decor.accent} relative`}
+                       >
+                         <Icon className={`h-5 w-5 ${decor.iconColor}`} />
+                         {isUnread && (
+                           <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[var(--rudi-primary)] border-2 border-white"></span>
+                         )}
+                       </span>
+                       <div className="flex-1">
+                         <div className="flex flex-wrap items-center gap-2">
+                           <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--rudi-text)]/70">
+                             {decor.label}
+                           </span>
+                           <time className="text-xs text-[var(--rudi-text)]/60">
+                             {formatTimestamp(note.timestamp)}
+                           </time>
+                         </div>
+                         <p className="mt-2 text-sm font-medium text-[var(--rudi-text)]">
+                           {note.message}
+                         </p>
+                         <p className="mt-1 text-xs text-[var(--rudi-text)]/70">
+                           {note.merchant_name} · {note.program_name}
+                         </p>
+                       </div>
+                     </div>
+                   );
+                 })}
               </div>
             </div>
           )}
@@ -285,7 +363,7 @@ const Dashboard = () => {
             placeholder="Search programs..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-full h-11 rounded-full bg-white/80 backdrop-blur px-4 py-2 shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[var(--rudi-primary)] focus:border-transparent"
+            className="w-full h-11 rounded-full bg-white/80 backdrop-blur px-4 py-2 shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[var(--rudi-primary)] focus:border-transparent my-4"
           />
           <button
             type="button"
@@ -298,7 +376,7 @@ const Dashboard = () => {
         </header>
 
         <section className="overflow-y-auto">
-          <div className="py-4">
+          <div className="py-4 mb-16">
             {loading && (
               <p className="text-center text-sm text-[var(--rudi-text)]/70">
                 Loading your programmes...
@@ -341,7 +419,7 @@ const Dashboard = () => {
                   }
                   programName={membership.program.name}
                   merchantAddress={
-                    membership.program.merchant?.address ??
+                    membership.program.merchant?.address?.split('\n')[0]?.split(',')[0] ??
                     'Address not available'
                   }
                   earned={membership.current_balance}
@@ -349,7 +427,13 @@ const Dashboard = () => {
                   actionLabel={actionLabelFor(membership)}
                   stampIcon={membership.program.stamp_icon}
                   onAction={actionHandlerFor(membership)}
-                  logoUrl={membership.program.merchant?.logo_url}
+                   onCardClick={() => {
+                     setSelectedMerchant(membership.program.merchant);
+                     setSelectedProgram(membership.program);
+                     setSelectedProgramId(membership.program_id);
+                     setIsModalOpen(true);
+                   }}
+                  logoUrl={resolveLogoUrl(membership.program.merchant?.logo_url)}
                 />
               </div>
             ))}
@@ -357,6 +441,19 @@ const Dashboard = () => {
       </section>
       </main>
       <BottomNav />
+      <MerchantModal
+        merchant={selectedMerchant}
+        program={selectedProgram}
+        programId={selectedProgramId}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedMerchant(null);
+          setSelectedProgram(null);
+          setSelectedProgramId(undefined);
+        }}
+        onExitProgram={handleExitProgram}
+      />
     </>
   );
 };

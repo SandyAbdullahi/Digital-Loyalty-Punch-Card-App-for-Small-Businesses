@@ -9,6 +9,7 @@ type ProgramCardProps = {
   threshold: number;
   actionLabel?: string;
   onAction?: () => void;
+  onCardClick?: () => void;
   logoUrl?: string;
   stampIcon?: string;
 };
@@ -21,10 +22,14 @@ const ProgramCard = ({
   threshold,
   actionLabel = 'View',
   onAction,
+  onCardClick,
   logoUrl,
   stampIcon,
 }: ProgramCardProps) => (
-  <article className="bg-white p-4 rounded-2xl shadow-md flex gap-3 items-start">
+  <article
+    className={`bg-white p-4 rounded-2xl shadow-md flex gap-3 items-start ${onCardClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+    onClick={onCardClick}
+  >
     <div className="h-12 w-12 rounded-full bg-[var(--rudi-primary)]/10 text-[var(--rudi-primary)] flex items-center justify-center font-heading font-semibold overflow-hidden">
       {logoUrl ? (
         <img
@@ -46,7 +51,10 @@ const ProgramCard = ({
     </div>
     <button
       type="button"
-      onClick={onAction}
+      onClick={(e) => {
+        e.stopPropagation();
+        onAction?.();
+      }}
       className="h-8 px-3 rounded-lg bg-[var(--rudi-secondary)] text-white text-sm font-semibold hover:bg-[var(--rudi-secondary)]/90 transition-colors whitespace-nowrap"
     >
       {actionLabel}

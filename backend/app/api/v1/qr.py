@@ -19,6 +19,7 @@ from ...api.deps import get_current_user
 from ...services.membership import get_membership_by_customer_and_program, earn_stamps
 from ...services.auth import get_user_by_email
 from ...services.loyalty_program import get_loyalty_program
+from ...models.ledger_entry import LedgerEntry, LedgerEntryType
 
 router = APIRouter()
 
@@ -234,8 +235,8 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
     if not membership:
         raise HTTPException(status_code=400, detail="You are not a member of this program. Please join first.")
 
-    # Earn stamps
-    updated_membership = earn_stamps(db, membership.id, 1, tx_ref=nonce, device_fingerprint=request.device_fingerprint)
+    # Earn stamps with scan prefix for notification detection
+    updated_membership = earn_stamps(db, membership.id, 1, tx_ref=f"scan_{nonce}", device_fingerprint=request.device_fingerprint)
 
     # Mark nonce as used
     try:
@@ -243,7 +244,7 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
     except Exception:
         pass  # Skip if Redis unavailable
 
-    return {"message": "Stamp earned", "new_balance": updated_membership.current_balance if updated_membership else membership.current_balance + 1}
+    return {"message": "Stamp earned from scan! Congratulations!", "new_balance": updated_membership.current_balance if updated_membership else membership.current_balance + 1}
 
 
 @router.post("/scan-stamp")

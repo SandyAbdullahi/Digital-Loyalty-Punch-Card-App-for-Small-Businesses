@@ -3,6 +3,7 @@ from pathlib import Path
 import os
 import shutil
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy import and_, or_, desc
@@ -21,6 +22,7 @@ from ...models.customer_program_membership import CustomerProgramMembership
 from ...models.loyalty_program import LoyaltyProgram
 from ...models.redeem_code import RedeemCode
 from ...models.merchant import Merchant
+from ...services.membership import get_membership_by_customer_and_program
 
 router = APIRouter()
 
@@ -45,6 +47,7 @@ def get_my_notifications(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Get ledger entry notifications
     entries = (
         db.query(LedgerEntry, CustomerProgramMembership, LoyaltyProgram, Merchant)
         .join(CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id)
@@ -62,6 +65,10 @@ def get_my_notifications(
                     LedgerEntry.notes == "manual_revoke",
                     LedgerEntry.amount < 0,
                 ),
+                and_(
+                    LedgerEntry.entry_type == LedgerEntryType.EARN.value,
+                    LedgerEntry.tx_ref.like("scan_%"),
+                ),
             ),
         )
         .order_by(desc(LedgerEntry.created_at))
@@ -69,7 +76,21 @@ def get_my_notifications(
         .all()
     )
 
+    # Get redemption notifications
+    redemptions = (
+        db.query(RedeemCode, CustomerProgramMembership, LoyaltyProgram, Merchant)
+        .join(CustomerProgramMembership, RedeemCode.membership_id == CustomerProgramMembership.id)
+        .join(LoyaltyProgram, RedeemCode.program_id == LoyaltyProgram.id)
+        .join(Merchant, LoyaltyProgram.merchant_id == Merchant.id)
+        .filter(CustomerProgramMembership.customer_user_id == user.id)
+        .order_by(desc(RedeemCode.created_at))
+        .limit(limit)
+        .all()
+    )
+
     notifications: List[CustomerNotification] = []
+
+    # Process ledger entry notifications
     for entry, membership, program, merchant in entries:
         merchant_name = (
             getattr(merchant, "display_name", None)
@@ -80,8 +101,13 @@ def get_my_notifications(
         amount = abs(int(entry.amount or 0))
 
         if entry.entry_type in (LedgerEntryType.EARN, LedgerEntryType.EARN.value):
-            message = f"{merchant_name} manually added {amount} stamp{'s' if amount != 1 else ''} to {program_name}."
-            type_ = "manual_issue"
+            # Check if this was from a scan
+            if entry.tx_ref and entry.tx_ref.startswith("scan_"):
+                message = f"Stamp earned from scan at {merchant_name}! Congratulations 🎉"
+                type_ = "scan_earn"
+            else:
+                message = f"{merchant_name} manually added {amount} stamp{'s' if amount != 1 else ''} to {program_name}."
+                type_ = "manual_issue"
         elif entry.entry_type in (LedgerEntryType.ADJUST, LedgerEntryType.ADJUST.value):
             message = f"{merchant_name} removed {amount} stamp{'s' if amount != 1 else ''} from {program_name}."
             type_ = "manual_revoke"
@@ -101,6 +127,42 @@ def get_my_notifications(
                 program_name=program_name,
                 merchant_name=merchant_name,
                 amount=amount,
+            )
+        )
+
+    # Process redemption notifications
+    for code, membership, program, merchant in redemptions:
+        merchant_name = (
+            getattr(merchant, "display_name", None)
+            or getattr(merchant, "legal_name", None)
+            or "Merchant"
+        )
+        program_name = getattr(program, "name", None) or "Programme"
+
+        # Parse amount from JSON string
+        amount_raw = (code.amount or "0").strip() or "0"
+        try:
+            stamps_redeemed = int(amount_raw)
+        except ValueError:
+            stamps_redeemed = 1  # Default to 1 if parsing fails
+
+        reward_description = getattr(program, "reward_description", None) or "reward"
+
+        message = f"Congratulations! You redeemed {stamps_redeemed} stamp{'s' if stamps_redeemed != 1 else ''} for {reward_description} at {merchant_name}!"
+
+        created_at = code.created_at
+        if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+
+        notifications.append(
+            CustomerNotification(
+                id=code.id,
+                type="reward_redeemed",
+                message=message,
+                timestamp=created_at,
+                program_name=program_name,
+                merchant_name=merchant_name,
+                amount=stamps_redeemed,
             )
         )
 
@@ -219,3 +281,28 @@ def update_profile(
     except Exception as e:
         print(f"Error in update_profile: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.delete("/memberships/{program_id}")
+def leave_program(
+    program_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    membership = get_membership_by_customer_and_program(db, user.id, program_id)
+    if not membership:
+        raise HTTPException(status_code=404, detail="Membership not found")
+
+    # Delete related records first to avoid foreign key constraint violations
+    db.query(RedeemCode).filter(RedeemCode.membership_id == membership.id).delete()
+    db.query(LedgerEntry).filter(LedgerEntry.membership_id == membership.id).delete()
+
+    # Delete the membership
+    db.delete(membership)
+    db.commit()
+
+    return {"message": "Successfully left the program"}
