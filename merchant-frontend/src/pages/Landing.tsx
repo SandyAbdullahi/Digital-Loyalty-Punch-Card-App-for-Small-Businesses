@@ -1,7 +1,190 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { motion, useAnimation, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Play, Star, ChevronDown, ChevronUp, X } from 'lucide-react';
+
+// Demo Stamp Card Component - Isolated to prevent re-renders affecting page animations
+const DemoStampCard = () => {
+  const [demoStamps, setDemoStamps] = React.useState(0);
+  const [animatingStamp, setAnimatingStamp] = React.useState<number | null>(null);
+  const shouldReduceMotion = useReducedMotion();
+
+  const addStamp = () => {
+    if (demoStamps < 10) {
+      const stampIndex = demoStamps;
+      setDemoStamps(demoStamps + 1);
+      // Animate only this specific stamp
+      setAnimatingStamp(stampIndex);
+      // Clear animation after it completes
+      setTimeout(() => {
+        setAnimatingStamp(null);
+      }, 400);
+    }
+  };
+
+  return (
+    <>
+      <div className="mt-8 flex justify-center">
+        <div className="grid grid-cols-5 gap-2">
+          {Array.from({ length: 10 }, (_, i) => (
+            <motion.div
+              key={i}
+              className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ${
+                i < demoStamps
+                  ? 'border-rudi-teal bg-rudi-teal/10 text-rudi-teal'
+                  : 'border-rudi-maroon/20 bg-white text-rudi-maroon/30'
+              }`}
+              animate={i === animatingStamp && !shouldReduceMotion ? { scale: [1, 1.15, 1] } : undefined}
+              transition={{ duration: 0.4 }}
+            >
+              <span className="text-2xl" aria-hidden="true">
+                ☕
+              </span>
+              <span className="sr-only">
+                {i < demoStamps ? 'Stamp earned' : 'Stamp slot available'}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-8 flex flex-wrap gap-4">
+        <button
+          type="button"
+          onClick={addStamp}
+          disabled={demoStamps >= 10}
+          className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-rudi-teal px-5 font-medium text-white shadow-md shadow-rudi-teal/25 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-rudi-teal/40 disabled:text-white/70"
+        >
+          {demoStamps >= 10 ? 'Reward unlocked!' : 'Tap to add a stamp'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setDemoStamps(0);
+            setAnimatingStamp(null);
+          }}
+          className="flex h-11 items-center justify-center rounded-2xl border border-rudi-maroon/20 px-5 text-sm font-semibold text-rudi-maroon transition hover:bg-rudi-sand"
+        >
+          Reset demo
+        </button>
+      </div>
+    </>
+  );
+};
+
+type AnimatedSectionProps = {
+  children: React.ReactNode;
+  delay?: number;
+  reduceMotion: boolean;
+};
+
+const AnimatedSection = ({ children, delay = 0, reduceMotion }: AnimatedSectionProps) => {
+  const controls = useAnimation();
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (inView && !hasAnimated.current) {
+      controls.start({ opacity: 1, y: 0 });
+      hasAnimated.current = true;
+    }
+  }, [controls, inView]);
+
+  const initialState = reduceMotion || hasAnimated.current ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 };
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={initialState}
+      animate={reduceMotion ? undefined : controls}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.6, delay }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+type FAQItem = {
+  question: string;
+  answer: string;
+};
+
+const FAQSection = ({ items, reduceMotion }: { items: FAQItem[]; reduceMotion: boolean }) => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const toggle = (index: number) => {
+    setOpenIndex((prev) => (prev === index ? null : index));
+  };
+
+  return (
+    <section id="faq" className="py-16 sm:py-20 bg-white">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <AnimatedSection reduceMotion={reduceMotion}>
+          <div className="text-center">
+            <span className="inline-flex items-center rounded-full bg-rudi-teal/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-rudi-teal">
+              FAQs
+            </span>
+            <h2 className="mt-4 font-heading text-3xl text-rudi-maroon sm:text-4xl">Questions we hear often</h2>
+          </div>
+        </AnimatedSection>
+
+        <div className="mt-10 space-y-4">
+          {items.map((item, index) => (
+            <AnimatedSection key={item.question} delay={0.05 * index} reduceMotion={reduceMotion}>
+              <div className="overflow-hidden rounded-2xl border border-rudi-maroon/15 bg-white shadow-[0_20px_50px_-35px_rgba(59,31,30,0.65)]">
+                <button
+                  onClick={() => toggle(index)}
+                  className="flex w-full items-center justify-between px-6 py-4 text-left focus:outline-none"
+                >
+                  <span className="font-heading text-lg text-rudi-maroon">{item.question}</span>
+                  {openIndex === index ? (
+                    <ChevronUp className="h-5 w-5 text-rudi-maroon" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-rudi-maroon" />
+                  )}
+                </button>
+                <motion.div
+                  initial={false}
+                  animate={openIndex === index ? 'open' : 'collapsed'}
+                  variants={{
+                    open: { height: 'auto', opacity: 1 },
+                    collapsed: { height: 0, opacity: 0 },
+                  }}
+                  transition={{ duration: reduceMotion ? 0 : 0.3 }}
+                >
+                  <div className="px-6 pb-6 text-sm text-rudi-maroon/70">{item.answer}</div>
+                </motion.div>
+              </div>
+            </AnimatedSection>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const faqItems: FAQItem[] = [
+  {
+    question: 'How long does it take to launch a loyalty programme with Rudi?',
+    answer:
+      'Most merchants launch in under a week. Choose a template, import your branding, define rewards, and our success team reviews before go-live. We offer guided onboarding if you prefer a helping hand.',
+  },
+  {
+    question: 'Can staff award stamps offline?',
+    answer:
+      'Yes. Staff can award stamps using a rotating QR or a secure PIN entry when connectivity dips. Once back online, activity syncs automatically to keep analytics precise.',
+  },
+  {
+    question: 'What customer data can I see?',
+    answer:
+      'Rudi surfaces consented purchase behaviour, visit cadence, favourite locations, and reward history. You can segment audiences but personal data remains encrypted to keep compliance airtight.',
+  },
+  {
+    question: 'Do you support integrations with POS or CRM tools?',
+    answer:
+      'We integrate with leading POS providers and offer a secure API. For bespoke workflows, our Growth and Enterprise plans include integration support and sandbox environments.',
+  },
+];
 import {
   Gift01,
   ShieldTick,
@@ -18,20 +201,8 @@ import NavBar from '../components/NavBar';
 
 const Landing = () => {
   const navigate = useNavigate();
-  const [demoStamps, setDemoStamps] = useState(0);
-  const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
   const shouldReduceMotion = useReducedMotion();
-
-  const addStamp = () => {
-    if (demoStamps < 10) {
-      setDemoStamps(demoStamps + 1);
-    }
-  };
-
-  const toggleFaq = (index: number) => {
-    setFaqOpen(faqOpen === index ? null : index);
-  };
 
   const closeDemoModal = () => {
     setDemoModalOpen(false);
@@ -50,18 +221,23 @@ const Landing = () => {
   const AnimatedSection = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
     const controls = useAnimation();
     const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+    const hasAnimated = useRef(false);
 
     useEffect(() => {
-      if (inView) {
+      if (inView && !hasAnimated.current) {
         controls.start({ opacity: 1, y: 0 });
+        hasAnimated.current = true;
       }
     }, [controls, inView]);
+
+    const initialState =
+      shouldReduceMotion || hasAnimated.current ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 };
 
     return (
       <motion.div
         ref={ref}
-        initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-        animate={controls}
+        initial={initialState}
+        animate={shouldReduceMotion ? undefined : controls}
         transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.6, delay }}
       >
         {children}
@@ -247,65 +423,41 @@ const Landing = () => {
     },
   ];
 
-  const faqItems = [
-    {
-      question: 'How long does it take to launch a loyalty programme with Rudi?',
-      answer:
-        'Most merchants launch in under a week. Choose a template, import your branding, define rewards, and our success team reviews before go-live. We offer guided onboarding if you prefer a helping hand.',
-    },
-    {
-      question: 'Can staff award stamps offline?',
-      answer:
-        'Yes. Staff can award stamps using a rotating QR or a secure PIN entry when connectivity dips. Once back online, activity syncs automatically to keep analytics precise.',
-    },
-    {
-      question: 'What customer data can I see?',
-      answer:
-        'Rudi surfaces consented purchase behaviour, visit cadence, favourite locations, and reward history. You can segment audiences but personal data remains encrypted to keep compliance airtight.',
-    },
-    {
-      question: 'Do you support integrations with POS or CRM tools?',
-      answer:
-        'We integrate with leading POS providers and offer a secure API. For bespoke workflows, our Growth and Enterprise plans include integration support and sandbox environments.',
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-[#FDF6EC] font-body">
       <NavBar />
 
-       <section className="relative -mt-16 flex h-screen items-center overflow-hidden">
-         <div className="relative w-full pl-28 sm:pl-32 lg:pl-36 pr-12 sm:pr-16 lg:pr-20">
-          <div className="grid items-center gap-16 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-             <AnimatedSection>
-               <div className="max-w-xl space-y-6 pt-12">
+      <section className="relative -mt-16 flex flex-col justify-center overflow-hidden px-4 pb-16 pt-24 sm:px-6 lg:px-12">
+        <div className="relative w-full">
+          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+            <AnimatedSection reduceMotion={shouldReduceMotion}>
+              <div className="mx-auto max-w-xl space-y-6 pt-4 text-center lg:mx-0 lg:text-left">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-rudi-maroon shadow-sm backdrop-blur">
                   <span className="h-1.5 w-1.5 rounded-full bg-rudi-teal" />
                   Loyalty OS for emerging brands
                 </span>
-                <h1 className="font-heading text-4xl leading-[1.08] text-rudi-maroon sm:text-5xl">
+                <h1 className="font-heading text-3xl leading-tight text-rudi-maroon sm:text-4xl lg:text-5xl">
                   Design loyalty journeys your customers feel.
                 </h1>
-                <p className="text-lg text-rudi-maroon/80">
-                  Rudi helps cafés, grocers, and boutique retailers launch intelligent stamp programmes, personalise
-                  offers, and surface real-time insight without a single engineering ticket.
+                <p className="text-base text-rudi-maroon/80 sm:text-lg">
+                  Rudi helps cafés, grocers, and boutique retailers launch intelligent stamp programmes, personalise offers, and surface real-time insight without a single engineering ticket.
                 </p>
-                <div className="flex flex-wrap gap-4">
-                   <button
-                     onClick={() => navigate('/demo')}
-                     className="flex h-12 items-center justify-center rounded-2xl bg-rudi-teal px-6 font-semibold text-white shadow-lg shadow-rudi-teal/20 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rudi-teal"
-                   >
-                     Launch free pilot
-                   </button>
+                <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:items-start lg:justify-start">
+                  <button
+                    onClick={() => navigate('/demo')}
+                    className="flex h-12 w-full items-center justify-center rounded-2xl bg-rudi-teal px-6 font-semibold text-white shadow-lg shadow-rudi-teal/20 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rudi-teal sm:w-auto"
+                  >
+                    Launch free pilot
+                  </button>
                   <button
                     onClick={() => setDemoModalOpen(true)}
-                    className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-rudi-maroon/20 bg-white/80 px-6 font-semibold text-rudi-maroon transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rudi-maroon/40"
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rudi-maroon/20 bg-white/80 px-6 font-semibold text-rudi-maroon transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rudi-maroon/40 sm:w-auto"
                   >
                     <Play className="h-4 w-4" />
                     Watch product tour
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-6 pt-8 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-4 pt-8 sm:grid-cols-3">
                   {heroStats.map((stat) => (
                     <div
                       key={stat.label}
@@ -319,11 +471,11 @@ const Landing = () => {
               </div>
             </AnimatedSection>
 
-            <AnimatedSection delay={0.15}>
-              <div className="relative">
-                <div className="absolute -inset-6 rounded-[40px] bg-gradient-to-br from-white via-[#E8FFF7] to-[#FFF5D7] opacity-80 blur-2xl" />
-                <div className="relative mx-auto w-full max-w-md rounded-[32px] border border-white/70 bg-white/90 p-8 shadow-[0_35px_80px_-25px_rgba(59,31,30,0.35)] backdrop-blur">
-                  <div className="flex items-center justify-between">
+            <AnimatedSection delay={0.15} reduceMotion={shouldReduceMotion}>
+              <div className="relative mt-10 lg:mt-0">
+                <div className="absolute -inset-6 hidden rounded-[40px] bg-gradient-to-br from-white via-[#E8FFF7] to-[#FFF5D7] opacity-80 blur-2xl sm:block" />
+                <div className="relative mx-auto w-full max-w-md rounded-[32px] border border-white/70 bg-white/95 p-6 shadow-[0_35px_80px_-25px_rgba(59,31,30,0.35)] backdrop-blur">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-rudi-maroon/60">Programme health</p>
                       <p className="font-heading text-3xl font-semibold text-rudi-maroon">92%</p>
@@ -336,7 +488,7 @@ const Landing = () => {
                     Engagement is up <span className="font-semibold text-rudi-maroon">18%</span> this month. Streak
                     boosters are driving second visits within five days.
                   </p>
-                  <div className="mt-8 grid grid-cols-3 gap-4">
+                  <div className="mt-6 grid grid-cols-3 gap-3">
                     {heroSnapshotStats.map((snapshot) => (
                       <div key={snapshot.title} className="rounded-2xl bg-[#FDF6EC] p-3 text-center shadow-inner shadow-white">
                         <p className="font-heading text-xl text-rudi-maroon">{snapshot.stat}</p>
@@ -344,7 +496,7 @@ const Landing = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-8 rounded-2xl border border-rudi-teal/20 bg-rudi-teal/10 p-4">
+                  <div className="mt-6 rounded-2xl border border-rudi-teal/20 bg-rudi-teal/10 p-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold text-rudi-maroon">Live visit feed</span>
                       <span className="text-xs text-rudi-maroon/60">Last 30 min</span>
@@ -367,9 +519,9 @@ const Landing = () => {
                 </div>
                 <motion.div
                   initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                  animate={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: shouldReduceMotion ? 0 : 0.35, duration: shouldReduceMotion ? 0 : 0.6 }}
-                  className="absolute -bottom-10 left-6 w-[220px] rounded-3xl border border-white bg-white p-4 shadow-xl"
+                  className="mt-6 w-full rounded-3xl border border-white bg-white p-4 shadow-xl sm:absolute sm:-bottom-10 sm:left-6 sm:w-[220px]"
                 >
                   <p className="text-xs uppercase tracking-wide text-rudi-maroon/50">Auto-campaign</p>
                   <p className="font-heading text-lg text-rudi-maroon">Birthday boosters live</p>
@@ -383,12 +535,12 @@ const Landing = () => {
 
       <section className="py-10 sm:py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
+          <AnimatedSection reduceMotion={shouldReduceMotion}>
             <p className="text-center text-sm font-semibold uppercase tracking-[0.35em] text-rudi-maroon/60">
               Trusted by local cafes & shops
             </p>
           </AnimatedSection>
-          <AnimatedSection delay={0.1}>
+          <AnimatedSection delay={0.1} reduceMotion={shouldReduceMotion}>
             <div className="mt-8 grid grid-cols-2 gap-6 sm:grid-cols-4 md:flex md:flex-row md:space-x-12 md:gap-0 justify-center items-center opacity-90">
               {socialProofIcons.map(({ icon: Icon, label }) => (
                 <div key={label} className="flex flex-col items-center text-center space-y-3">
@@ -405,7 +557,7 @@ const Landing = () => {
 
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
+          <AnimatedSection reduceMotion={shouldReduceMotion}>
             <div className="max-w-2xl text-center mx-auto">
               <span className="inline-flex items-center justify-center rounded-full bg-rudi-yellow/30 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-rudi-maroon/80">
                 Product pillars
@@ -421,7 +573,7 @@ const Landing = () => {
 
           <div className="mt-12 grid gap-8 md:grid-cols-3">
             {featureHighlights.map((feature, index) => (
-              <AnimatedSection key={feature.title} delay={0.1 * index}>
+              <AnimatedSection key={feature.title} delay={0.1 * index} reduceMotion={shouldReduceMotion}>
                 <div className="h-full rounded-3xl bg-white p-8 shadow-[0_25px_60px_-30px_rgba(59,31,30,0.35)]">
                   <div className="inline-flex items-center justify-center rounded-2xl bg-rudi-teal/10 p-3 text-rudi-teal">
                     <feature.icon className="h-6 w-6" aria-hidden="true" />
@@ -448,7 +600,7 @@ const Landing = () => {
       <section className="relative overflow-hidden py-20">
         <div className="absolute inset-0 bg-rudi-maroon" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
+          <AnimatedSection reduceMotion={shouldReduceMotion}>
             <div className="max-w-2xl">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-white/80">
                 Operating system
@@ -463,7 +615,7 @@ const Landing = () => {
           </AnimatedSection>
           <div className="mt-12 grid gap-8 lg:grid-cols-3">
             {operatingHighlights.map((item, index) => (
-              <AnimatedSection key={item.title} delay={0.1 * index}>
+              <AnimatedSection key={item.title} delay={0.1 * index} reduceMotion={shouldReduceMotion}>
                 <div className="h-full rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_30px_80px_-40px_rgba(255,255,255,0.45)] backdrop-blur">
                   <div className="inline-flex items-center justify-center rounded-2xl bg-white/10 p-3 text-white">
                     <item.icon className="h-6 w-6" aria-hidden="true" />
@@ -479,7 +631,7 @@ const Landing = () => {
 
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
+          <AnimatedSection reduceMotion={shouldReduceMotion}>
             <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-center">
               <div>
                 <span className="inline-flex items-center rounded-full bg-rudi-teal/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-rudi-teal">
@@ -510,7 +662,7 @@ const Landing = () => {
 
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
+          <AnimatedSection reduceMotion={shouldReduceMotion}>
             <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
               <div className="rounded-[32px] border border-rudi-teal/20 bg-white p-8 shadow-[0_25px_50px_-30px_rgba(0,150,136,0.65)]">
                 <div className="flex items-center gap-3">
@@ -543,37 +695,7 @@ const Landing = () => {
                   Tap the card to award a stamp. Once customers reach 10, they unlock a personalised reward and staff
                   receive a real-time celebration alert.
                 </p>
-                <div className="mt-8 flex justify-center">
-                  <div className="grid grid-cols-5 gap-2">
-                    {Array.from({ length: 10 }, (_, i) => (
-                      <motion.div
-                        key={i}
-                        className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ${
-                          i < demoStamps ? 'bg-rudi-teal text-white border-rudi-teal' : 'border-rudi-maroon/20 bg-white'
-                        }`}
-                        animate={i < demoStamps && !shouldReduceMotion ? { scale: [1, 1.15, 1] } : undefined}
-                        transition={{ duration: 0.4 }}
-                      >
-                        {i < demoStamps ? <CheckCircle className="h-5 w-5" /> : i + 1}
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-8 flex flex-wrap gap-4">
-                  <button
-                    onClick={addStamp}
-                    disabled={demoStamps >= 10}
-                    className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-rudi-teal px-5 font-medium text-white shadow-md shadow-rudi-teal/25 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-rudi-teal/40 disabled:text-white/70"
-                  >
-                    {demoStamps >= 10 ? 'Reward unlocked!' : 'Tap to add a stamp'}
-                  </button>
-                  <button
-                    onClick={() => setDemoStamps(0)}
-                    className="flex h-11 items-center justify-center rounded-2xl border border-rudi-maroon/20 px-5 text-sm font-semibold text-rudi-maroon transition hover:bg-rudi-sand"
-                  >
-                    Reset demo
-                  </button>
-                </div>
+                <DemoStampCard />
               </div>
             </div>
           </AnimatedSection>
@@ -582,7 +704,7 @@ const Landing = () => {
 
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
+          <AnimatedSection reduceMotion={shouldReduceMotion}>
             <div className="max-w-2xl text-center mx-auto">
               <span className="inline-flex items-center rounded-full bg-rudi-coral/20 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-rudi-coral">
                 Stories from the community
@@ -595,7 +717,7 @@ const Landing = () => {
 
           <div className="mt-12 grid gap-8 md:grid-cols-3">
             {testimonialData.map((testimonial, index) => (
-              <AnimatedSection key={testimonial.name} delay={0.1 * index}>
+              <AnimatedSection key={testimonial.name} delay={0.1 * index} reduceMotion={shouldReduceMotion}>
                 <div className="flex h-full flex-col rounded-3xl bg-white p-8 shadow-[0_25px_60px_-40px_rgba(59,31,30,0.65)]">
                   <div className="flex items-center gap-3">
                     <div className={`flex h-12 w-12 items-center justify-center rounded-full font-heading text-sm font-semibold ${testimonial.color}`}>
@@ -623,7 +745,7 @@ const Landing = () => {
 
       <section className="py-16 sm:py-20 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
+          <AnimatedSection reduceMotion={shouldReduceMotion}>
             <div className="max-w-2xl text-center mx-auto">
               <span className="inline-flex items-center rounded-full bg-rudi-yellow/30 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-rudi-maroon/80">
                 Pricing
@@ -639,7 +761,7 @@ const Landing = () => {
 
           <div className="mt-12 grid gap-8 lg:grid-cols-3">
             {pricingPlans.map((plan, index) => (
-              <AnimatedSection key={plan.title} delay={0.1 * index}>
+              <AnimatedSection key={plan.title} delay={0.1 * index} reduceMotion={shouldReduceMotion}>
                 <div
                   className={`flex h-full flex-col rounded-3xl border p-8 ${
                     plan.highlighted
@@ -688,7 +810,7 @@ const Landing = () => {
 
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
+          <AnimatedSection reduceMotion={shouldReduceMotion}>
             <div className="rounded-[32px] border border-rudi-maroon/15 bg-white p-10 shadow-[0_35px_70px_-30px_rgba(59,31,30,0.55)]">
               <div className="flex flex-col gap-6 text-center sm:text-left sm:flex-row sm:items-center sm:justify-between">
                 <div className="max-w-md">
@@ -723,49 +845,7 @@ const Landing = () => {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 bg-white">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
-            <div className="text-center">
-              <span className="inline-flex items-center rounded-full bg-rudi-teal/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-rudi-teal">
-                FAQs
-              </span>
-              <h2 className="mt-4 font-heading text-3xl text-rudi-maroon sm:text-4xl">Questions we hear often</h2>
-            </div>
-          </AnimatedSection>
-
-          <div className="mt-10 space-y-4">
-            {faqItems.map((item, index) => (
-              <AnimatedSection key={item.question} delay={0.05 * index}>
-                <div className="overflow-hidden rounded-2xl border border-rudi-maroon/15 bg-white shadow-[0_20px_50px_-35px_rgba(59,31,30,0.65)]">
-                  <button
-                    onClick={() => toggleFaq(index)}
-                    className="flex w-full items-center justify-between px-6 py-4 text-left focus:outline-none"
-                  >
-                    <span className="font-heading text-lg text-rudi-maroon">{item.question}</span>
-                    {faqOpen === index ? (
-                      <ChevronUp className="h-5 w-5 text-rudi-maroon" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-rudi-maroon" />
-                    )}
-                  </button>
-                  <motion.div
-                    initial={false}
-                    animate={faqOpen === index ? 'open' : 'collapsed'}
-                    variants={{
-                      open: { height: 'auto', opacity: 1 },
-                      collapsed: { height: 0, opacity: 0 },
-                    }}
-                    transition={{ duration: shouldReduceMotion ? 0 : 0.3 }}
-                  >
-                    <div className="px-6 pb-6 text-sm text-rudi-maroon/70">{item.answer}</div>
-                  </motion.div>
-                </div>
-              </AnimatedSection>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FAQSection items={faqItems} reduceMotion={shouldReduceMotion} />
 
       <footer className="bg-card py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

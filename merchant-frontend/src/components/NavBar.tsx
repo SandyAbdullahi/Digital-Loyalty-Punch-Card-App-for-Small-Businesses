@@ -51,12 +51,20 @@ const NavBar = () => {
              </div>
             <div className="hidden md:block">
                <div className="ml-10 flex items-baseline space-x-4">
-                 <a href="#how-it-works" className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
+                 <button
+                   type="button"
+                   onClick={() => navigate('/how-it-works')}
+                   className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                 >
                    How it works
-                 </a>
-                 <a href="#for-merchants" className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => navigate('/for-merchants')}
+                   className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                 >
                    For Merchants
-                 </a>
+                 </button>
                  <a href="#pricing" className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
                    Pricing
                  </a>
@@ -115,12 +123,15 @@ const NavBar = () => {
         hiddenFrom="md"
       >
         <Stack gap="md">
-          <Anchor href="#how-it-works" onClick={closeDrawer}>
+          <Button
+            variant="subtle"
+            onClick={() => {
+              navigate('/how-it-works')
+              closeDrawer()
+            }}
+          >
             How it works
-          </Anchor>
-          <Anchor href="#for-merchants" onClick={closeDrawer}>
-            For Merchants
-          </Anchor>
+          </Button>
           <Anchor href="#pricing" onClick={closeDrawer}>
             Pricing
           </Anchor>
@@ -133,6 +144,15 @@ const NavBar = () => {
           <Divider />
           <Button onClick={toggleTheme} variant="subtle" leftSection={isDark ? <Sun size={20} /> : <Moon size={20} />}>
             Toggle Theme
+          </Button>
+          <Button
+            onClick={() => {
+              navigate('/for-merchants')
+              closeDrawer()
+            }}
+            variant="subtle"
+          >
+            For Merchants
           </Button>
            <Button onClick={() => { navigate('/get-app'); closeDrawer(); }} variant="filled" color="primary" className="custom-nav-button">
              Get the App

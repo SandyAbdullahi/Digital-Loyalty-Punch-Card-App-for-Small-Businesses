@@ -18,6 +18,8 @@ import Locations from './pages/Locations'
 import GetStarted from './pages/GetStarted'
 import GetApp from './pages/GetApp'
 import DemoDashboard from './pages/DemoDashboard'
+import HowItWorks from './pages/HowItWorks'
+import ForMerchants from './pages/ForMerchants'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -43,6 +45,8 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/for-merchants" element={<ForMerchants />} />
         <Route path="/get-started" element={<GetStarted />} />
         <Route path="/get-app" element={<GetApp />} />
         <Route path="/demo" element={<DemoDashboard />} />
