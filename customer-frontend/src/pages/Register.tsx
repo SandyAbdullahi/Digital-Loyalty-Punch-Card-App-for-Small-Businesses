@@ -1,32 +1,57 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Alert, Button, Paper, Stack, TextInput } from "@mantine/core";
+import {
+  ArrowNarrowRight,
+  Gift01,
+  Lock01,
+  Mail01,
+  ShieldTick,
+  Star05,
+} from "@untitled-ui/icons-react";
 import Logo from "../components/Logo";
 import { useAuth } from "../contexts/AuthContext";
 
-const containerStyle: React.CSSProperties = {
+const containerStyle: CSSProperties = {
   minHeight: "100vh",
-  backgroundColor: "#F5F5F5",
   display: "flex",
   flexDirection: "column",
+  background:
+    "radial-gradient(circle at top left, #E0FFF5 0%, transparent 55%), linear-gradient(135deg, #FFFFFF 0%, #F5F7FB 100%)",
 };
 
-const contentWrapperStyle: React.CSSProperties = {
+const contentWrapperStyle: CSSProperties = {
   flex: 1,
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  padding: "1rem",
+  padding: "1.5rem",
 };
 
-const cardStyle: React.CSSProperties = {
+const cardStyle: CSSProperties = {
   width: "100%",
   maxWidth: "28rem",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
+  gap: "1.5rem",
 };
+
+const benefitItems = [
+  {
+    icon: <ShieldTick style={{ width: 20, height: 20, color: "#00A47A" }} />,
+    text: "Collect verified stamps in seconds—no flimsy paper cards.",
+  },
+  {
+    icon: <Gift01 style={{ width: 20, height: 20, color: "#FFB300" }} />,
+    text: "Unlock irresistible rewards tailored to loyal guests.",
+  },
+  {
+    icon: <Lock01 style={{ width: 20, height: 20, color: "#3B1F1E" }} />,
+    text: "Bank-grade security keeps every account safe.",
+  },
+];
 
 const Register = () => {
   const { register } = useAuth();
@@ -35,7 +60,6 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-                    {isSubmitting ? "Creating..." : "Create account"}
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -45,9 +69,7 @@ const Register = () => {
       await register(email, password, "customer");
       navigate("/dashboard");
     } catch (err: any) {
-      const message =
-        err?.response?.data?.detail ??
-        "We could not create your account. Try again.";
+      const message = err?.response?.data?.detail ?? "We could not create your account. Try again.";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -55,103 +77,109 @@ const Register = () => {
   };
 
   return (
-    <>
-      <style>
-        {`
-          @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-          }
-        `}
-      </style>
-      <div style={{
-        ...containerStyle,
-        backgroundImage: 'linear-gradient(45deg, #00C896, #2196F3, #F5F5F5)',
-        backgroundSize: '400% 400%',
-        animation: 'gradientShift 5s ease infinite',
-      }}>
+    <div style={containerStyle}>
       <div style={contentWrapperStyle}>
         <div style={cardStyle}>
           <Logo
             size="xl"
-            style={{
-              transform: "scale(4.8)",
-              transformOrigin: "center",
-              marginTop: "4rem",
-              marginBottom: "2rem",
-            }}
+            style={{ transform: "scale(4.2)", transformOrigin: "center", marginTop: "3rem", marginBottom: "1.5rem" }}
           />
-          <h2
-            style={{
-              fontFamily: "Poppins",
-              fontWeight: "bold",
-              fontSize: "clamp(3rem, 4.8vw, 3.6rem)",
-              marginTop: 0,
-              marginBottom: "1.5rem",
-              color: "#1A1A1A",
-            }}
-          >
-            rudi
-          </h2>
+          <div style={{ textAlign: "center" }}>
+            <h2
+              style={{
+                fontFamily: "Poppins",
+                fontWeight: 700,
+                fontSize: "clamp(2.75rem, 4.5vw, 3.5rem)",
+                color: "#1A1A1A",
+                margin: 0,
+              }}
+            >
+              rudi
+            </h2>
+            <p style={{ marginTop: "0.5rem", color: "#39424E", opacity: 0.8, fontSize: "0.95rem" }}>
+              Trusted by cafes, salons, and local retailers to spark joyful loyalty moments.
+            </p>
+          </div>
+
           <Paper
             shadow="md"
             radius="xl"
             p={{ base: "md", md: "lg" }}
-            style={{ width: "100%", borderRadius: "1rem" }}
+            style={{ width: "100%", borderRadius: "1.25rem", border: "1px solid #EEF1F6" }}
           >
-            <h3
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: "bold",
-                color: "#1A1A1A",
-                textAlign: "center",
-                marginBottom: "1rem",
-              }}
-            >
-              Register
-            </h3>
+            <header style={{ textAlign: "center", marginBottom: "1rem" }}>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  backgroundColor: "#E6FCF5",
+                  color: "#008566",
+                  borderRadius: "999px",
+                  padding: "0.35rem 0.85rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                }}
+              >
+                <Star05 className="h-4 w-4" /> Seamless check-ins, verified rewards
+              </div>
+              <h3
+                style={{
+                  fontSize: "1.5rem",
+                  fontWeight: 700,
+                  color: "#1A1A1A",
+                  marginTop: "1rem",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                Create your account
+              </h3>
+              <p style={{ margin: 0, color: "#5B6473", fontSize: "0.9rem" }}>
+                Join thousands of customers collecting stamps and unlocking rewards.
+              </p>
+            </header>
+
             <form onSubmit={handleSubmit} noValidate>
               <Stack gap="md">
                 <TextInput
-                  placeholder="Email"
+                  placeholder="you@example.com"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"
                   required
+                  leftSection={<Mail01 className="h-4 w-4 text-[#666666]" />}
                   styles={{
                     input: {
-                      height: "3rem",
-                      borderRadius: "0.75rem",
+                      height: "3.1rem",
+                      borderRadius: "0.85rem",
                       backgroundColor: "#FFFFFF",
-                      borderColor: "#E0E0E0",
+                      borderColor: "#E0E6F0",
                       color: "#1A1A1A",
-                      fontWeight: 600,
-                      paddingLeft: "1rem",
-                      paddingRight: "1rem",
-                      transition: "all 200ms ease",
+                      fontWeight: 500,
+                      paddingLeft: "2.75rem",
+                      transition: "border-color 200ms ease, box-shadow 200ms ease",
                     },
                   }}
                 />
                 <TextInput
-                  placeholder="Password"
+                  placeholder="********"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete="new-password"
                   required
+                  leftSection={<Lock01 className="h-4 w-4 text-[#666666]" />}
                   styles={{
                     input: {
-                      height: "3rem",
-                      borderRadius: "0.75rem",
+                      height: "3.1rem",
+                      borderRadius: "0.85rem",
                       backgroundColor: "#FFFFFF",
-                      borderColor: "#E0E0E0",
+                      borderColor: "#E0E6F0",
                       color: "#1A1A1A",
-                      fontWeight: 600,
-                      paddingLeft: "1rem",
-                      paddingRight: "1rem",
-                      transition: "all 200ms ease",
+                      fontWeight: 500,
+                      paddingLeft: "2.75rem",
+                      transition: "border-color 200ms ease, box-shadow 200ms ease",
                     },
                   }}
                 />
@@ -166,27 +194,32 @@ const Register = () => {
                     loading={isSubmitting}
                     fullWidth
                     size="md"
-                    style={{
-                      height: "3rem",
-                      borderRadius: "0.75rem",
-                      backgroundColor: "#00C896",
-                      transition: "all 200ms ease",
+                    rightSection={<ArrowNarrowRight className="h-4 w-4" />}
+                    styles={{
+                      root: {
+                        height: "3.1rem",
+                        borderRadius: "0.85rem",
+                        backgroundColor: "#00C896",
+                        fontWeight: 600,
+                      },
                     }}
                   >
-                     {isSubmitting ? "Creating..." : "Create account"}
+                    {isSubmitting ? "Creating your account..." : "Create account"}
                   </Button>
                   <Button
                     type="button"
                     onClick={() => navigate("/")}
-                    variant="filled"
+                    variant="outline"
                     fullWidth
                     size="md"
-                    style={{
-                      height: "3rem",
-                      borderRadius: "0.75rem",
-                      backgroundColor: "#2196F3",
-                      color: "white",
-                      transition: "all 200ms ease",
+                    styles={{
+                      root: {
+                        height: "3.1rem",
+                        borderRadius: "0.85rem",
+                        borderColor: "#2196F3",
+                        color: "#2196F3",
+                        fontWeight: 600,
+                      },
                     }}
                   >
                     Back to login
@@ -195,78 +228,52 @@ const Register = () => {
               </Stack>
             </form>
           </Paper>
+
           <div
             style={{
-              textAlign: "center",
+              width: "100%",
               marginTop: "1.5rem",
+              backgroundColor: "#FFFFFF",
+              borderRadius: "1rem",
+              border: "1px solid #EEF1F6",
+              padding: "1rem 1.25rem",
               display: "flex",
               flexDirection: "column",
-              gap: "0.5rem",
-              alignItems: "center",
+              gap: "0.75rem",
             }}
           >
-             <Link
-               to="/how-it-works"
-               style={{
-                 fontSize: "0.875rem",
-                 color: "#1A1A1A",
-                 textDecoration: "none",
-                 fontWeight: "bold",
-                 display: "inline-flex",
-                 alignItems: "center",
-                 gap: "0.5rem",
-               }}
-             >
-               <span
-                 style={{
-                   backgroundColor: "#FF5252",
-                   borderRadius: "50%",
-                   width: "1rem",
-                   height: "1rem",
-                   display: "flex",
-                   alignItems: "center",
-                   justifyContent: "center",
-                   fontSize: "0.75rem",
-                   fontWeight: "bold",
-                   color: "white",
-                 }}
-               >
-                 !
-               </span>
-               How it works
-             </Link>
-             <Link
-               to="/terms"
-               style={{
-                 fontSize: "0.875rem",
-                 color: "#1A1A1A",
-                 textDecoration: "none",
-                 fontWeight: "bold",
-               }}
-             >
-               Terms and Conditions
-             </Link>
+            {benefitItems.map((item) => (
+              <div key={item.text} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                {item.icon}
+                <span style={{ fontSize: "0.9rem", color: "#1A1A1A" }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: "1rem" }}>
+            <Link
+              to="/how-it-works"
+              style={{ fontSize: "0.85rem", color: "#1A1A1A", textDecoration: "none", fontWeight: "bold" }}
+            >
+              Explore how Rudi works <ArrowNarrowRight className="inline h-4 w-4 align-middle" />
+            </Link>
           </div>
         </div>
-         <footer
-           style={{
-             position: "fixed",
-             bottom: 0,
-             left: 0,
-             right: 0,
-             textAlign: "center",
-             fontSize: "0.75rem",
-             color: "#1A1A1A",
-             opacity: 0.6,
-             padding: "1rem",
-           }}
-         >
-           © 2025 Rudi. All rights reserved.
-        </footer>
       </div>
+      <footer
+        style={{
+          textAlign: "center",
+          fontSize: "0.75rem",
+          color: "#1A1A1A",
+          opacity: 0.6,
+          padding: "1rem",
+        }}
+      >
+        Copyright 2025 Rudi. All rights reserved.
+      </footer>
     </div>
-    </>
   );
 };
 
 export default Register;
+

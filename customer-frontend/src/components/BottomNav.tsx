@@ -1,25 +1,27 @@
 import { Link, useLocation } from 'react-router-dom';
+import { Gift01, Home02, User01 } from '@untitled-ui/icons-react';
+import type { ReactNode } from 'react';
 
 interface NavItem {
   label: string;
-  icon: string;
+  icon: ReactNode;
   to: string;
 }
 
 const navItems: NavItem[] = [
   {
     label: 'Home',
-    icon: '🏠',
+    icon: <Home02 className="h-5 w-5" />,
     to: '/dashboard',
   },
   {
     label: 'Rewards',
-    icon: '🎁',
+    icon: <Gift01 className="h-5 w-5" />,
     to: '/rewards',
   },
   {
     label: 'Profile',
-    icon: '👤',
+    icon: <User01 className="h-5 w-5" />,
     to: '/profile',
   },
 ];
@@ -45,7 +47,14 @@ export const BottomNav = () => {
                 color: isActive ? 'var(--rudi-primary)' : 'var(--rudi-text)',
               }}
             >
-              <span className="text-2xl">{item.icon}</span>
+              <span
+                className="flex h-9 w-9 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: isActive ? 'rgba(0, 200, 150, 0.12)' : 'transparent',
+                }}
+              >
+                {item.icon}
+              </span>
               <span className="text-xs mt-1">{item.label}</span>
             </Link>
           );

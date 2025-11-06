@@ -1,18 +1,26 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Alert, Anchor, Button, Paper, Stack, TextInput } from "@mantine/core";
-import { Mail01, Lock01, ArrowNarrowRight, Stars02, Award02, ShieldTick } from "@untitled-ui/icons-react";
+import {
+  ArrowNarrowRight,
+  Gift01,
+  Lock01,
+  Mail01,
+  ShieldTick,
+  Star05,
+} from "@untitled-ui/icons-react";
 import Logo from "../components/Logo";
 import { useAuth } from "../contexts/AuthContext";
 
-const containerStyle: React.CSSProperties = {
+const containerStyle: CSSProperties = {
   minHeight: "100vh",
   display: "flex",
   flexDirection: "column",
-  background: "radial-gradient(circle at top left, #E0FFF5 0%, transparent 55%), linear-gradient(135deg, #FFFFFF 0%, #F5F7FB 100%)",
+  background:
+    "radial-gradient(circle at top left, #E0FFF5 0%, transparent 55%), linear-gradient(135deg, #FFFFFF 0%, #F5F7FB 100%)",
 };
 
-const contentWrapperStyle: React.CSSProperties = {
+const contentWrapperStyle: CSSProperties = {
   flex: 1,
   display: "flex",
   flexDirection: "column",
@@ -21,7 +29,7 @@ const contentWrapperStyle: React.CSSProperties = {
   padding: "1.5rem",
 };
 
-const cardStyle: React.CSSProperties = {
+const cardStyle: CSSProperties = {
   width: "100%",
   maxWidth: "28rem",
   display: "flex",
@@ -29,6 +37,21 @@ const cardStyle: React.CSSProperties = {
   alignItems: "center",
   gap: "1.5rem",
 };
+
+const benefitItems = [
+  {
+    icon: <ShieldTick style={{ width: 20, height: 20, color: "#00A47A" }} />,
+    text: "Collect verified stamps in secondsâ€”no flimsy paper cards.",
+  },
+  {
+    icon: <Gift01 style={{ width: 20, height: 20, color: "#FFB300" }} />,
+    text: "Unlock irresistible rewards tailored to loyal guests.",
+  },
+  {
+    icon: <Lock01 style={{ width: 20, height: 20, color: "#3B1F1E" }} />,
+    text: "Bank-grade security keeps every account safe.",
+  },
+];
 
 const Login = () => {
   const navigate = useNavigate();
@@ -98,7 +121,7 @@ const Login = () => {
                   fontWeight: 600,
                 }}
               >
-                <Stars02 width={16} height={16} strokeWidth={1.8} /> Seamless check-ins, verified rewards
+                <Star05 className="h-4 w-4" /> Seamless check-ins, verified rewards
               </div>
               <h3
                 style={{
@@ -125,7 +148,7 @@ const Login = () => {
                   onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"
                   required
-                  leftSection={<Mail01 width={18} height={18} strokeWidth={1.8} />}
+                  leftSection={<Mail01 className="h-4 w-4 text-[#666666]" />}
                   styles={{
                     input: {
                       height: "3.1rem",
@@ -140,13 +163,13 @@ const Login = () => {
                   }}
                 />
                 <TextInput
-                  placeholder="••••••••"
+                  placeholder="********"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete="current-password"
                   required
-                  leftSection={<Lock01 width={18} height={18} strokeWidth={1.8} />}
+                  leftSection={<Lock01 className="h-4 w-4 text-[#666666]" />}
                   styles={{
                     input: {
                       height: "3.1rem",
@@ -181,7 +204,7 @@ const Login = () => {
                     loading={isSubmitting}
                     fullWidth
                     size="md"
-                    rightSection={<ArrowNarrowRight width={18} height={18} />}
+                    rightSection={<ArrowNarrowRight className="h-4 w-4" />}
                     styles={{
                       root: {
                         height: "3.1rem",
@@ -229,24 +252,12 @@ const Login = () => {
               gap: "0.75rem",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <Stars02 width={18} height={18} strokeWidth={1.8} color="#F97316" />
-              <span style={{ fontSize: "0.9rem", color: "#1A1A1A" }}>
-                Collect verified stamps in seconds—no flimsy paper cards.
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <Award02 width={18} height={18} strokeWidth={1.8} color="#0091FF" />
-              <span style={{ fontSize: "0.9rem", color: "#1A1A1A" }}>
-                Unlock irresistible rewards tailored to loyal guests.
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <ShieldTick width={18} height={18} strokeWidth={1.8} color="#12A150" />
-              <span style={{ fontSize: "0.9rem", color: "#1A1A1A" }}>
-                Bank-grade security keeps every account safe.
-              </span>
-            </div>
+            {benefitItems.map((item) => (
+              <div key={item.text} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                {item.icon}
+                <span style={{ fontSize: "0.9rem", color: "#1A1A1A" }}>{item.text}</span>
+              </div>
+            ))}
           </div>
 
           <div style={{ textAlign: "center", marginTop: "1rem" }}>
@@ -254,7 +265,7 @@ const Login = () => {
               to="/how-it-works"
               style={{ fontSize: "0.85rem", color: "#1A1A1A", textDecoration: "none", fontWeight: "bold" }}
             >
-              Explore how Rudi works ?
+              Explore how Rudi works <ArrowNarrowRight className="inline h-4 w-4 align-middle" />
             </Link>
           </div>
         </div>
@@ -268,10 +279,11 @@ const Login = () => {
           padding: "1rem",
         }}
       >
-        © 2025 Rudi. All rights reserved.
+        Copyright 2025 Rudi. All rights reserved.
       </footer>
     </div>
   );
 };
 
 export default Login;
+

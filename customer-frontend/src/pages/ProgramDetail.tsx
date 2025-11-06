@@ -204,10 +204,17 @@ const ProgramDetail = () => {
     );
   }
 
+  // Parse earn_rule and redeem_rule if they are strings
+  const earnRule = membership.program?.earn_rule;
+  const parsedEarnRule = typeof earnRule === 'string' ? JSON.parse(earnRule) : earnRule;
+
+  const redeemRule = membership.program?.redeem_rule;
+  const parsedRedeemRule = typeof redeemRule === 'string' ? JSON.parse(redeemRule) : redeemRule;
+
   const rawThreshold =
-    membership.program?.earn_rule?.stamps_needed ??
-    membership.program?.redeem_rule?.reward_threshold ??
-    membership.program?.redeem_rule?.max_value ??
+    parsedEarnRule?.stamps_needed ??
+    parsedRedeemRule?.reward_threshold ??
+    parsedRedeemRule?.max_value ??
     10;
   const redeemAmount = Math.max(1, rawThreshold);
   const canRedeem = membership.current_balance >= redeemAmount;
