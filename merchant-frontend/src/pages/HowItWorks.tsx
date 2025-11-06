@@ -7,6 +7,7 @@ import {
   Users01,
   Award02,
 } from '@untitled-ui/icons-react'
+import Footer from '../components/Footer'
 
 const merchantJourney = [
   {
@@ -180,6 +181,7 @@ const HowItWorks = () => {
           </div>
         </div>
       </section>
+      <Footer />
     </main>
   )
 }

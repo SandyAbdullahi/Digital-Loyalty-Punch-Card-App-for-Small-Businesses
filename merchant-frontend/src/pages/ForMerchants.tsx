@@ -8,6 +8,7 @@ import {
   Stars02,
 } from '@untitled-ui/icons-react'
 import NavBar from '../components/NavBar'
+import Footer from '../components/Footer'
 
 const capabilityCards = [
   {
@@ -225,6 +226,7 @@ const ForMerchants = () => {
           </div>
         </div>
       </section>
+      <Footer />
     </main>
   )
 }

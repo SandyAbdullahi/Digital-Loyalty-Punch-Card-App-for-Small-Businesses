@@ -50,14 +50,21 @@ const NavBar = () => {
                 </div>
              </div>
             <div className="hidden md:block">
-               <div className="ml-10 flex items-baseline space-x-4">
-                 <button
-                   type="button"
-                   onClick={() => navigate('/how-it-works')}
-                   className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                 >
-                   How it works
-                 </button>
+                <div className="ml-10 flex items-baseline space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/')}
+                    className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    Home
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/how-it-works')}
+                    className="text-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    How it works
+                  </button>
                  <button
                    type="button"
                    onClick={() => navigate('/for-merchants')}
@@ -123,6 +130,15 @@ const NavBar = () => {
         hiddenFrom="md"
       >
         <Stack gap="md" align="center">
+          <Button
+            variant="subtle"
+            onClick={() => {
+              navigate('/')
+              closeDrawer()
+            }}
+          >
+            Home
+          </Button>
           <Button
             variant="subtle"
             onClick={() => {
