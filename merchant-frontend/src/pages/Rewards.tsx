@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Button } from '@rudi/ui';
+import { formatApiDate } from '../utils/date';
+import { useWebSocket } from '../contexts/WebSocketContext';
 
 type RewardStatus = 'claimed' | 'redeemed' | 'expired';
 
@@ -24,17 +26,18 @@ const pillStyles: Record<RewardStatus, string> = {
 const Rewards = () => {
   const [rewards, setRewards] = useState<RewardRecord[]>([]);
   const [loadingCode, setLoadingCode] = useState<string | null>(null);
+  const { redeemNotifications, markRedeemNotificationAsRead } = useWebSocket();
 
   const fetchRewards = async () => {
     try {
       const response = await axios.get('/api/v1/merchants/rewards');
       if (Array.isArray(response.data)) {
         setRewards(
-          response.data.map((reward: any) => ({
+          response.data.map((reward: Record<string, unknown>) => ({
             id: reward.id ?? crypto.randomUUID(),
             program: reward.program ?? 'Program name',
             customer: reward.customer ?? 'Guest',
-            date: reward.date ?? new Date().toLocaleString(),
+            date: reward.created_at ?? reward.date ?? null,
             status: (reward.status ?? 'claimed') as RewardStatus,
             amount: reward.amount,
             code: reward.code ?? undefined,
@@ -78,6 +81,38 @@ const Rewards = () => {
         </p>
       </div>
 
+      {/* Pending Redeem Notifications */}
+      {redeemNotifications.filter(n => !n.read).length > 0 && (
+        <div className="rounded-3xl bg-gradient-to-r from-rudi-yellow/10 to-rudi-teal/10 border border-rudi-yellow/20 p-6">
+          <h2 className="font-heading text-xl font-semibold text-rudi-maroon mb-4">
+            🔔 Pending Redeem Requests
+          </h2>
+          <div className="space-y-3">
+            {redeemNotifications.filter(n => !n.read).map((notification) => (
+              <div key={notification.id} className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm">
+                <div className="flex-1">
+                  <p className="font-semibold text-rudi-maroon">
+                    {notification.customer_name} wants to redeem {notification.stamps_redeemed} stamps
+                  </p>
+                  <p className="text-sm text-rudi-maroon/70">
+                    Program: {notification.program_name}
+                  </p>
+                  <p className="text-xs text-rudi-maroon/60 font-mono">
+                    Code: {notification.code}
+                  </p>
+                </div>
+                <Button
+                  className="btn-primary h-8 px-3 text-xs"
+                  onClick={() => markRedeemNotificationAsRead(notification.id)}
+                >
+                  Mark as Seen
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {rewards.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-3xl bg-white p-10 text-center shadow-rudi-card">
           <div className="h-20 w-20 rounded-full bg-rudi-yellow/30" />
@@ -113,7 +148,9 @@ const Rewards = () => {
                   )}
                 </div>
                 <div className="hidden md:block">{reward.customer}</div>
-                <div className="text-sm text-rudi-maroon/70">{reward.date}</div>
+                <div className="text-sm text-rudi-maroon/70">
+                  {formatApiDate(reward.date, undefined, '—')}
+                </div>
                 <div className="font-semibold">{reward.amount || '1'}</div>
                 <span
                   className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold ${pillStyles[reward.status]}`}
@@ -128,7 +165,11 @@ const Rewards = () => {
                       </span>
                       {reward.expiresAt && (
                         <span className="text-[11px] text-rudi-maroon/60">
-                          Expires at: {new Date(reward.expiresAt).toLocaleTimeString()}
+                          Expires at:{' '}
+                          {formatApiDate(reward.expiresAt, {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })}
                         </span>
                       )}
                       <Button
@@ -137,7 +178,7 @@ const Rewards = () => {
                         onClick={() => redeemCode(reward.code!)}
                         disabled={loadingCode === reward.code}
                       >
-                        {loadingCode === reward.code ? 'Confirming…' : 'Mark redeemed'}
+                        {loadingCode === reward.code ? 'Confirming...' : 'Mark redeemed'}
                       </Button>
                     </>
                   ) : (

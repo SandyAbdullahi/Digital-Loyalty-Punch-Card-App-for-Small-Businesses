@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { BottomNav } from '../components/BottomNav';
+import { formatApiDate } from '../utils/date';
 
 type RewardStatus = 'claimed' | 'redeemed' | 'expired';
 
@@ -58,10 +59,12 @@ const Rewards = () => {
   }), [rewards]);
 
   const renderReward = (reward: RewardRecord) => {
-    const issuedOn = new Date(reward.created_at);
-    const expiresOn = reward.expires_at ? new Date(reward.expires_at) : null;
-    const usedOn = reward.used_at ? new Date(reward.used_at) : null;
+    const issuedOn = formatApiDate(reward.created_at, undefined, '');
+    const expiresOn = formatApiDate(reward.expires_at, undefined, '');
+    const usedOn = formatApiDate(reward.used_at, undefined, '');
     const rewardLabel = reward.reward_description?.trim() || reward.program_name || 'Reward';
+    const merchantLabel = reward.merchant_name ?? 'Merchant';
+    const issuedLabel = issuedOn ? `${merchantLabel}: ${issuedOn}` : merchantLabel;
     const stampsLabel =
       typeof reward.stamps_redeemed === 'number'
         ? `Stamps used: ${reward.stamps_redeemed}`
@@ -74,9 +77,7 @@ const Rewards = () => {
             <h3 className="font-heading text-lg font-semibold">
               {reward.program_name ?? 'Programme reward'}
             </h3>
-            <p className="text-xs text-[var(--rudi-text)]/60">
-              {(reward.merchant_name ?? 'Merchant') + ': ' + issuedOn.toLocaleString()}
-            </p>
+            <p className="text-xs text-[var(--rudi-text)]/60">{issuedLabel}</p>
           </div>
           <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[reward.status]}`}>
             {statusLabel[reward.status]}
@@ -89,10 +90,10 @@ const Rewards = () => {
           <span>Reward: {rewardLabel}</span>
           <span>{stampsLabel}</span>
           {reward.status === 'claimed' && expiresOn && (
-            <span>Expires {expiresOn.toLocaleString()}</span>
+            <span>Expires {expiresOn}</span>
           )}
           {reward.status === 'redeemed' && usedOn && (
-            <span>Redeemed {usedOn.toLocaleString()}</span>
+            <span>Redeemed {usedOn}</span>
           )}
         </div>
       </article>
