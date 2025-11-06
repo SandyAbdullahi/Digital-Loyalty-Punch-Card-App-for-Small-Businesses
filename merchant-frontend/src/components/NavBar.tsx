@@ -162,7 +162,7 @@ const NavBar = () => {
           </Button>
         </Stack>
         <Divider mt="md" />
-        <p style={{ fontSize: '0.75rem', color: 'var(--mantine-color-dimmed)' }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--mantine-color-dimmed)', textAlign: 'center' }}>
           © {new Date().getFullYear()} Rudi • Earn. Return. Reward.
         </p>
       </Drawer>
