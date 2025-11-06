@@ -122,7 +122,7 @@ const NavBar = () => {
         }
         hiddenFrom="md"
       >
-        <Stack gap="md" justify="center">
+        <Stack gap="md" align="center">
           <Button
             variant="subtle"
             onClick={() => {
