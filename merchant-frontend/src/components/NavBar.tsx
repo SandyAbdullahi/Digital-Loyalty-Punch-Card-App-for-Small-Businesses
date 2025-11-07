@@ -49,8 +49,8 @@ const NavBar = () => {
                   </a>
                 </div>
              </div>
-            <div className="hidden md:block">
-                <div className="ml-10 flex items-baseline space-x-4">
+             <div className="hidden md:block">
+                <div className="ml-10 flex items-baseline space-x-2 lg:space-x-4">
                   <button
                     type="button"
                     onClick={() => navigate('/')}
@@ -83,7 +83,7 @@ const NavBar = () => {
                  </a>
                </div>
             </div>
-             <Group gap="xs" visibleFrom="md">
+              <Group gap="xs" visibleFrom="md" className="flex-shrink-0">
                <Button
                  onClick={toggleTheme}
                  variant="subtle"
@@ -92,24 +92,26 @@ const NavBar = () => {
                >
                  {isDark ? <Sun size={20} /> : <Moon size={20} />}
                </Button>
+                 <Button
+                   onClick={() => navigate('/get-app')}
+                   variant="filled"
+                   color="primary"
+                   size="xs"
+                   className="custom-nav-button lg:size-sm"
+                 >
+                   <span className="hidden lg:inline">Get the App</span>
+                   <span className="lg:hidden">Get App</span>
+                 </Button>
                 <Button
-                  onClick={() => navigate('/get-app')}
+                  onClick={() => navigate('/login')}
                   variant="filled"
-                  color="primary"
-                  size="sm"
-                  className="custom-nav-button"
+                  color="secondary"
+                  size="xs"
+                  className="custom-nav-button lg:size-sm"
                 >
-                  Get the App
+                  <span className="hidden lg:inline">Merchant Login</span>
+                  <span className="lg:hidden">Login</span>
                 </Button>
-               <Button
-                 onClick={() => navigate('/login')}
-                 variant="filled"
-                 color="secondary"
-                 size="sm"
-                 className="custom-nav-button"
-               >
-                 Merchant Login
-               </Button>
              </Group>
              <Burger opened={drawerOpened} onClick={toggleDrawer} hiddenFrom="md" size="sm" />
           </div>
