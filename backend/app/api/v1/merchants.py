@@ -1,6 +1,6 @@
 import os
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List
 from uuid import UUID
@@ -285,7 +285,9 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
 
         expires_at = code.expires_at
         if expires_at is not None and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            # Database times are stored in server local time, assume UTC+3 and convert to UTC
+            utc_time = expires_at - timedelta(hours=3)
+            expires_at = utc_time.replace(tzinfo=timezone.utc)
 
         timestamp = code.created_at or datetime.utcnow()
         if timestamp.tzinfo is None or timestamp.tzinfo.utcoffset(timestamp) is None:
@@ -524,10 +526,11 @@ def add_manual_stamp(
     program_id: str = Form(...),
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-  ):
+):
     from ...services.auth import get_user_by_email
     from ...services.merchant import get_merchants_by_owner
     from ...services.membership import earn_stamps
+    from ...api.v1.websocket import get_websocket_manager
     from ...models.customer_program_membership import CustomerProgramMembership
 
     # Verify merchant owns the program
@@ -557,6 +560,9 @@ def add_manual_stamp(
     # Add stamp
     result = earn_stamps(db, membership.id, 1, "manual", "manual", notes="manual_issue")
     if result:
+        # Broadcast the update to the customer via WebSocket
+        ws_manager = get_websocket_manager()
+        ws_manager.broadcast_stamp_update_sync(str(customer_id), program_id, result.current_balance)
         return {"message": "Stamp added successfully"}
     raise HTTPException(status_code=400, detail="Failed to add stamp")
 

@@ -64,29 +64,64 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setLoading(false)
   }, [])
 
-  const authenticate = async (email: string, password: string) => {
-    const response = await axios.post('/api/v1/auth/login-or-register', { email, password, role: 'merchant' })
-    const { access_token, user: userData } = response.data
-    setToken(access_token)
-    setUser(userData)
-    localStorage.setItem('token', access_token)
-    localStorage.setItem('user', JSON.stringify(userData))
-    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
-    // Fetch merchant data
+  const login = async (email: string, password: string) => {
     try {
-      const merchantResponse = await axios.get('/api/v1/merchants/')
-      if (merchantResponse.data.length > 0) {
-        const merchantData = merchantResponse.data[0]
-        setMerchant(merchantData)
-        localStorage.setItem('merchant', JSON.stringify(merchantData))
+      const response = await axios.post('/api/v1/auth/login', { email, password, role: 'merchant' })
+      const { access_token, user: userData } = response.data
+      setToken(access_token)
+      setUser(userData)
+      localStorage.setItem('token', access_token)
+      localStorage.setItem('user', JSON.stringify(userData))
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+      // Fetch merchant data
+      try {
+        const merchantResponse = await axios.get('/api/v1/merchants/')
+        if (merchantResponse.data.length > 0) {
+          const merchantData = merchantResponse.data[0]
+          setMerchant(merchantData)
+          localStorage.setItem('merchant', JSON.stringify(merchantData))
+        }
+      } catch (error) {
+        console.error('Failed to fetch merchant', error)
       }
-    } catch (error) {
-      console.error('Failed to fetch merchant', error)
+    } catch (error: any) {
+      // Re-throw with a more user-friendly message
+      if (error.response?.status === 401) {
+        const errorMessage = error.response?.data?.detail || 'Invalid email or password'
+        throw new Error(errorMessage)
+      }
+      throw error
     }
   }
 
-  const login = (email: string, password: string) => authenticate(email, password)
-  const register = (email: string, password: string) => authenticate(email, password)
+  const register = async (email: string, password: string) => {
+    try {
+      const response = await axios.post('/api/v1/auth/register', { email, password, role: 'merchant' })
+      const { access_token, user: userData } = response.data
+      setToken(access_token)
+      setUser(userData)
+      localStorage.setItem('token', access_token)
+      localStorage.setItem('user', JSON.stringify(userData))
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+      // Fetch merchant data
+      try {
+        const merchantResponse = await axios.get('/api/v1/merchants/')
+        if (merchantResponse.data.length > 0) {
+          const merchantData = merchantResponse.data[0]
+          setMerchant(merchantData)
+          localStorage.setItem('merchant', JSON.stringify(merchantData))
+        }
+      } catch (error) {
+        console.error('Failed to fetch merchant', error)
+      }
+    } catch (error: any) {
+      // Re-throw with a more user-friendly message
+      if (error.response?.status === 400) {
+        throw new Error('Account already exists with this email')
+      }
+      throw error
+    }
+  }
 
   const updateUser = (newUser: User) => {
     setUser(newUser)

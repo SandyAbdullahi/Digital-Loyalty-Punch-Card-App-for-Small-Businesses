@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List
 from uuid import UUID
 
@@ -208,11 +208,15 @@ def get_redemptions_for_customer(
 
         expires_at = code.expires_at
         if expires_at is not None and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            # Database times are stored in server local time, assume UTC+3 and convert to UTC
+            utc_time = expires_at - timedelta(hours=3)
+            expires_at = utc_time.replace(tzinfo=timezone.utc)
 
         used_at = code.used_at
         if used_at is not None and (used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None):
-            used_at = used_at.replace(tzinfo=timezone.utc)
+            # Database times are stored in server local time, assume UTC+3 and convert to UTC
+            utc_time = used_at - timedelta(hours=3)
+            used_at = utc_time.replace(tzinfo=timezone.utc)
 
         is_used = str(code.is_used).lower() == "true"
         if is_used:

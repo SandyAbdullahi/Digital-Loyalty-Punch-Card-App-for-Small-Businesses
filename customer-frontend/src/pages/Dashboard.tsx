@@ -6,6 +6,7 @@ import ProgramCard from '../components/ProgramCard';
 import MerchantModal from '../components/MerchantModal';
 import { BottomNav } from '../components/BottomNav';
 import { useAuth } from '../contexts/AuthContext';
+import { useWebSocket } from '../contexts/WebSocketContext';
 
 type Membership = {
   id: string;
@@ -55,6 +56,7 @@ type NotificationItem = {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { lastMessage } = useWebSocket();
   const navigate = useNavigate();
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,6 +153,34 @@ const Dashboard = () => {
 
     fetchData();
   }, []);
+
+  // Handle WebSocket messages for real-time updates
+  useEffect(() => {
+    if (lastMessage) {
+      if (lastMessage.type === 'stamp_update') {
+        // Update the membership balance in real-time
+        setMemberships(prevMemberships =>
+          prevMemberships.map(membership =>
+            membership.program_id === lastMessage.program_id
+              ? { ...membership, current_balance: lastMessage.new_balance }
+              : membership
+          )
+        );
+      } else if (lastMessage.type === 'notification') {
+        // Refresh notifications
+        fetchNotifications();
+      }
+    }
+  }, [lastMessage]);
+
+  const fetchNotifications = async () => {
+    try {
+      const notificationsResult = await axios.get<NotificationItem[]>('/api/v1/customer/notifications');
+      setNotifications(notificationsResult.data);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
 
   const filteredMemberships = useMemo(() => {
     if (!query) return memberships;

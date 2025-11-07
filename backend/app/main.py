@@ -8,6 +8,7 @@ from .api.v1.merchants import router as merchants_router
 from .api.v1.programs import router as programs_router
 from .api.v1.qr import router as qr_router
 from .api.v1.analytics import router as analytics_router
+from .api.v1.websocket import router as websocket_router
 from .core.config import settings
 # from .core.limiter import limiter
 
@@ -35,6 +36,7 @@ app.include_router(merchants_router, prefix=f"{settings.API_V1_STR}/merchants", 
 app.include_router(programs_router, prefix=f"{settings.API_V1_STR}/programs", tags=["programs"])
 app.include_router(qr_router, prefix=f"{settings.API_V1_STR}/qr", tags=["qr"])
 app.include_router(analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])
+app.include_router(websocket_router, prefix=f"{settings.API_V1_STR}/ws", tags=["websocket"])
 
 @app.get("/health")
 def health_check():

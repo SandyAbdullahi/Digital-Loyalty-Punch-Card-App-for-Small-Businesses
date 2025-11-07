@@ -50,23 +50,40 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [])
 
   const login = async (email: string, password: string) => {
-    const response = await axios.post('/api/v1/auth/login-or-register', { email, password, role: 'customer' })
-    const { access_token, user: userData } = response.data
-    setToken(access_token)
-    setUser(userData)
-    localStorage.setItem('customer_token', access_token)
-    localStorage.setItem('customer_user', JSON.stringify(userData))
-    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+    try {
+      const response = await axios.post('/api/v1/auth/login', { email, password, role: 'customer' })
+      const { access_token, user: userData } = response.data
+      setToken(access_token)
+      setUser(userData)
+      localStorage.setItem('customer_token', access_token)
+      localStorage.setItem('customer_user', JSON.stringify(userData))
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+    } catch (error: any) {
+      // Re-throw with a more user-friendly message
+      if (error.response?.status === 401) {
+        const errorMessage = error.response?.data?.detail || 'Invalid email or password'
+        throw new Error(errorMessage)
+      }
+      throw error
+    }
   }
 
   const register = async (email: string, password: string, role: string) => {
-    const response = await axios.post('/api/v1/auth/login-or-register', { email, password, role })
-    const { access_token, user: userData } = response.data
-    setToken(access_token)
-    setUser(userData)
-    localStorage.setItem('customer_token', access_token)
-    localStorage.setItem('customer_user', JSON.stringify(userData))
-    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+    try {
+      const response = await axios.post('/api/v1/auth/register', { email, password, role })
+      const { access_token, user: userData } = response.data
+      setToken(access_token)
+      setUser(userData)
+      localStorage.setItem('customer_token', access_token)
+      localStorage.setItem('customer_user', JSON.stringify(userData))
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+    } catch (error: any) {
+      // Re-throw with a more user-friendly message
+      if (error.response?.status === 400) {
+        throw new Error('Account already exists with this email')
+      }
+      throw error
+    }
   }
 
   const updateUser = (newUser: User) => {

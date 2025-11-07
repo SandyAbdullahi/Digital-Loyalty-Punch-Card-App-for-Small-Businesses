@@ -13,8 +13,122 @@ from ...models.user import UserRole
 router = APIRouter()
 
 
-@router.post("/login-or-register", response_model=Token)
+@router.post("/login", response_model=Token)
+def login(auth_data: AuthRequest, db: Session = Depends(get_db)):
+    # First check if user exists
+    user = get_user_by_email(db, auth_data.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Login failed: Account does not exist",
+        )
+
+    # User exists, now check password
+    if not authenticate_user(db, auth_data.email, auth_data.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Wrong password",
+        )
+
+    requested_role = _normalize_role(auth_data.role)
+    # Update role if provided and different
+    if requested_role and user.role != requested_role:
+        user.role = requested_role  # type: ignore[assignment]
+        db.commit()
+        db.refresh(user)
+
+    # Ensure merchant profile exists for merchant users
+    user_role_value = getattr(user.role, "value", user.role)
+    if user_role_value == UserRole.MERCHANT.value:
+        merchants = get_merchants_by_owner(db, user.id)
+        if not merchants:
+            fallback_name = (user.name or auth_data.email.split("@")[0]).title()
+            merchant_payload = MerchantCreate(
+                display_name=fallback_name,
+                legal_name=fallback_name,
+            )
+            create_merchant(db, merchant_payload, user.id)
+
+    # Update last login
+    from ...services.auth import update_last_login
+    update_last_login(db, user)
+
+    # Create tokens
+    access_token = create_access_token(subject=user.email)
+    refresh_token = create_refresh_token(subject=user.email)
+
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user={
+            "id": user.id,
+            "email": user.email,
+            "role": user_role_value,
+            "name": user.name,
+            "avatar_url": getattr(user, "avatar_url", None),
+        }
+    )
+
+
+@router.post("/register", response_model=Token)
+def register(auth_data: AuthRequest, db: Session = Depends(get_db)):
+    # Check if user already exists
+    existing_user = get_user_by_email(db, auth_data.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account already exists with this email",
+        )
+
+    # Create new user
+    requested_role = _normalize_role(auth_data.role)
+    user_create = UserCreate(
+        email=auth_data.email,
+        password=auth_data.password,
+        role=requested_role,
+    )
+    user = create_user(db, user_create)
+
+    # Ensure merchant profile exists for merchant users
+    user_role_value = getattr(user.role, "value", user.role)
+    if user_role_value == UserRole.MERCHANT.value:
+        merchants = get_merchants_by_owner(db, user.id)
+        if not merchants:
+            fallback_name = (user.name or auth_data.email.split("@")[0]).title()
+            merchant_payload = MerchantCreate(
+                display_name=fallback_name,
+                legal_name=fallback_name,
+            )
+            create_merchant(db, merchant_payload, user.id)
+
+    # Update last login
+    from ...services.auth import update_last_login
+    update_last_login(db, user)
+
+    # Create tokens
+    access_token = create_access_token(subject=user.email)
+    refresh_token = create_refresh_token(subject=user.email)
+
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user={
+            "id": user.id,
+            "email": user.email,
+            "role": user_role_value,
+            "name": user.name,
+            "avatar_url": getattr(user, "avatar_url", None),
+        }
+    )
+
+
+# Keep the old endpoint for backward compatibility (but mark as deprecated)
+@router.post("/login-or-register", response_model=Token, deprecated=True)
 def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
+    """
+    Deprecated: Use /login for existing users and /register for new users.
+    This endpoint will be removed in a future version.
+    """
     user = get_user_by_email(db, auth_data.email)
     requested_role = _normalize_role(auth_data.role)
 

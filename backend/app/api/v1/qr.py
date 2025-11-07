@@ -17,6 +17,7 @@ from ...core.security import verify_jws_token
 from ...db.session import get_db
 from ...api.deps import get_current_user
 from ...services.membership import get_membership_by_customer_and_program, earn_stamps
+from ...api.v1.websocket import get_websocket_manager
 from ...services.auth import get_user_by_email
 from ...services.loyalty_program import get_loyalty_program
 from ...models.ledger_entry import LedgerEntry, LedgerEntryType
@@ -237,6 +238,11 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
 
     # Earn stamps with scan prefix for notification detection
     updated_membership = earn_stamps(db, membership.id, 1, tx_ref=f"scan_{nonce}", device_fingerprint=request.device_fingerprint)
+
+    # Broadcast the update to the customer via WebSocket
+    if updated_membership:
+        ws_manager = get_websocket_manager()
+        ws_manager.broadcast_stamp_update_sync(str(user.id), str(updated_membership.program_id), updated_membership.current_balance)
 
     # Mark nonce as used
     try:

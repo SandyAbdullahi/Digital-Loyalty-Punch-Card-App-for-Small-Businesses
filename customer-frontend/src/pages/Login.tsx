@@ -69,7 +69,7 @@ const Login = () => {
       await login(email, password);
       navigate("/dashboard");
     } catch (err: any) {
-      const message = err?.response?.data?.detail ?? "Unable to log in. Please try again.";
+      const message = err?.message ?? "Unable to log in. Please try again.";
       setError(message);
     } finally {
       setIsSubmitting(false);

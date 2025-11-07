@@ -196,6 +196,19 @@ def redeem_stamps_with_code(db: Session, membership_id: UUID, amount: int, idemp
     ))
 
     reward_description = getattr(membership.program, "reward_description", None)
+
+    # Broadcast notification to merchant
+    try:
+        from .websocket import get_websocket_manager
+        ws_manager = get_websocket_manager()
+        customer_name = getattr(membership.customer, "name", None) or getattr(membership.customer, "email", "Customer").split("@")[0]
+        program_name = getattr(membership.program, "name", "Program")
+        merchant_user_id = str(membership.program.merchant.owner_user_id)
+        ws_manager.broadcast_redeem_notification_sync(merchant_user_id, customer_name, program_name, amount, jti)
+    except Exception as e:
+        # Don't fail the redeem if WebSocket broadcast fails
+        print(f"Failed to broadcast redeem notification: {e}")
+
     return {
         "code": jti,
         "expires_at": expires_at.isoformat(),

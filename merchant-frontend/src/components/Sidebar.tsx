@@ -19,13 +19,13 @@ type SidebarProps = {
 }
 
 const getNavigation = (isDemo: boolean) => [
-  { name: 'Dashboard', to: isDemo ? '/demo' : '/dashboard', icon: LayoutDashboard },
+  { name: 'Dashboard', to: isDemo ? '/demo/dashboard' : '/dashboard', icon: LayoutDashboard },
   { name: 'Programs', to: isDemo ? '/demo/programs' : '/programs', icon: Stamp },
-  { name: 'QR Issuance', to: isDemo ? '/demo' : '/qr', icon: QrCode },
-  { name: 'Customers', to: isDemo ? '/demo' : '/customers', icon: Users },
-  { name: 'Rewards', to: isDemo ? '/demo' : '/rewards', icon: Gift },
-  { name: 'Analytics', to: isDemo ? '/demo' : '/analytics', icon: BarChart3 },
-  { name: 'Settings', to: isDemo ? '/demo' : '/settings', icon: Settings2 },
+  { name: 'QR Issuance', to: isDemo ? '/demo/qr' : '/qr', icon: QrCode },
+  { name: 'Customers', to: isDemo ? '/demo/customers' : '/customers', icon: Users },
+  { name: 'Rewards', to: isDemo ? '/demo/rewards' : '/rewards', icon: Gift },
+  { name: 'Analytics', to: isDemo ? '/demo/analytics' : '/analytics', icon: BarChart3 },
+  { name: 'Settings', to: isDemo ? '/demo/settings' : '/settings', icon: Settings2 },
 ]
 
 const SidebarLink = ({
@@ -49,7 +49,7 @@ const SidebarLink = ({
         'group my-1 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
         isActive
           ? 'bg-primary text-white shadow-sm'
-          : 'text-white hover:bg-primary/15 hover:text-white',
+          : 'text-white hover:text-white',
       ].join(' ')
     }
   >
@@ -83,19 +83,29 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           <p className="text-lg font-heading font-semibold text-white">Mission Control</p>
         </div>
       </div>
-      <nav className="flex-1">
-        {getNavigation(isDemo).map((item, index) => (
-          <SidebarLink
-            key={`${item.name}-${index}`}
-            {...item}
-            onNavigate={onNavigate}
-            unreadCount={item.name === 'Rewards' ? unreadRedeemCount : undefined}
-          />
-        ))}
-      </nav>
-      <p className="text-xs text-white/60">
-        Nice work — another happy customer is just one scan away.
-      </p>
+       <nav className="flex-1">
+         {getNavigation(isDemo).map((item, index) => (
+           <SidebarLink
+             key={`${item.name}-${index}`}
+             {...item}
+             onNavigate={onNavigate}
+             unreadCount={item.name === 'Rewards' ? unreadRedeemCount : undefined}
+           />
+         ))}
+         {isDemo && (
+           <div className="mt-4 pt-4 border-t border-white/20">
+             <a
+               href="/"
+               className="group my-1 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors text-white hover:bg-white/10 hover:text-white"
+             >
+               <span>← Back to Home</span>
+             </a>
+           </div>
+         )}
+       </nav>
+       <p className="text-xs text-white/60">
+         Nice work — another happy customer is just one scan away.
+       </p>
     </div>
   )
 }

@@ -17,7 +17,7 @@ export default function Login() {
     try {
       await login(email, password)
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed')
+      setError(err.message || 'Login failed')
     }
   }
 

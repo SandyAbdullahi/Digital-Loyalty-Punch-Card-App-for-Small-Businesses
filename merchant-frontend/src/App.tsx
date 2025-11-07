@@ -19,6 +19,11 @@ import GetStarted from './pages/GetStarted'
 import GetApp from './pages/GetApp'
 import DemoDashboard from './pages/DemoDashboard'
 import DemoPrograms from './pages/DemoPrograms'
+import DemoQR from './pages/DemoQR'
+import DemoCustomers from './pages/DemoCustomers'
+import DemoRewards from './pages/DemoRewards'
+import DemoAnalytics from './pages/DemoAnalytics'
+import DemoSettings from './pages/DemoSettings'
 import HowItWorks from './pages/HowItWorks'
 import ForMerchants from './pages/ForMerchants'
 
@@ -50,8 +55,13 @@ function App() {
         <Route path="/for-merchants" element={<ForMerchants />} />
         <Route path="/get-started" element={<GetStarted />} />
         <Route path="/get-app" element={<GetApp />} />
-        <Route path="/demo" element={<DemoDashboard />} />
-        <Route path="/demo/programs" element={<DemoPrograms />} />
+         <Route path="/demo/dashboard" element={<DemoDashboard />} />
+         <Route path="/demo/programs" element={<DemoPrograms />} />
+         <Route path="/demo/qr" element={<DemoQR />} />
+         <Route path="/demo/customers" element={<DemoCustomers />} />
+         <Route path="/demo/rewards" element={<DemoRewards />} />
+         <Route path="/demo/analytics" element={<DemoAnalytics />} />
+         <Route path="/demo/settings" element={<DemoSettings />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
         <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
         <Route element={<ProtectedApp />}>
