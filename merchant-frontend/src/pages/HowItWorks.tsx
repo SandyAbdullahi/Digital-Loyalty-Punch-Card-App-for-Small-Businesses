@@ -181,7 +181,9 @@ const HowItWorks = () => {
           </div>
         </div>
       </section>
-      <Footer />
+      <div className="-mt-16">
+        <Footer />
+      </div>
     </main>
   )
 }
