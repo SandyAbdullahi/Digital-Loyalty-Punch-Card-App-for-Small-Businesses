@@ -84,9 +84,9 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         </div>
       </div>
       <nav className="flex-1">
-        {getNavigation(isDemo).map((item) => (
+        {getNavigation(isDemo).map((item, index) => (
           <SidebarLink
-            key={item.to}
+            key={`${item.name}-${index}`}
             {...item}
             onNavigate={onNavigate}
             unreadCount={item.name === 'Rewards' ? unreadRedeemCount : undefined}
