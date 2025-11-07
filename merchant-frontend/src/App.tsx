@@ -18,6 +18,7 @@ import Locations from './pages/Locations'
 import GetStarted from './pages/GetStarted'
 import GetApp from './pages/GetApp'
 import DemoDashboard from './pages/DemoDashboard'
+import DemoPrograms from './pages/DemoPrograms'
 import HowItWorks from './pages/HowItWorks'
 import ForMerchants from './pages/ForMerchants'
 
@@ -50,6 +51,7 @@ function App() {
         <Route path="/get-started" element={<GetStarted />} />
         <Route path="/get-app" element={<GetApp />} />
         <Route path="/demo" element={<DemoDashboard />} />
+        <Route path="/demo/programs" element={<DemoPrograms />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
         <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
         <Route element={<ProtectedApp />}>

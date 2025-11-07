@@ -140,7 +140,7 @@ const DemoDashboard = () => {
                 </p>
               </div>
               <button
-                onClick={() => navigate('/programs')}
+                onClick={() => navigate('/demo/programs')}
                 className="btn-primary w-full sm:w-auto group"
               >
                 Create Program
