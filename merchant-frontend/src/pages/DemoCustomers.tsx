@@ -144,10 +144,10 @@ const DemoCustomers = () => {
                   {filteredCustomers.map((customer) => (
                     <div
                       key={customer.id}
-                      className={`flex items-center gap-4 rounded-2xl p-4 transition-colors cursor-pointer ${
+                      className={`flex items-center gap-4 rounded-2xl p-4 transition-all cursor-pointer hover:shadow-lg hover:shadow-green-500/50 ${
                         selectedCustomer?.id === customer.id
-                          ? 'bg-muted/40 hover:bg-primary/50'
-                          : 'bg-muted/40 hover:bg-primary/20'
+                          ? 'bg-muted/40 hover:bg-green-200'
+                          : 'bg-muted/40 hover:bg-green-100'
                       }`}
                       onClick={() => setSelectedCustomer(customer)}
                     >

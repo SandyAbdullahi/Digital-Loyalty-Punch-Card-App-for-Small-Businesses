@@ -288,6 +288,62 @@ const Landing = () => {
     );
   };
 
+  const AnimatedCounter = ({ target, suffix = '', prefix = '' }: { target: number; suffix?: string; prefix?: string }) => {
+    const [count, setCount] = useState(0);
+    const shouldReduceMotion = useReducedMotion();
+
+    useEffect(() => {
+      if (shouldReduceMotion) {
+        setCount(target);
+        return;
+      }
+
+      const duration = 2000; // 2 seconds
+      const steps = 60; // 60 fps
+      const increment = target / steps;
+      const interval = duration / steps;
+
+      let current = 0;
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+          setCount(target);
+          clearInterval(timer);
+        } else {
+          setCount(Math.floor(current));
+        }
+      }, interval);
+
+      return () => clearInterval(timer);
+    }, [target, shouldReduceMotion]);
+
+    const formatValue = (value: number) => {
+      if (suffix === 'k+') {
+        return value >= 1000 ? `${(value / 1000).toFixed(1)}k+` : `${value}`;
+      }
+      if (suffix === 'k') {
+        return value >= 1000 ? `${value / 1000}k` : `${value}`;
+      }
+      return `${value}${suffix}`;
+    };
+
+    return <span>{prefix}{formatValue(count)}</span>;
+  };
+
+  const parseStatValue = (value: string) => {
+    if (value === '1.2k+') return 1200;
+    if (value === '48k') return 48000;
+    if (value === '22%') return 22;
+    return 0;
+  };
+
+  const getStatSuffix = (value: string) => {
+    if (value === '1.2k+') return 'k+';
+    if (value === '48k') return 'k';
+    if (value === '22%') return '%';
+    return '';
+  };
+
   const heroStats = [
     { label: 'Merchants launched', value: '1.2k+' },
     { label: 'Rewards issued', value: '48k' },
@@ -531,7 +587,7 @@ const Landing = () => {
                       className="rounded-2xl bg-white/80 p-4 shadow-[0_12px_30px_-12px_rgba(59,31,30,0.25)] backdrop-blur"
                     >
                       <p className="font-heading text-2xl font-semibold text-rudi-maroon">
-                        {stat.value}
+                        <AnimatedCounter target={parseStatValue(stat.value)} suffix={getStatSuffix(stat.value)} />
                       </p>
                       <p className="text-xs uppercase tracking-wide text-rudi-maroon/60">
                         {stat.label}
