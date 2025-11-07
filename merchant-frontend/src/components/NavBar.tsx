@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Sun, Moon } from 'lucide-react';
+
 import { useNavigate } from 'react-router-dom';
 import { Burger, Drawer, Button, Group, Stack, Anchor, Divider } from '@mantine/core';
 
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [drawerOpened, setDrawerOpened] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,18 +16,7 @@ const NavBar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const theme = localStorage.getItem('theme') || 'light';
-    setIsDark(theme === 'dark');
-    document.documentElement.setAttribute('data-theme', theme);
-  }, []);
 
-  const toggleTheme = () => {
-    const newTheme = isDark ? 'light' : 'dark';
-    setIsDark(!isDark);
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
 
   const toggleDrawer = () => setDrawerOpened((o) => !o);
   const closeDrawer = () => setDrawerOpened(false);
@@ -84,15 +72,7 @@ const NavBar = () => {
                </div>
             </div>
               <Group gap="xs" visibleFrom="md" className="flex-shrink-0">
-               <Button
-                 onClick={toggleTheme}
-                 variant="subtle"
-                 size="sm"
-                 aria-label="Toggle theme"
-               >
-                 {isDark ? <Sun size={20} /> : <Moon size={20} />}
-               </Button>
-                 <Button
+                <Button
                    onClick={() => navigate('/get-app')}
                    variant="filled"
                    color="primary"
@@ -159,11 +139,8 @@ const NavBar = () => {
           <Anchor href="#contact" onClick={closeDrawer}>
             Contact
           </Anchor>
-          <Divider />
-          <Button onClick={toggleTheme} variant="subtle" leftSection={isDark ? <Sun size={20} /> : <Moon size={20} />}>
-            Toggle Theme
-          </Button>
-          <Button
+           <Divider />
+           <Button
             onClick={() => {
               navigate('/for-merchants')
               closeDrawer()
