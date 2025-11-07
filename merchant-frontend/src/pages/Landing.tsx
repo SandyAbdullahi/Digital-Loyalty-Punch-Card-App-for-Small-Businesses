@@ -492,7 +492,7 @@ const Landing = () => {
     <div className="min-h-screen bg-[#FDF6EC] font-body">
       <NavBar />
 
-      <section className="relative -mt-16 flex flex-col justify-center overflow-hidden px-4 pb-20 pt-32 sm:px-6 lg:px-14 lg:pl-20">
+      <section className="relative -mt-16 flex flex-col justify-center overflow-hidden px-4 pb-20 pt-32 sm:px-6 lg:pl-40">
         <div className="relative w-full">
           <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <AnimatedSection reduceMotion={shouldReduceMotion}>
