@@ -429,7 +429,7 @@ const Landing = () => {
 
       <section className="relative -mt-16 flex flex-col justify-center overflow-hidden px-4 pb-16 pt-24 sm:px-6 lg:px-12">
         <div className="relative w-full">
-          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <AnimatedSection reduceMotion={shouldReduceMotion}>
               <div className="mx-auto max-w-xl space-y-6 pt-4 text-center lg:mx-0 lg:text-left">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-rudi-maroon shadow-sm backdrop-blur">
