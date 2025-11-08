@@ -210,6 +210,7 @@ const Customers = () => {
             key={customer.id}
             className="card-hover flex items-center justify-between gap-4 rounded-3xl bg-card px-5 py-4 shadow-lg animate-slide-up"
             style={{ animationDelay: `${index * 0.05}s` }}
+            onClick={() => setSelectedCustomer(customer)}
           >
             <div className="flex items-center gap-4">
               {customer.avatar ? (
