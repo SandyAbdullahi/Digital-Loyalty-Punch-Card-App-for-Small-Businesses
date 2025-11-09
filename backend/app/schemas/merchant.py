@@ -15,6 +15,9 @@ class MerchantBase(BaseModel):
     description: Optional[str] = None
     website: Optional[str] = None
     phone: Optional[str] = None
+    average_spend_per_visit: Optional[float] = None
+    baseline_visits_per_period: Optional[int] = None
+    reward_cost_estimate: Optional[float] = None
 
 
 class MerchantCreate(MerchantBase):

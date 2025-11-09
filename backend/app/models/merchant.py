@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Boolean, Column, ForeignKey, String
+from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,6 +24,9 @@ class Merchant(Base):
     website: Mapped[str] = mapped_column(String, nullable=True)
     phone: Mapped[str] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    average_spend_per_visit: Mapped[float] = mapped_column(Float, nullable=True)
+    baseline_visits_per_period: Mapped[int] = mapped_column(Integer, nullable=True)
+    reward_cost_estimate: Mapped[float] = mapped_column(Float, nullable=True)
 
     # Relationship
     owner: Mapped["User"] = relationship("User", back_populates="merchants")

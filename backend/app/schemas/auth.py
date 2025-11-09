@@ -16,3 +16,6 @@ class AuthRequest(BaseModel):
     email: str
     password: str
     role: str = "customer"
+    average_spend_per_visit: float | None = None
+    baseline_visits_per_period: int | None = None
+    reward_cost_estimate: float | None = None

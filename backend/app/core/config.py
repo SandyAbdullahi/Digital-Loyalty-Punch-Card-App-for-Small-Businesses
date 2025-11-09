@@ -36,7 +36,7 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
-    model_config = ConfigDict(env_file=".env")
+    model_config = ConfigDict(env_file="../.env", extra='ignore')
 
 
 settings = Settings()

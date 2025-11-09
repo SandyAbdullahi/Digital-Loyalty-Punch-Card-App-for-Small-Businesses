@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import uuid
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from jose import jws
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -82,8 +82,8 @@ def _claim_nonce_or_raise(db: Session, raw_nonce: str):
             text(
                 """
                 CREATE TABLE IF NOT EXISTS qr_token_usage (
-                    nonce uuid PRIMARY KEY,
-                    used_at timestamptz DEFAULT now()
+                    nonce TEXT PRIMARY KEY,
+                    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """
             )
@@ -91,9 +91,8 @@ def _claim_nonce_or_raise(db: Session, raw_nonce: str):
         result = db.execute(
             text(
                 """
-                INSERT INTO qr_token_usage (nonce)
+                INSERT OR IGNORE INTO qr_token_usage (nonce)
                 VALUES (:nonce)
-                ON CONFLICT DO NOTHING
                 """
             ),
             {"nonce": str(nonce_uuid)},

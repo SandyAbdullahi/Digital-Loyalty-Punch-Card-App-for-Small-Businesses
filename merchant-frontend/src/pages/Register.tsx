@@ -12,6 +12,9 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
+    averageSpendPerVisit: '',
+    baselineVisitsPerPeriod: '',
+    rewardCostEstimate: '',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -27,7 +30,11 @@ export default function Register() {
 
     try {
       setSubmitting(true);
-      await register(formState.email, formState.password);
+      await register(formState.email, formState.password, {
+        averageSpendPerVisit: formState.averageSpendPerVisit ? parseFloat(formState.averageSpendPerVisit) : undefined,
+        baselineVisitsPerPeriod: formState.baselineVisitsPerPeriod ? parseInt(formState.baselineVisitsPerPeriod) : undefined,
+        rewardCostEstimate: formState.rewardCostEstimate ? parseFloat(formState.rewardCostEstimate) : undefined,
+      });
       navigate('/dashboard');
     } catch (err: any) {
       setError(err?.response?.data?.detail ?? 'Registration failed');
@@ -101,6 +108,42 @@ export default function Register() {
               minLength={8}
               autoComplete="new-password"
               placeholder="Confirm your password"
+            />
+            <TextInput
+              label="Average Spend Per Visit (KES)"
+              type="number"
+              value={formState.averageSpendPerVisit}
+              onChange={(event) =>
+                setFormState({
+                  ...formState,
+                  averageSpendPerVisit: event.target.value,
+                })
+              }
+              placeholder="e.g. 500"
+            />
+            <TextInput
+              label="Baseline Visits Per Month"
+              type="number"
+              value={formState.baselineVisitsPerPeriod}
+              onChange={(event) =>
+                setFormState({
+                  ...formState,
+                  baselineVisitsPerPeriod: event.target.value,
+                })
+              }
+              placeholder="e.g. 50"
+            />
+            <TextInput
+              label="Reward Cost Estimate (KES)"
+              type="number"
+              value={formState.rewardCostEstimate}
+              onChange={(event) =>
+                setFormState({
+                  ...formState,
+                  rewardCostEstimate: event.target.value,
+                })
+              }
+              placeholder="e.g. 200"
             />
           </div>
 

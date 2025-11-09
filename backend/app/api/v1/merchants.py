@@ -25,6 +25,7 @@ from ...services.merchant import (
     delete_location,
     search_merchants,
 )
+from ...services.analytics import get_merchant_analytics, get_top_customers
 from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
 from ...schemas.reward import Reward, RedeemCodeConfirm
@@ -649,6 +650,59 @@ def delete_customer(
         db.delete(membership)
     db.commit()
     return {"message": "Customer removed from all programs"}
+
+
+# Analytics
+@router.get("/{merchant_id}/analytics")
+def get_merchant_analytics_endpoint(
+    merchant_id: UUID,
+    period: str = Query("month"),
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        # Return default analytics if no merchant
+        return {
+            "merchantId": str(merchant_id),
+            "totalCustomersEnrolled": 0,
+            "stampsIssuedThisMonth": 0,
+            "rewardsRedeemedThisMonth": 0,
+            "visitsByEnrolledCustomers": 0,
+            "baselineVisitsEstimate": 0,
+            "averageSpendPerVisit": 0,
+            "rewardCostEstimate": 0,
+            "estimatedExtraVisits": 0,
+            "estimatedExtraRevenue": 0,
+            "netIncrementalRevenue": 0
+        }
+    merchant = merchants[0]
+
+    period_days = 30 if period == "month" else 90 if period == "quarter" else 365
+    return get_merchant_analytics(db, merchant.id, period_days)
+
+
+@router.get("/{merchant_id}/top-customers")
+def get_top_customers_endpoint(
+    merchant_id: UUID,
+    period: str = Query("month"),
+    limit: int = Query(10),
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        return []
+    merchant = merchants[0]
+
+    period_days = 30 if period == "month" else 90 if period == "quarter" else 365
+    return get_top_customers(db, merchant.id, period_days, limit)
 
 
 # Public search

@@ -7,6 +7,7 @@ A full-stack digital loyalty punch-card system with separate merchant and custom
 - **Backend**: FastAPI with PostgreSQL, JWT authentication, QR code generation and scanning for loyalty programs.
 - **Frontend**: Separate React + Vite apps for merchants and customers, with a shared UI library using Tailwind CSS and shadcn/ui.
 - **Loyalty Logic**: Join programs, earn stamps via QR scans, redeem rewards with balance checks.
+- **Analytics & Revenue Estimation**: Merchants can view loyalty program performance, including customer enrollment, stamps issued/redeemed, and estimated revenue uplift from increased visits.
 - **Anti-Fraud**: Device fingerprints, Redis nonce storage, rate limiting, idempotent operations.
 - **Mobile Ready**: PWA support for customer app.
 
@@ -85,9 +86,10 @@ All commands from root:
 ## API Overview
 
 - **Auth**: Register/login as merchant or customer, JWT tokens.
-- **Merchants**: CRUD for merchants, locations, programs.
+- **Merchants**: CRUD for merchants, locations, programs, analytics.
 - **Programs**: Public read for customer apps.
 - **QR**: Issue join/stamp/redeem QR codes, scan with geofencing and anti-fraud.
+- **Analytics**: Get merchant analytics data and top customers for revenue estimation.
 
 ## Deployment
 

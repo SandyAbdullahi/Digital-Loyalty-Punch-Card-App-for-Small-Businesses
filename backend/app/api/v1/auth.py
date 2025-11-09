@@ -98,6 +98,9 @@ def register(auth_data: AuthRequest, db: Session = Depends(get_db)):
             merchant_payload = MerchantCreate(
                 display_name=fallback_name,
                 legal_name=fallback_name,
+                average_spend_per_visit=auth_data.average_spend_per_visit,
+                baseline_visits_per_period=auth_data.baseline_visits_per_period,
+                reward_cost_estimate=auth_data.reward_cost_estimate,
             )
             create_merchant(db, merchant_payload, user.id)
 

@@ -9,9 +9,13 @@ from app.main import app
 from app.core.config import settings
 
 # Test database URL
-TEST_DATABASE_URL = "postgresql://loyalty_user:mypassword101@localhost:5432/rudi_app"
+TEST_DATABASE_URL = "sqlite:///:memory:"
 
-engine = create_engine(TEST_DATABASE_URL)
+engine = create_engine(
+    TEST_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

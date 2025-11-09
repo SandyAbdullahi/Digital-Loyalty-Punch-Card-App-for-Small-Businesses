@@ -22,7 +22,7 @@ interface AuthContextType {
   merchant: Merchant | null
   token: string | null
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string, analytics?: { averageSpendPerVisit?: number; baselineVisitsPerPeriod?: number; rewardCostEstimate?: number }) => Promise<void>
   logout: () => void
   updateUser: (user: User) => void
   updateMerchant: (merchant: Merchant) => void
@@ -94,9 +94,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }
 
-  const register = async (email: string, password: string) => {
+  const register = async (email: string, password: string, analytics?: { averageSpendPerVisit?: number; baselineVisitsPerPeriod?: number; rewardCostEstimate?: number }) => {
     try {
-      const response = await axios.post('/api/v1/auth/register', { email, password, role: 'merchant' })
+      const response = await axios.post('/api/v1/auth/register', {
+        email,
+        password,
+        role: 'merchant',
+        average_spend_per_visit: analytics?.averageSpendPerVisit,
+        baseline_visits_per_period: analytics?.baselineVisitsPerPeriod,
+        reward_cost_estimate: analytics?.rewardCostEstimate
+      })
       const { access_token, user: userData } = response.data
       setToken(access_token)
       setUser(userData)
