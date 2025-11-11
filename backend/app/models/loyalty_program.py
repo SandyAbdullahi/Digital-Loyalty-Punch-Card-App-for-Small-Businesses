@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Boolean, Column, ForeignKey, String, Text
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,6 +22,9 @@ class LoyaltyProgram(Base):
     redeem_rule: Mapped[str] = mapped_column(Text, nullable=False)
     terms: Mapped[str] = mapped_column(Text, nullable=True)
     stamp_icon: Mapped[str] = mapped_column(String, nullable=True)
+    stamps_required: Mapped[int] = mapped_column(Integer, nullable=True)
+    reward_description: Mapped[str] = mapped_column(Text, nullable=True)
+    reward_value_hint_kes: Mapped[float] = mapped_column(Numeric(12, 2), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationship

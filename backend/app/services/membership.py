@@ -61,8 +61,21 @@ def update_membership_balance(db: Session, membership_id: UUID, new_balance: int
 
 
 def create_ledger_entry(db: Session, entry: LedgerEntryCreate) -> LedgerEntry:
+    # Fetch membership to get merchant_id, program_id, customer_id
+    membership = db.query(CustomerProgramMembership).filter(CustomerProgramMembership.id == entry.membership_id).first()
+    if not membership:
+        raise ValueError("Membership not found")
+
+    program = membership.program
+    merchant_id = program.merchant_id
+    program_id = program.id
+    customer_id = membership.customer_user_id
+
     db_entry = LedgerEntry(
         membership_id=entry.membership_id,
+        merchant_id=merchant_id,
+        program_id=program_id,
+        customer_id=customer_id,
         entry_type=entry.entry_type,
         amount=entry.amount,
         tx_ref=entry.tx_ref,
@@ -149,10 +162,8 @@ def redeem_stamps_with_code(db: Session, membership_id: UUID, amount: int, idemp
         if existing_code:
             # Return existing code if not expired
             expires_at_existing = existing_code.expires_at
-            if expires_at_existing is not None and (expires_at_existing.tzinfo is None or expires_at_existing.tzinfo.utcoffset(expires_at_existing) is None):
-                expires_at_existing = expires_at_existing.replace(tzinfo=timezone.utc)
-            now_utc = datetime.now(timezone.utc)
-            if expires_at_existing and expires_at_existing > now_utc:
+            now = datetime.now()
+            if expires_at_existing and expires_at_existing > now:
                 return {
                     "code": existing_code.code,
                     "expires_at": expires_at_existing.isoformat(),
