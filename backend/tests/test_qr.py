@@ -43,7 +43,7 @@ def customer_token(client, db):
 
 def test_issue_join_qr(client, merchant_token):
     headers = {"Authorization": f"Bearer {merchant_token['token']}"}
-    response = client.post(f"/api/v1/qr/issue-join?program_id={merchant_token['program_id']}", headers=headers)
+    response = client.post("/api/v1/qr/issue-join", json={"program_id": str(merchant_token['program_id'])}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert "token" in data
@@ -51,7 +51,7 @@ def test_issue_join_qr(client, merchant_token):
 
 def test_issue_stamp_qr(client, merchant_token):
     headers = {"Authorization": f"Bearer {merchant_token['token']}"}
-    response = client.post(f"/api/v1/qr/issue-stamp?program_id={merchant_token['program_id']}&purchase_total=10.0", headers=headers)
+    response = client.post("/api/v1/qr/issue-stamp", json={"program_id": str(merchant_token['program_id']), "purchase_total": 10.0}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert "token" in data
@@ -59,7 +59,7 @@ def test_issue_stamp_qr(client, merchant_token):
 
 def test_issue_redeem_qr(client, merchant_token):
     headers = {"Authorization": f"Bearer {merchant_token['token']}"}
-    response = client.post(f"/api/v1/qr/issue-redeem?program_id={merchant_token['program_id']}&amount=5", headers=headers)
+    response = client.post("/api/v1/qr/issue-redeem", json={"program_id": str(merchant_token['program_id']), "amount": 5}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert "token" in data
@@ -68,7 +68,7 @@ def test_issue_redeem_qr(client, merchant_token):
 def test_scan_join(client, merchant_token, customer_token):
     # Issue join QR
     headers_merchant = {"Authorization": f"Bearer {merchant_token['token']}"}
-    issue_response = client.post(f"/api/v1/qr/issue-join?program_id={merchant_token['program_id']}", headers=headers_merchant)
+    issue_response = client.post("/api/v1/qr/issue-join", json={"program_id": str(merchant_token['program_id'])}, headers=headers_merchant)
     qr_token = issue_response.json()["token"]
 
     # Scan as customer
@@ -82,13 +82,13 @@ def test_scan_join(client, merchant_token, customer_token):
 def test_scan_stamp(client, merchant_token, customer_token):
     # First join
     headers_merchant = {"Authorization": f"Bearer {merchant_token['token']}"}
-    join_issue = client.post(f"/api/v1/qr/issue-join?program_id={merchant_token['program_id']}", headers=headers_merchant)
+    join_issue = client.post("/api/v1/qr/issue-join", json={"program_id": str(merchant_token['program_id'])}, headers=headers_merchant)
     join_token = join_issue.json()["token"]
     headers_customer = {"Authorization": f"Bearer {customer_token}"}
     client.post("/api/v1/qr/scan-join", json={"token": join_token, "lat": 40.0, "lng": -74.0}, headers=headers_customer)
 
     # Issue stamp
-    stamp_issue = client.post(f"/api/v1/qr/issue-stamp?program_id={merchant_token['program_id']}&purchase_total=10.0", headers=headers_merchant)
+    stamp_issue = client.post("/api/v1/qr/issue-stamp", json={"program_id": str(merchant_token['program_id']), "purchase_total": 10.0}, headers=headers_merchant)
     stamp_token = stamp_issue.json()["token"]
 
     # Scan stamp
@@ -102,18 +102,18 @@ def test_scan_stamp(client, merchant_token, customer_token):
 def test_scan_redeem(client, merchant_token, customer_token):
     # Join and earn stamps
     headers_merchant = {"Authorization": f"Bearer {merchant_token['token']}"}
-    join_issue = client.post(f"/api/v1/qr/issue-join?program_id={merchant_token['program_id']}", headers=headers_merchant)
+    join_issue = client.post("/api/v1/qr/issue-join", json={"program_id": str(merchant_token['program_id'])}, headers=headers_merchant)
     join_token = join_issue.json()["token"]
     headers_customer = {"Authorization": f"Bearer {customer_token}"}
     client.post("/api/v1/qr/scan-join", json={"token": join_token, "lat": 40.0, "lng": -74.0}, headers=headers_customer)
 
     for _ in range(5):
-        stamp_issue = client.post(f"/api/v1/qr/issue-stamp?program_id={merchant_token['program_id']}&purchase_total=10.0", headers=headers_merchant)
+        stamp_issue = client.post("/api/v1/qr/issue-stamp", json={"program_id": str(merchant_token['program_id']), "purchase_total": 10.0}, headers=headers_merchant)
         stamp_token = stamp_issue.json()["token"]
         client.post("/api/v1/qr/scan-stamp", json={"token": stamp_token, "lat": 40.0, "lng": -74.0}, headers=headers_customer)
 
     # Issue redeem
-    redeem_issue = client.post(f"/api/v1/qr/issue-redeem?program_id={merchant_token['program_id']}&amount=3", headers=headers_merchant)
+    redeem_issue = client.post("/api/v1/qr/issue-redeem", json={"program_id": str(merchant_token['program_id']), "amount": 3}, headers=headers_merchant)
     redeem_token = redeem_issue.json()["token"]
 
     # Scan redeem
@@ -126,7 +126,7 @@ def test_scan_redeem(client, merchant_token, customer_token):
 def test_double_spend_prevention(client, merchant_token, customer_token):
     # Issue join QR
     headers_merchant = {"Authorization": f"Bearer {merchant_token['token']}"}
-    issue_response = client.post(f"/api/v1/qr/issue-join?program_id={merchant_token['program_id']}", headers=headers_merchant)
+    issue_response = client.post("/api/v1/qr/issue-join", json={"program_id": str(merchant_token['program_id'])}, headers=headers_merchant)
     qr_token = issue_response.json()["token"]
 
     # Scan first time
@@ -134,15 +134,15 @@ def test_double_spend_prevention(client, merchant_token, customer_token):
     response1 = client.post("/api/v1/qr/scan-join", json={"token": qr_token, "lat": 40.0, "lng": -74.0}, headers=headers_customer)
     assert response1.status_code == 200
 
-    # Scan second time - should succeed (Redis disabled in tests)
+    # Scan second time - should fail due to nonce check
     response2 = client.post("/api/v1/qr/scan-join", json={"token": qr_token, "lat": 40.0, "lng": -74.0}, headers=headers_customer)
-    assert response2.status_code == 200
+    assert response2.status_code == 400
 
 
 def test_geofence_check(client, merchant_token, customer_token):
     # Issue join QR
     headers_merchant = {"Authorization": f"Bearer {merchant_token['token']}"}
-    issue_response = client.post(f"/api/v1/qr/issue-join?program_id={merchant_token['program_id']}", headers=headers_merchant)
+    issue_response = client.post("/api/v1/qr/issue-join", json={"program_id": str(merchant_token['program_id'])}, headers=headers_merchant)
     qr_token = issue_response.json()["token"]
 
     # Scan with far location

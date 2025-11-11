@@ -20,7 +20,10 @@ from ...services.membership import get_membership_by_customer_and_program, earn_
 from ...api.v1.websocket import get_websocket_manager
 from ...services.auth import get_user_by_email
 from ...services.loyalty_program import get_loyalty_program
+from sqlalchemy.orm import joinedload
 from ...models.ledger_entry import LedgerEntry, LedgerEntryType
+from ...models.loyalty_program import LoyaltyProgram
+from ...models.merchant import Merchant
 
 router = APIRouter()
 
@@ -91,8 +94,9 @@ def _claim_nonce_or_raise(db: Session, raw_nonce: str):
         result = db.execute(
             text(
                 """
-                INSERT OR IGNORE INTO qr_token_usage (nonce)
+                INSERT INTO qr_token_usage (nonce)
                 VALUES (:nonce)
+                ON CONFLICT (nonce) DO NOTHING
                 """
             ),
             {"nonce": str(nonce_uuid)},
@@ -170,11 +174,17 @@ def _scan_join_logic(request: ScanRequest, db: Session, user):
     if not program_id_str:
         raise HTTPException(status_code=400, detail="Invalid token")
     program_id = UUID(program_id_str)
-    program = get_loyalty_program(db, program_id)
+    program = db.query(LoyaltyProgram).options(joinedload(LoyaltyProgram.merchant).joinedload(Merchant.locations)).filter(LoyaltyProgram.id == program_id).first()
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
 
-    # Skip geofence for now
+    # Check geofence
+    if request.lat is not None and request.lng is not None:
+        # Get merchant's first location
+        location = program.merchant.locations[0] if program.merchant.locations else None
+        if location:
+            if not check_geofence(request.lat, request.lng, location.lat, location.lng):
+                raise HTTPException(status_code=400, detail="You are not near the merchant location. Please move closer to scan.")
 
     # Create membership if not exists
     membership = get_membership_by_customer_and_program(db, user.id, program_id)
@@ -225,11 +235,17 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
     if not program_id_str:
         raise HTTPException(status_code=400, detail="Invalid token")
     program_id = UUID(program_id_str)
-    program = get_loyalty_program(db, program_id)
+    program = db.query(LoyaltyProgram).options(joinedload(LoyaltyProgram.merchant).joinedload(Merchant.locations)).filter(LoyaltyProgram.id == program_id).first()
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
 
-    # Skip geofence for now
+    # Check geofence
+    if request.lat is not None and request.lng is not None:
+        # Get merchant's first location
+        location = program.merchant.locations[0] if program.merchant.locations else None
+        if location:
+            if not check_geofence(request.lat, request.lng, location.lat, location.lng):
+                raise HTTPException(status_code=400, detail="You are not near the merchant location. Please move closer to scan.")
 
     membership = get_membership_by_customer_and_program(db, user.id, program_id)
     if not membership:
@@ -302,11 +318,17 @@ def _scan_redeem_logic(request: ScanRequest, db: Session, user):
     if not program_id_str:
         raise HTTPException(status_code=400, detail="Invalid token")
     program_id = UUID(program_id_str)
-    program = get_loyalty_program(db, program_id)
+    program = db.query(LoyaltyProgram).options(joinedload(LoyaltyProgram.merchant).joinedload(Merchant.locations)).filter(LoyaltyProgram.id == program_id).first()
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
 
-    # Skip geofence for now
+    # Check geofence
+    if request.lat is not None and request.lng is not None:
+        # Get merchant's first location
+        location = program.merchant.locations[0] if program.merchant.locations else None
+        if location:
+            if not check_geofence(request.lat, request.lng, location.lat, location.lng):
+                raise HTTPException(status_code=400, detail="You are not near the merchant location. Please move closer to scan.")
 
     membership = get_membership_by_customer_and_program(db, user.id, program_id)
     if not membership:
