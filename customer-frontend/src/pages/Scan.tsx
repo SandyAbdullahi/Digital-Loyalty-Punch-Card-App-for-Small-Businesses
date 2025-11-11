@@ -13,8 +13,15 @@ const Scan = () => {
   const scannerRef = useRef<QrScanner | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [showNotification, setShowNotification] = useState(false);
   const prefersReducedMotionRef = useRef(false);
   const confettiIntervalRef = useRef<number | null>(null);
+
+  const handleCloseNotification = () => {
+    setShowNotification(false);
+    setStatus('idle');
+    setMessage('');
+  };
 
   const fireConfetti = () => {
     if (prefersReducedMotionRef.current) {
@@ -78,6 +85,7 @@ const Scan = () => {
   const handleScan = async (token: string) => {
     setStatus('loading');
     setMessage('');
+    setShowNotification(true);
     try {
       let location = null;
       try {
@@ -96,6 +104,7 @@ const Scan = () => {
       const successMessage = response.data.message || 'Nice! Action completed.';
       setMessage(successMessage);
       setStatus('success');
+      setShowNotification(true);
 
       const normalizedMessage = successMessage.toLowerCase();
       const isEarned =
@@ -115,6 +124,13 @@ const Scan = () => {
       setMessage(detail);
       setStatus('error');
       scannerRef.current?.start().catch(() => {});
+
+      // Auto-hide error messages after 5 seconds
+      setTimeout(() => {
+        setShowNotification(false);
+        setStatus('idle');
+        setMessage('');
+      }, 5000);
     }
   };
 
@@ -202,11 +218,13 @@ const Scan = () => {
             We&apos;ll confirm your visit with the merchant automatically.
           </p>
         </div>
-        {status !== 'idle' && (
+        {showNotification && status !== 'idle' && (
           <Notification
             color={status === 'success' ? 'teal' : status === 'error' ? 'red' : 'blue'}
             loading={status === 'loading'}
             title=""
+            onClose={status === 'error' ? handleCloseNotification : undefined}
+            withCloseButton={status === 'error'}
           >
             {status === 'loading' ? 'Processing your scan...' : message}
           </Notification>

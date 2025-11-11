@@ -242,6 +242,7 @@ const ProgramDetail = () => {
     typeof redeemRule === 'string' ? JSON.parse(redeemRule) : redeemRule;
 
   const rawThreshold =
+    membership.program?.stamps_required ??
     parsedRedeemRule?.reward_threshold ??
     parsedRedeemRule?.max_value ??
     parsedEarnRule?.stamps_needed ??
