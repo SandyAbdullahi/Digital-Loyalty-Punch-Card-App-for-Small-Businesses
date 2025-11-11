@@ -111,12 +111,14 @@ def get_my_notifications(
         elif entry.entry_type in (LedgerEntryType.ADJUST, LedgerEntryType.ADJUST.value):
             message = f"{merchant_name} removed {amount} stamp{'s' if amount != 1 else ''} from {program_name}."
             type_ = "manual_revoke"
+        elif entry.entry_type in (LedgerEntryType.REDEEM, LedgerEntryType.REDEEM.value):
+            reward_desc = getattr(program, "reward_description", None) or "reward"
+            message = f"Congratulations! You redeemed {amount} stamp{'s' if amount != 1 else ''} for {reward_desc} at {merchant_name}!"
+            type_ = "redeem"
         else:
             continue
 
         created_at = entry.created_at
-        if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
 
         notifications.append(
             CustomerNotification(
@@ -179,6 +181,7 @@ def get_my_rewards(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Get redeem codes
     redemptions_query = (
         db.query(RedeemCode, CustomerProgramMembership, LoyaltyProgram, Merchant)
         .join(CustomerProgramMembership, RedeemCode.membership_id == CustomerProgramMembership.id)
@@ -189,26 +192,41 @@ def get_my_rewards(
         .limit(limit)
     )
 
+    # Get REDEEM ledger entries
+    from ...models.ledger_entry import LedgerEntry, LedgerEntryType
+    ledger_query = (
+        db.query(LedgerEntry, CustomerProgramMembership, LoyaltyProgram, Merchant)
+        .join(CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id)
+        .join(LoyaltyProgram, LedgerEntry.program_id == LoyaltyProgram.id)
+        .join(Merchant, LedgerEntry.merchant_id == Merchant.id)
+        .filter(
+            CustomerProgramMembership.customer_user_id == user.id,
+            LedgerEntry.entry_type == LedgerEntryType.REDEEM
+        )
+        .order_by(desc(LedgerEntry.created_at))
+        .limit(limit)
+    )
+
     now_utc = datetime.now(timezone.utc)
     rewards: List[CustomerRedemption] = []
 
+    # Process redeem codes
     for code, membership, program, merchant in redemptions_query:
         created_at = code.created_at or datetime.utcnow()
         if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
-            # Database times are stored in server local time, assume UTC+3 and convert to UTC
-            # Subtract 3 hours to convert from UTC+3 to UTC
+            # Database stores times in UTC+3, convert to UTC
             utc_time = created_at - timedelta(hours=3)
             created_at = utc_time.replace(tzinfo=timezone.utc)
 
         expires_at = code.expires_at
         if expires_at is not None and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
-            # Database times are stored in server local time, assume UTC+3 and convert to UTC
+            # Database stores times in UTC+3, convert to UTC
             utc_time = expires_at - timedelta(hours=3)
             expires_at = utc_time.replace(tzinfo=timezone.utc)
 
         used_at = code.used_at
         if used_at is not None and (used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None):
-            # Database times are stored in server local time, assume UTC+3 and convert to UTC
+            # Database stores times in UTC+3, convert to UTC
             utc_time = used_at - timedelta(hours=3)
             used_at = utc_time.replace(tzinfo=timezone.utc)
 
@@ -244,6 +262,43 @@ def get_my_rewards(
                 stamps_redeemed=stamps_redeemed,
             )
         )
+
+    # Process REDEEM ledger entries
+    for entry, membership, program, merchant in ledger_query:
+        created_at = entry.created_at or datetime.utcnow()
+        if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
+            # Database stores times in UTC+3, convert to UTC
+            utc_time = created_at - timedelta(hours=3)
+            created_at = utc_time.replace(tzinfo=timezone.utc)
+
+        # For instant redeems, status is always "redeemed"
+        status = "redeemed"
+
+        reward_description = getattr(program, "reward_description", None)
+        amount_raw = str(entry.amount)
+        stamps_redeemed = entry.amount
+
+        rewards.append(
+            CustomerRedemption(
+                id=str(entry.id),
+                code=entry.tx_ref or f"redeem_{entry.id}",
+                status=status,
+                amount=amount_raw,
+                created_at=created_at.isoformat(),
+                expires_at=None,  # Instant redeems don't expire
+                used_at=created_at.isoformat(),  # Used immediately
+                program_name=getattr(program, "name", None) or "Programme",
+                merchant_name=getattr(merchant, "display_name", None)
+                or getattr(merchant, "legal_name", None)
+                or "Merchant",
+                reward_description=reward_description,
+                stamps_redeemed=stamps_redeemed,
+            )
+        )
+
+    # Sort all rewards by created_at descending and limit
+    rewards.sort(key=lambda x: x.created_at, reverse=True)
+    rewards = rewards[:limit]
 
     return rewards
 

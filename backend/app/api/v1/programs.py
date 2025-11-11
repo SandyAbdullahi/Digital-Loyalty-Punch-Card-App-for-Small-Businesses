@@ -166,7 +166,7 @@ def redeem_stamps(
 
     result = redeem_stamps_with_code(db, membership.id, request.amount, request.idempotency_key)
     if not result:
-        raise HTTPException(status_code=400, detail="Insufficient balance or invalid request")
+        raise HTTPException(status_code=400, detail="Insufficient balance to redeem this reward")
 
     return result
 
@@ -204,17 +204,19 @@ def get_redemptions_for_customer(
     for code in codes:
         created_at = code.created_at or datetime.utcnow()
         if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
+            # Database stores times in UTC+3, convert to UTC
+            utc_time = created_at - timedelta(hours=3)
+            created_at = utc_time.replace(tzinfo=timezone.utc)
 
         expires_at = code.expires_at
         if expires_at is not None and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
-            # Database times are stored in server local time, assume UTC+3 and convert to UTC
+            # Database stores times in UTC+3, convert to UTC
             utc_time = expires_at - timedelta(hours=3)
             expires_at = utc_time.replace(tzinfo=timezone.utc)
 
         used_at = code.used_at
         if used_at is not None and (used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None):
-            # Database times are stored in server local time, assume UTC+3 and convert to UTC
+            # Database stores times in UTC+3, convert to UTC
             utc_time = used_at - timedelta(hours=3)
             used_at = utc_time.replace(tzinfo=timezone.utc)
 

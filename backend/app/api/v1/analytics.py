@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from ...db.session import get_db
 from ...api.deps import get_current_user
@@ -63,11 +63,17 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
         else:
             continue
 
+        # Convert timestamp from database (UTC+3) to UTC
+        timestamp = entry.created_at
+        if timestamp.tzinfo is None or timestamp.tzinfo.utcoffset(timestamp) is None:
+            utc_time = timestamp - timedelta(hours=3)
+            timestamp = utc_time.replace(tzinfo=timezone.utc)
+
         items.append({
             "id": str(entry.id),
             "type": type_,
             "message": message,
-            "timestamp": entry.created_at.isoformat(),
+            "timestamp": timestamp.isoformat(),
             "customer_name": customer_name,
             "customer_email": customer_email,
             "program_name": program.name if program else None,
@@ -132,3 +138,5 @@ def get_scans_last_7_days(db: Session = Depends(get_db), current_user: str = Dep
         scans.append(int(count))
 
     return {"scans": scans, "labels": labels}
+
+

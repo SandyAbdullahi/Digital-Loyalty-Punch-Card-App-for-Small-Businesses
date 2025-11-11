@@ -25,12 +25,15 @@ from ...services.merchant import (
     delete_location,
     search_merchants,
 )
-from ...services.analytics import get_merchant_analytics, get_top_customers
+from ...services.analytics import get_merchant_analytics, get_top_customers, Period
+from ...services.merchant_settings import get_merchant_settings, upsert_merchant_settings
 from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
 from ...schemas.reward import Reward, RedeemCodeConfirm
+from ...schemas.merchant_settings import MerchantSettings, MerchantSettingsCreate, MerchantSettingsUpdate
 from ...models.ledger_entry import LedgerEntry
 from ...models.redeem_code import RedeemCode
+from ...models.merchant import Merchant as MerchantModel
 
 router = APIRouter()
 
@@ -263,7 +266,7 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
     )
 
     rewards: List[Reward] = []
-    now_utc = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
 
     for code in redeem_codes:
         program_obj = getattr(code, "program", None)
@@ -285,23 +288,29 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
             customer_label = "Customer"
 
         expires_at = code.expires_at
-        if expires_at is not None and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
-            # Database times are stored in server local time, assume UTC+3 and convert to UTC
+        if expires_at and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
+            # Database stores times in UTC+3, convert to UTC
             utc_time = expires_at - timedelta(hours=3)
             expires_at = utc_time.replace(tzinfo=timezone.utc)
 
         timestamp = code.created_at or datetime.utcnow()
         if timestamp.tzinfo is None or timestamp.tzinfo.utcoffset(timestamp) is None:
-            timestamp = timestamp.replace(tzinfo=timezone.utc)
+            # Database stores times in UTC+3, convert to UTC
+            utc_time = timestamp - timedelta(hours=3)
+            timestamp = utc_time.replace(tzinfo=timezone.utc)
 
         is_used = str(code.is_used).lower() == "true"
         if is_used:
             status = "redeemed"
+            # For redeemed codes, use used_at if available
             if code.used_at:
-                timestamp = code.used_at
-                if timestamp.tzinfo is None or timestamp.tzinfo.utcoffset(timestamp) is None:
-                    timestamp = timestamp.replace(tzinfo=timezone.utc)
-        elif expires_at and expires_at < now_utc:
+                used_at = code.used_at
+                if used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None:
+                    # Database stores times in UTC+3, convert to UTC
+                    utc_time = used_at - timedelta(hours=3)
+                    used_at = utc_time.replace(tzinfo=timezone.utc)
+                timestamp = used_at
+        elif expires_at and expires_at < now:
             status = "expired"
             timestamp = expires_at
         else:
@@ -310,14 +319,17 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
         amount_value = (code.amount or "").strip()
         safe_amount = amount_value if amount_value else "1"
 
+        # For redeemed codes, always show value as 1
+        display_amount = "1" if status == "redeemed" else safe_amount
+
         rewards.append(
             Reward(
                 id=str(code.id),
                 program=program_name,
                 customer=customer_label,
-                date=timestamp.strftime('%B %d, %Y - %I:%M %p'),
+                date=timestamp.isoformat(),
                 status=status,
-                amount=safe_amount,
+                amount=display_amount,
                 code=code.code if status == "claimed" else None,
                 expires_at=expires_at.isoformat() if expires_at else None,
             )
@@ -378,6 +390,44 @@ def delete_merchant_endpoint(
     if delete_merchant(db, merchant_id):
         return {"message": "Merchant deleted"}
     raise HTTPException(status_code=404, detail="Merchant not found")
+
+
+# Merchant Settings
+@router.get("/{merchant_id}/settings", response_model=MerchantSettings)
+def get_merchant_settings_endpoint(
+    merchant_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    merchant = get_merchant(db, merchant_id)
+    if not merchant:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+    user = get_user_by_email(db, current_user)
+    if merchant.owner_user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    settings = get_merchant_settings(db, merchant_id)
+    if not settings:
+        raise HTTPException(status_code=404, detail="Settings not found")
+    return settings
+
+
+@router.put("/{merchant_id}/settings", response_model=MerchantSettings)
+def update_merchant_settings_endpoint(
+    merchant_id: UUID,
+    settings: MerchantSettingsUpdate,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    merchant = get_merchant(db, merchant_id)
+    if not merchant:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+    user = get_user_by_email(db, current_user)
+    if merchant.owner_user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    updated_settings = upsert_merchant_settings(db, merchant_id, settings)
+    return MerchantSettings.model_validate(updated_settings)
 
 
 # Locations CRUD
@@ -495,10 +545,11 @@ def redeem_code(
     expires_at = redeem_code.expires_at
     now = datetime.now(timezone.utc)
     if expires_at:
-        expires_at_check = expires_at
-        if expires_at_check.tzinfo is None or expires_at_check.tzinfo.utcoffset(expires_at_check) is None:
-            expires_at_check = expires_at_check.replace(tzinfo=timezone.utc)
-        if expires_at_check < now:
+        # Convert expires_at to UTC if naive
+        if expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None:
+            utc_time = expires_at - timedelta(hours=3)
+            expires_at = utc_time.replace(tzinfo=timezone.utc)
+        if expires_at < now:
             raise HTTPException(status_code=400, detail="Code has expired")
     else:
         raise HTTPException(status_code=400, detail="Code has expired")
@@ -656,53 +707,48 @@ def delete_customer(
 @router.get("/{merchant_id}/analytics")
 def get_merchant_analytics_endpoint(
     merchant_id: UUID,
-    period: str = Query("month"),
+    period: str = Query(Period.THIS_MONTH, enum=[p.value for p in Period]),
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(get_current_user)
 ):
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    merchants = get_merchants_by_owner(db, user.id)
-    if not merchants:
-        # Return default analytics if no merchant
-        return {
-            "merchantId": str(merchant_id),
-            "totalCustomersEnrolled": 0,
-            "stampsIssuedThisMonth": 0,
-            "rewardsRedeemedThisMonth": 0,
-            "visitsByEnrolledCustomers": 0,
-            "baselineVisitsEstimate": 0,
-            "averageSpendPerVisit": 0,
-            "rewardCostEstimate": 0,
-            "estimatedExtraVisits": 0,
-            "estimatedExtraRevenue": 0,
-            "netIncrementalRevenue": 0
-        }
-    merchant = merchants[0]
 
-    period_days = 30 if period == "month" else 90 if period == "quarter" else 365
-    return get_merchant_analytics(db, merchant.id, period_days)
+    # Check if user owns the merchant
+    merchant = db.query(MerchantModel).filter(MerchantModel.id == merchant_id, MerchantModel.owner_user_id == user.id).first()
+    if not merchant:
+        raise HTTPException(status_code=403, detail="Not authorized to access this merchant's analytics")
+
+    try:
+        analytics = get_merchant_analytics(db, merchant_id, period)
+        return analytics
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/{merchant_id}/top-customers")
+@router.get("/{merchant_id}/analytics/customers")
 def get_top_customers_endpoint(
     merchant_id: UUID,
-    period: str = Query("month"),
-    limit: int = Query(10),
+    period: str = Query(Period.THIS_MONTH, enum=[p.value for p in Period]),
+    limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(get_current_user)
 ):
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    merchants = get_merchants_by_owner(db, user.id)
-    if not merchants:
-        return []
-    merchant = merchants[0]
 
-    period_days = 30 if period == "month" else 90 if period == "quarter" else 365
-    return get_top_customers(db, merchant.id, period_days, limit)
+    # Check if user owns the merchant
+    merchant = db.query(MerchantModel).filter(MerchantModel.id == merchant_id, MerchantModel.owner_user_id == user.id).first()
+    if not merchant:
+        raise HTTPException(status_code=403, detail="Not authorized to access this merchant's analytics")
+
+    try:
+        customers = get_top_customers(db, merchant_id, period, limit)
+        return {"customers": customers}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # Public search
