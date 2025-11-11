@@ -13,6 +13,16 @@ type Merchant = {
   description?: string
 }
 
+type MerchantSettings = {
+  merchant_id: string
+  avg_spend_per_visit_kes: number
+  baseline_visits_per_customer_per_period: number
+  avg_reward_cost_kes: number
+  default_period: string
+  monthly_subscription_kes?: number
+  updated_at: string
+}
+
 const Settings = () => {
   const { user, merchant: contextMerchant, updateUser, updateMerchant } = useAuth()
   const [merchant, setMerchant] = useState<Merchant | null>(null)
@@ -27,13 +37,21 @@ const Settings = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [settings, setSettings] = useState<MerchantSettings | null>(null)
+  const [settingsForm, setSettingsForm] = useState({
+    avg_spend_per_visit_kes: 0,
+    baseline_visits_per_customer_per_period: 0,
+    avg_reward_cost_kes: 0,
+    monthly_subscription_kes: 0,
+  })
+  const [savingSettings, setSavingSettings] = useState(false)
 
   useEffect(() => {
-    const fetchMerchant = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get('/api/v1/merchants/')
-        if (response.data.length > 0) {
-          const merchantData = response.data[0]
+        const merchantsResponse = await axios.get('/api/v1/merchants/')
+        if (merchantsResponse.data.length > 0) {
+          const merchantData = merchantsResponse.data[0]
           setMerchant(merchantData)
           updateMerchant(merchantData)
           setFormState({
@@ -44,9 +62,31 @@ const Settings = () => {
             logoUrl: merchantData.logo_url || '',
             about: merchantData.description || '',
           })
+
+          // Fetch settings with correct merchant id
+          const settingsResponse = await axios.get(`/api/v1/merchants/${merchantData.id}/settings`)
+          if (settingsResponse.data) {
+            setSettings(settingsResponse.data)
+            setSettingsForm({
+              avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes || 0,
+              baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period || 0,
+              avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes || 0,
+              monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes || 0,
+            })
+          }
+        }
+
+        if (settingsResponse.data) {
+          setSettings(settingsResponse.data)
+          setSettingsForm({
+            avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes,
+            baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period,
+            avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes,
+            monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes || 0,
+          })
         }
       } catch (error) {
-        console.error('Failed to fetch merchant', error)
+        console.error('Failed to fetch data', error)
       }
     }
     if (!contextMerchant) {
@@ -66,6 +106,25 @@ const Settings = () => {
 
   const handleChange = (field: keyof typeof formState, value: string) => {
     setFormState((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleSettingsChange = (field: keyof typeof settingsForm, value: number) => {
+    setSettingsForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleSaveSettings = async () => {
+    if (!merchant?.id) return
+    setSavingSettings(true)
+    try {
+      await axios.put(`/api/v1/merchants/${merchant.id}/settings`, settingsForm)
+      setToast({ type: 'success', message: 'Analytics settings saved successfully.' })
+    } catch (error) {
+      console.error('Failed to save settings', error)
+      setToast({ type: 'error', message: 'Failed to save analytics settings.' })
+    } finally {
+      setSavingSettings(false)
+      setTimeout(() => setToast(null), 2400)
+    }
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -211,6 +270,73 @@ const Settings = () => {
           </div>
           <Button type="submit" className="btn-primary px-6" disabled={saving}>
             {saving ? 'Saving…' : 'Save settings'}
+          </Button>
+        </div>
+      </form>
+
+      <div className="space-y-1">
+        <h2 className="font-heading text-2xl font-semibold text-foreground">Analytics Assumptions</h2>
+        <p className="text-sm text-muted-foreground">
+          Configure assumptions for revenue estimation.
+        </p>
+      </div>
+
+      <form className="mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-3xl bg-card p-8 shadow-lg">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-foreground">Avg Spend per Visit (KES)</Label>
+            <Input
+              type="number"
+              value={settingsForm.avg_spend_per_visit_kes}
+              onChange={(event) => handleSettingsChange('avg_spend_per_visit_kes', parseFloat(event.target.value) || 0)}
+              className="h-11 rounded-2xl border-border bg-background"
+              placeholder="500"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-foreground">Baseline Visits per Customer per Period</Label>
+            <Input
+              type="number"
+              value={settingsForm.baseline_visits_per_customer_per_period}
+              onChange={(event) => handleSettingsChange('baseline_visits_per_customer_per_period', parseFloat(event.target.value) || 0)}
+              className="h-11 rounded-2xl border-border bg-background"
+              placeholder="2.5"
+              min="0"
+              step="0.1"
+            />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-foreground">Avg Reward Cost (KES)</Label>
+            <Input
+              type="number"
+              value={settingsForm.avg_reward_cost_kes}
+              onChange={(event) => handleSettingsChange('avg_reward_cost_kes', parseFloat(event.target.value) || 0)}
+              className="h-11 rounded-2xl border-border bg-background"
+              placeholder="100"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-foreground">Monthly Subscription (KES)</Label>
+            <Input
+              type="number"
+              value={settingsForm.monthly_subscription_kes}
+              onChange={(event) => handleSettingsChange('monthly_subscription_kes', parseFloat(event.target.value) || 0)}
+              className="h-11 rounded-2xl border-border bg-background"
+              placeholder="5000"
+              min="0"
+              step="0.01"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end pt-2">
+          <Button type="button" onClick={handleSaveSettings} className="btn-primary px-6" disabled={savingSettings}>
+            {savingSettings ? 'Saving…' : 'Save Analytics Settings'}
           </Button>
         </div>
       </form>

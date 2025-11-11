@@ -1,35 +1,72 @@
 import { useEffect, useState } from 'react'
-import { Button } from '@rudi/ui'
-import { Download, Loader2 } from 'lucide-react'
+import { Card, Text, Group, Stack, Select, Table, Badge, Alert, Button, Loader } from '@mantine/core'
+import { TrendingUp, Users, Ticket, Gift, AlertTriangle } from 'lucide-react'
 import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
+
+type Period = {
+  start: string
+  end: string
+  label: string
+}
+
+type Totals = {
+  totalCustomersEnrolled: number
+  stampsIssued: number
+  rewardsRedeemed: number
+  repeatVisitRate?: number
+}
+
+type RevenueEstimation = {
+  baselineVisits: number
+  estimatedExtraVisits: number
+  estimatedExtraRevenueKES: number
+  conservativeLowerKES?: number
+  conservativeUpperKES?: number
+  totalRewardCostKES: number
+  netIncrementalRevenueKES: number
+}
+
+
+
+type Program = {
+  programId: string
+  name: string
+  stampsRequired: number
+  customersEnrolled: number
+  visits: number
+  redemptions: number
+  baselineVisits: number
+  estimatedExtraVisits: number
+  estimatedExtraRevenueKES: number
+  netIncrementalRevenueKES: number
+}
 
 type AnalyticsData = {
   merchantId: string
-  totalCustomersEnrolled: number
-  stampsIssuedThisMonth: number
-  rewardsRedeemedThisMonth: number
-  visitsByEnrolledCustomers: number
-  baselineVisitsEstimate: number
-  averageSpendPerVisit: number
-  rewardCostEstimate: number
-  estimatedExtraVisits: number
-  estimatedExtraRevenue: number
-  netIncrementalRevenue: number
+  period: Period
+  totals: Totals
+  revenueEstimation: RevenueEstimation
+  anomalyFlags?: string[]
+  programs: Program[]
 }
 
 type TopCustomer = {
+  customerId: string
   name: string
   visits: number
+  baselineVisitsEstimate: number
   extraVisits: number
-  estimatedRevenue: number
+  estimatedRevenueKES: number
 }
 
 const Analytics = () => {
-  const { user } = useAuth()
+  const { user, merchant } = useAuth()
+  const navigate = useNavigate()
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
   const [topCustomers, setTopCustomers] = useState<TopCustomer[]>([])
-  const [period, setPeriod] = useState('month')
+  const [period, setPeriod] = useState('this_month')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,16 +75,16 @@ const Analytics = () => {
   }, [period])
 
   const fetchAnalytics = async () => {
-    if (!user?.id) return
+    if (!merchant?.id) return
     setLoading(true)
     setError(null)
     try {
       const [analyticsResponse, topCustomersResponse] = await Promise.all([
-        axios.get(`/api/v1/merchants/${user.id}/analytics?period=${period}`),
-        axios.get(`/api/v1/merchants/${user.id}/top-customers?period=${period}`)
+        axios.get(`/api/v1/merchants/${merchant.id}/analytics?period=${period}`),
+        axios.get(`/api/v1/merchants/${merchant.id}/analytics/customers?period=${period}`)
       ])
       setAnalyticsData(analyticsResponse.data)
-      setTopCustomers(topCustomersResponse.data)
+      setTopCustomers(topCustomersResponse.data.customers || [])
     } catch (err) {
       setError('Failed to load analytics data')
     } finally {
@@ -55,120 +92,190 @@ const Analytics = () => {
     }
   }
 
-  const exportCSV = () => {
-    if (!analyticsData) return
-    const csv = `Metric,Value\nTotal Customers Enrolled,${analyticsData.totalCustomersEnrolled}\nStamps Issued,${analyticsData.stampsIssuedThisMonth}\nRewards Redeemed,${analyticsData.rewardsRedeemedThisMonth}\nEstimated Extra Revenue,${analyticsData.estimatedExtraRevenue}\nNet Incremental Revenue,${analyticsData.netIncrementalRevenue}`
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'analytics.csv'
-    a.click()
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader size="lg" />
       </div>
     )
   }
 
   if (error || !analyticsData) {
     return (
-      <div className="text-center text-red-500">
+      <Alert color="red" title="Error">
         {error || 'No data available'}
-      </div>
+      </Alert>
     )
   }
 
+  const hasSettings = analyticsData.revenueEstimation.baselineVisits > 0 // Assuming if baseline > 0, settings are configured
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary">Analytics Overview</h1>
-        <div className="flex gap-4">
-          <select
+    <Stack spacing="lg">
+      <Group justify="space-between">
+        <Text size="xl" fw={700}>Analytics Overview - {analyticsData.period.label}</Text>
+        <Group>
+          <Select
             value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="px-4 py-2 border rounded"
-          >
-            <option value="month">This Month</option>
-            <option value="quarter">Last 3 Months</option>
-            <option value="year">Last 12 Months</option>
-          </select>
-          <Button onClick={exportCSV}>
-            <Download className="mr-2 h-4 w-4" />
-            Download CSV
-          </Button>
-        </div>
-      </div>
+            onChange={(value) => setPeriod(value || 'this_month')}
+            data={[
+              { value: 'this_month', label: 'This Month' },
+              { value: 'last_3_months', label: 'Last 3 Months' },
+              { value: 'last_12_months', label: 'Last 12 Months' },
+            ]}
+          />
+        </Group>
+      </Group>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-card p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-primary">Total Customers Enrolled</h3>
-          <p className="text-3xl font-bold text-accent">{analyticsData.totalCustomersEnrolled}</p>
-        </div>
-        <div className="bg-card p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-primary">Stamps Issued</h3>
-          <p className="text-3xl font-bold text-accent">{analyticsData.stampsIssuedThisMonth}</p>
-        </div>
-        <div className="bg-card p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-primary">Rewards Redeemed</h3>
-          <p className="text-3xl font-bold text-accent">{analyticsData.rewardsRedeemedThisMonth}</p>
-        </div>
-      </div>
+      {!hasSettings && (
+        <Alert icon={<AlertTriangle size={16} />} title="Settings Required" color="orange">
+          Estimates require Avg Spend/Baseline/Reward Cost. Configure now.
+          <Button variant="light" size="xs" ml="md" onClick={() => navigate('/settings')}>Go to Settings</Button>
+        </Alert>
+      )}
 
-      <div className="bg-card p-6 rounded-lg shadow">
-        <h3 className="text-xl font-semibold text-primary mb-4">Revenue Estimation</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Group grow>
+        <Card withBorder>
+          <Group>
+            <Users size={24} />
+            <div>
+              <Text size="sm" c="dimmed">Total Customers Enrolled</Text>
+              <Text size="xl" fw={700}>{analyticsData.totals.totalCustomersEnrolled}</Text>
+            </div>
+          </Group>
+        </Card>
+        <Card withBorder>
+          <Group>
+            <Ticket size={24} />
+            <div>
+              <Text size="sm" c="dimmed">Stamps Issued</Text>
+              <Text size="xl" fw={700}>{analyticsData.totals.stampsIssued}</Text>
+            </div>
+          </Group>
+        </Card>
+        <Card withBorder>
+          <Group>
+            <Gift size={24} />
+            <div>
+              <Text size="sm" c="dimmed">Rewards Redeemed</Text>
+              <Text size="xl" fw={700}>{analyticsData.totals.rewardsRedeemed}</Text>
+            </div>
+          </Group>
+        </Card>
+        {analyticsData.totals.repeatVisitRate !== undefined && (
+          <Card withBorder>
+            <Group>
+              <TrendingUp size={24} />
+              <div>
+                <Text size="sm" c="dimmed">Repeat Visit Rate</Text>
+                <Text size="xl" fw={700}>{analyticsData.totals.repeatVisitRate.toFixed(2)}</Text>
+              </div>
+            </Group>
+          </Card>
+        )}
+      </Group>
+
+      <Card withBorder>
+        <Text size="lg" fw={600} mb="md">Revenue Estimation</Text>
+        <Group grow>
           <div>
-            <p className="text-sm text-muted-foreground">Estimated Extra Visits</p>
-            <p className="text-2xl font-bold text-accent">{analyticsData.estimatedExtraVisits}</p>
+            <Text size="sm" c="dimmed">Baseline Visits</Text>
+            <Text size="lg" fw={500}>{analyticsData.revenueEstimation.baselineVisits.toFixed(1)}</Text>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Estimated Extra Revenue</p>
-            <p className="text-2xl font-bold text-accent">KES {analyticsData.estimatedExtraRevenue.toLocaleString()}</p>
+            <Text size="sm" c="dimmed">Estimated Extra Visits</Text>
+            <Text size="lg" fw={500} c="green">{analyticsData.revenueEstimation.estimatedExtraVisits.toFixed(1)}</Text>
           </div>
           <div>
-            <p className={`text-sm text-muted-foreground ${analyticsData.netIncrementalRevenue < 0 ? 'text-red-500' : 'text-accent'}`}>
-              Net Incremental Revenue
-            </p>
-            <p className={`text-2xl font-bold ${analyticsData.netIncrementalRevenue < 0 ? 'text-red-500' : 'text-accent'}`}>
-              KES {analyticsData.netIncrementalRevenue.toLocaleString()}
-            </p>
-            {analyticsData.netIncrementalRevenue < 0 && (
-              <p className="text-xs text-red-500">Your reward cost exceeded estimated uplift</p>
+            <Text size="sm" c="dimmed">Estimated Extra Revenue (KES)</Text>
+            <Text size="lg" fw={500} c="green">{analyticsData.revenueEstimation.estimatedExtraRevenueKES.toFixed(2)}</Text>
+            {analyticsData.revenueEstimation.conservativeLowerKES && (
+              <Text size="xs" c="dimmed">
+                Range: {analyticsData.revenueEstimation.conservativeLowerKES.toFixed(2)} - {analyticsData.revenueEstimation.conservativeUpperKES?.toFixed(2)}
+              </Text>
             )}
           </div>
-        </div>
-      </div>
+          <div>
+            <Text size="sm" c="dimmed">Total Reward Cost (KES)</Text>
+            <Text size="lg" fw={500} c="red">{analyticsData.revenueEstimation.totalRewardCostKES.toFixed(2)}</Text>
+          </div>
+          <div>
+            <Text size="sm" c="dimmed">Net Incremental Revenue (KES)</Text>
+            <Text size="lg" fw={500} c={analyticsData.revenueEstimation.netIncrementalRevenueKES >= 0 ? 'green' : 'red'}>
+              {analyticsData.revenueEstimation.netIncrementalRevenueKES.toFixed(2)}
+            </Text>
+          </div>
+        </Group>
+      </Card>
 
-      <div className="bg-card p-6 rounded-lg shadow">
-        <h3 className="text-xl font-semibold text-primary mb-4">Top 10 Enrolled Customers</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-2">Customer Name</th>
-                <th className="text-left p-2">Visits</th>
-                <th className="text-left p-2">Extra Visits</th>
-                <th className="text-left p-2">Estimated Revenue</th>
+      {analyticsData.anomalyFlags && analyticsData.anomalyFlags.length > 0 && (
+        <Alert icon={<AlertTriangle size={16} />} title="Anomalies Detected" color="orange">
+          {analyticsData.anomalyFlags.map(flag => (
+            <Text key={flag} size="sm">
+              {flag === 'negative_net_revenue' ? 'Net incremental revenue is negative' : flag}
+            </Text>
+          ))}
+        </Alert>
+      )}
+
+      <Card withBorder>
+        <Text size="lg" fw={600} mb="md">Top Customers by Extra Visits</Text>
+        <Table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Visits</th>
+              <th>Baseline</th>
+              <th>Extra Visits</th>
+              <th>Est. Revenue (KES)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {topCustomers.slice(0, 10).map((customer) => (
+              <tr key={customer.customerId}>
+                <td>{customer.name}</td>
+                <td>{customer.visits}</td>
+                <td>{customer.baselineVisitsEstimate.toFixed(1)}</td>
+                <td>{customer.extraVisits.toFixed(1)}</td>
+                <td>{customer.estimatedRevenueKES.toFixed(2)}</td>
               </tr>
-            </thead>
-            <tbody>
-              {topCustomers.map((customer, index) => (
-                <tr key={index} className="border-b">
-                  <td className="p-2">{customer.name}</td>
-                  <td className="p-2">{customer.visits}</td>
-                  <td className="p-2">{customer.extraVisits}</td>
-                  <td className="p-2">KES {customer.estimatedRevenue.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+            ))}
+          </tbody>
+        </Table>
+      </Card>
+
+      <Card withBorder>
+        <Text size="lg" fw={600} mb="md">Program Breakdown</Text>
+        <Table>
+          <thead>
+            <tr>
+              <th>Program</th>
+              <th>Customers</th>
+              <th>Visits</th>
+              <th>Redemptions</th>
+              <th>Extra Visits</th>
+              <th>Est. Revenue (KES)</th>
+              <th>Net Revenue (KES)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {analyticsData.programs.map((program) => (
+              <tr key={program.programId}>
+                <td>{program.name}</td>
+                <td>{program.customersEnrolled}</td>
+                <td>{program.visits}</td>
+                <td>{program.redemptions}</td>
+                <td>{program.estimatedExtraVisits.toFixed(1)}</td>
+                <td>{program.estimatedExtraRevenueKES.toFixed(2)}</td>
+                <td className={program.netIncrementalRevenueKES >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  {program.netIncrementalRevenueKES.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </Card>
+    </Stack>
   )
 }
 

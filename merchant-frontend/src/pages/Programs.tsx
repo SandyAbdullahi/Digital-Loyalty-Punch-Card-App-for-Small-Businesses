@@ -389,10 +389,10 @@ const Programs = () => {
                        <SelectTrigger id="logic_type" className="h-11 rounded-xl border-[#EADCC7] bg-[#FFF9F0]">
                          <SelectValue placeholder="Select program type" />
                        </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="punch_card">Punch Card</SelectItem>
-                         <SelectItem value="points">Points</SelectItem>
-                       </SelectContent>
+                        <SelectContent>
+                          <SelectItem value="punch_card">Punch Card</SelectItem>
+                          <SelectItem value="points">Points</SelectItem>
+                        </SelectContent>
                      </Select>
                    </div>
                    <div className="space-y-2">
@@ -406,7 +406,7 @@ const Programs = () => {
                         <SelectTrigger id="stampIcon" className="h-11 rounded-xl border-[#EADCC7] bg-white">
                           <SelectValue placeholder="Select stamp icon" />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border border-border p-2">
+                        <SelectContent>
                           <SelectItem value="default" className={formData.stampIcon === "default" ? "bg-blue-100" : ""}>Default (dots)</SelectItem>
                           <SelectItem value="star" className={formData.stampIcon === "star" ? "bg-blue-100" : ""}>⭐ Star</SelectItem>
                           <SelectItem value="heart" className={formData.stampIcon === "heart" ? "bg-blue-100" : ""}>❤️ Heart</SelectItem>
