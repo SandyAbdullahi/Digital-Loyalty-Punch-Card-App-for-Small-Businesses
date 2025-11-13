@@ -29,7 +29,7 @@ from ...services.analytics import get_merchant_analytics, get_top_customers, Per
 from ...services.merchant_settings import get_merchant_settings, upsert_merchant_settings
 from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
-from ...schemas.reward import Reward, RedeemCodeConfirm, StampIssueRequest, RedeemRequest
+from ...schemas.reward import RedeemCodeConfirm, StampIssueRequest, RedeemRequest
 from ...schemas.merchant_settings import MerchantSettings, MerchantSettingsCreate, MerchantSettingsUpdate
 from ...models.ledger_entry import LedgerEntry
 from ...models.reward import Reward as RewardModel, RewardStatus
@@ -240,7 +240,7 @@ def get_merchant_customers(
 
 
 # Merchant rewards
-@router.get("/rewards", response_model=List[Reward])
+@router.get("/rewards")
 def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     try:
         user = get_user_by_email(db, current_user)
@@ -262,7 +262,7 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
             .all()
         )
 
-        rewards: List[Reward] = []
+        rewards: List[dict] = []
         now = datetime.now(timezone.utc)
 
         for reward, program, customer in reward_rows:
@@ -291,19 +291,19 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
                     timestamp = expires_at
 
             rewards.append(
-                Reward(
-                    id=str(reward.id),
-                    program=program_name,
-                    customer=customer_label,
-                    date=timestamp.isoformat(),
-                    status=status_value,
-                    amount="1",
-                    code=reward.voucher_code if status_value == RewardStatus.REDEEMABLE.value else None,
-                    expires_at=expires_at.isoformat() if expires_at else None,
-                )
+                {
+                    "id": str(reward.id),
+                    "program": program_name,
+                    "customer": customer_label,
+                    "date": timestamp.isoformat(),
+                    "status": status_value,
+                    "amount": "1",
+                    "code": reward.voucher_code if status_value == RewardStatus.REDEEMABLE.value else None,
+                    "expires_at": expires_at.isoformat() if expires_at else None,
+                }
             )
 
-        return [reward.model_dump() for reward in rewards]
+        return rewards
     except HTTPException:
         raise
     except Exception as exc:
