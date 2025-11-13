@@ -499,48 +499,55 @@ def redeem_code(
 
     merchant = merchants[0]
 
-    from ...models.redeem_code import RedeemCode
-    from ...models.user import User
-
     code_value = payload.code.strip()
     if not code_value:
         raise HTTPException(status_code=400, detail="Redeem code is required")
 
-    redeem_code = db.query(RedeemCode).filter(
-        RedeemCode.code == code_value,
-        RedeemCode.merchant_id == merchant.id,
-        RedeemCode.is_used == "false"
-    ).first()
+    reward = (
+        db.query(RewardModel)
+        .filter(
+            RewardModel.voucher_code == code_value,
+            RewardModel.merchant_id == merchant.id,
+        )
+        .first()
+    )
 
-    if not redeem_code:
+    if not reward:
         raise HTTPException(status_code=404, detail="Invalid or already used code")
 
-    expires_at = redeem_code.expires_at
+    if reward.status != RewardStatus.REDEEMABLE:
+        raise HTTPException(status_code=400, detail="Reward not redeemable")
+
+    expires_at = reward.redeem_expires_at
     now = datetime.now(timezone.utc)
-    if expires_at:
-        # Convert expires_at to UTC if naive
-        if expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None:
-            utc_time = expires_at - timedelta(hours=3)
-            expires_at = utc_time.replace(tzinfo=timezone.utc)
-        if expires_at < now:
-            raise HTTPException(status_code=400, detail="Code has expired")
-    else:
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at and expires_at < now:
         raise HTTPException(status_code=400, detail="Code has expired")
 
-    # Mark as used
-    redeem_code.is_used = "true"
-    redeem_code.used_at = now
-    db.commit()
+    try:
+        updated = redeem_reward(
+            db,
+            reward_id=reward.id,
+            staff_id=user.id,
+            merchant_id=merchant.id,
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except TimeoutError:
+        raise HTTPException(status_code=410, detail="Reward expired")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
-    customer = db.query(User).filter(User.id == redeem_code.customer_user_id).first()
-    program = next((p for p in merchant.programs if p.id == redeem_code.program_id), None)
+    customer = db.query(User).filter(User.id == reward.customer_id).first()
+    program = db.query(LoyaltyProgram).filter(LoyaltyProgram.id == reward.program_id).first()
 
     return {
-        "id": str(redeem_code.id),
-        "program": program.name if program else 'Program',
-        "customer": customer.name or customer.email.split('@')[0] if customer else 'Customer',
-        "amount": redeem_code.amount,
-        "status": "redeemed"
+        "id": str(updated.id),
+        "program": program.name if program else "Program",
+        "customer": customer.name or customer.email.split("@")[0] if customer else "Customer",
+        "amount": "1",
+        "status": updated.status,
     }
 
 
