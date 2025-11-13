@@ -34,18 +34,23 @@ export default defineConfig({
       }
     })
   ],
-   server: {
-     port: 3001,
-     host: true,
-     proxy: {
-       '/api': {
-         target: 'http://localhost:8000',
-         changeOrigin: true
-       },
-       '/uploads': {
-         target: 'http://localhost:8000',
-         changeOrigin: true
-       }
-     }
-   }
+  server: {
+    port: 3001,
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      },
+      '/uploads': {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      }
+    }
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.ts'
+  }
 })

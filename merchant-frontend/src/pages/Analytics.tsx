@@ -13,12 +13,12 @@ type Period = {
   label: string
 }
 
-type Totals = {
+type AnalyticsKpis = {
   totalCustomersEnrolled: number
   stampsIssued: number
   rewardsRedeemed: number
-  repeatVisitRate?: number
-  avgVisitsPerCustomer?: number
+  repeatVisitRate: number
+  avgVisitsPerActiveCustomer: number
 }
 
 type RevenueEstimation = {
@@ -31,30 +31,35 @@ type RevenueEstimation = {
   netIncrementalRevenueKES: number
   roiPercentage?: number
   confidenceInterval?: string
+  missingAssumptions?: boolean
 }
 
 
 
+type Engagement = {
+  activeCustomers: number
+  avgVisitsPerActive: number
+}
+
 type Program = {
   programId: string
   name: string
-  stampsRequired: number
-  customersEnrolled: number
+  customersActive: number
   visits: number
   redemptions: number
   baselineVisits: number
   estimatedExtraVisits: number
   estimatedExtraRevenueKES: number
-  totalRewardCostKES: number
   netIncrementalRevenueKES: number
 }
 
 type AnalyticsData = {
   merchantId: string
   period: Period
-  totals: Totals
+  kpis: AnalyticsKpis
   revenueEstimation: RevenueEstimation
-  anomalyFlags?: string[]
+  engagement: Engagement
+  warnings: string[]
   programs: Program[]
 }
 
@@ -144,32 +149,35 @@ const Analytics = () => {
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
           <StatsCard
             title="Total Customers Enrolled"
-            value={analyticsData.totals.totalCustomersEnrolled}
+            value={analyticsData.kpis.totalCustomersEnrolled}
             icon={<Users size={24} />}
           />
           <StatsCard
             title="Stamps Issued"
-            value={analyticsData.totals.stampsIssued}
+            value={analyticsData.kpis.stampsIssued}
             icon={<Ticket size={24} />}
           />
           <StatsCard
             title="Rewards Redeemed"
-            value={analyticsData.totals.rewardsRedeemed}
+            value={analyticsData.kpis.rewardsRedeemed}
             icon={<Gift size={24} />}
           />
-          {analyticsData.totals.repeatVisitRate !== undefined && (
-            <StatsCard
-              title="Repeat Visit Rate"
-              value={`${analyticsData.totals.repeatVisitRate.toFixed(2)}%`}
-              icon={<TrendingUp size={24} />}
-            />
-          )}
+          <StatsCard
+            title="Repeat Visit Rate"
+            value={`${(analyticsData.kpis.repeatVisitRate * 100).toFixed(2)}%`}
+            icon={<TrendingUp size={24} />}
+          />
         </SimpleGrid>
 
         <RevenueChart data={analyticsData.revenueEstimation} />
 
       <Card withBorder>
         <Text size="lg" fw={600} mb="md">Revenue Estimation</Text>
+        {analyticsData.revenueEstimation.missingAssumptions && (
+          <Alert color="yellow" mb="md">
+            Revenue estimates require Average Spend, Baseline Visits, and Reward Cost. Update these in Settings.
+          </Alert>
+        )}
         <Group grow>
           <div>
             <Text size="sm" c="dimmed">Baseline Visits</Text>
@@ -211,11 +219,15 @@ const Analytics = () => {
         </Group>
       </Card>
 
-      {analyticsData.anomalyFlags && analyticsData.anomalyFlags.length > 0 && (
-        <Alert icon={<AlertTriangle size={16} />} title="Anomalies Detected" color="orange">
-          {analyticsData.anomalyFlags.map(flag => (
+      {analyticsData.warnings && analyticsData.warnings.length > 0 && (
+        <Alert icon={<AlertTriangle size={16} />} title="Insights" color="orange">
+          {analyticsData.warnings.map((flag) => (
             <Text key={flag} size="sm">
-              {flag === 'negative_net_revenue' ? 'Net incremental revenue is negative' : flag}
+              {flag === 'missing_settings'
+                ? 'Set Average Spend, Baseline Visits, and Reward Cost to improve estimates.'
+                : flag === 'small_sample_size'
+                ? 'Low sample size; estimates have higher uncertainty.'
+                : flag}
             </Text>
           ))}
         </Alert>
@@ -223,62 +235,120 @@ const Analytics = () => {
 
       <Card withBorder>
         <Text size="lg" fw={600} mb="md">Top Customers by Extra Visits</Text>
-        <Table>
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Visits</th>
-              <th>Baseline</th>
-              <th>Extra Visits</th>
-              <th>Est. Revenue (KES)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topCustomers.slice(0, 10).map((customer) => (
-              <tr key={customer.customerId}>
-                <td>{customer.name}</td>
-                <td>{customer.visits}</td>
-                <td>{customer.baselineVisitsEstimate.toFixed(1)}</td>
-                <td>{customer.extraVisits.toFixed(1)}</td>
-                <td>{customer.estimatedRevenueKES.toFixed(2)}</td>
+        <div className="overflow-x-auto">
+          <Table
+            striped
+            withTableBorder
+            withColumnBorders
+            highlightOnHover
+            horizontalSpacing="md"
+            verticalSpacing="sm"
+            className="text-sm [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wide [&_td]:text-center [&_th:first-child]:text-left [&_td:first-child]:text-left"
+          >
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Visits</th>
+                <th>Baseline</th>
+                <th>Extra Visits</th>
+                <th>Est. Revenue (KES)</th>
               </tr>
-            ))}
-          </tbody>
-        </Table>
+            </thead>
+            <tbody>
+              {topCustomers.slice(0, 10).map((customer) => (
+                <tr key={customer.customerId}>
+                  <td>
+                    <div className="flex flex-col">
+                      <Text fw={600}>{customer.name}</Text>
+                      <Text size="xs" c="dimmed">{customer.customerId}</Text>
+                    </div>
+                  </td>
+                  <td>
+                    <Text fw={600}>{customer.visits}</Text>
+                  </td>
+                  <td>
+                    <Text fw={600}>{customer.baselineVisitsEstimate.toFixed(1)}</Text>
+                  </td>
+                  <td>
+                    <Badge color="teal" variant="light">
+                      {customer.extraVisits.toFixed(1)}
+                    </Badge>
+                  </td>
+                  <td>
+                    <Text fw={600}>{customer.estimatedRevenueKES.toFixed(2)}</Text>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
       </Card>
 
       <Card withBorder>
         <Text size="lg" fw={600} mb="md">Program Breakdown</Text>
-        <Table>
+        <div className="overflow-x-auto">
+          <Table
+            striped
+            withTableBorder
+            withColumnBorders
+            highlightOnHover
+            horizontalSpacing="md"
+            verticalSpacing="sm"
+            className="text-sm [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wide [&_td]:text-center [&_th:first-child]:text-left [&_td:first-child]:text-left"
+          >
             <thead>
               <tr>
                 <th>Program</th>
-                <th>Customers</th>
+                <th>Customers Active</th>
                 <th>Visits</th>
                 <th>Redemptions</th>
+                <th>Baseline</th>
                 <th>Extra Visits</th>
                 <th>Est. Revenue (KES)</th>
-                <th>Reward Cost (KES)</th>
                 <th>Net Revenue (KES)</th>
               </tr>
             </thead>
             <tbody>
               {analyticsData.programs.map((program) => (
                 <tr key={program.programId}>
-                  <td>{program.name}</td>
-                  <td>{program.customersEnrolled}</td>
-                  <td>{program.visits}</td>
-                  <td>{program.redemptions}</td>
-                  <td>{program.estimatedExtraVisits.toFixed(1)}</td>
-                  <td>{program.estimatedExtraRevenueKES.toFixed(2)}</td>
-                  <td>{program.totalRewardCostKES.toFixed(2)}</td>
-                  <td className={program.netIncrementalRevenueKES >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {program.netIncrementalRevenueKES.toFixed(2)}
+                  <td>
+                    <div className="flex flex-col">
+                      <Text fw={600}>{program.name}</Text>
+                      <Text size="xs" c="dimmed">
+                        {program.programId}
+                      </Text>
+                    </div>
+                  </td>
+                  <td>
+                    <Text fw={600}>{program.customersActive}</Text>
+                  </td>
+                  <td>
+                    <Text fw={600}>{program.visits}</Text>
+                  </td>
+                  <td>
+                    <Badge color="teal" variant="light">
+                      {program.redemptions}
+                    </Badge>
+                  </td>
+                  <td>
+                    <Text fw={600}>{program.baselineVisits.toFixed(1)}</Text>
+                  </td>
+                  <td>
+                    <Text fw={600}>{program.estimatedExtraVisits.toFixed(1)}</Text>
+                  </td>
+                  <td>
+                    <Text fw={600}>{program.estimatedExtraRevenueKES.toFixed(2)}</Text>
+                  </td>
+                  <td>
+                    <Text fw={600} c={program.netIncrementalRevenueKES >= 0 ? 'green' : 'red'}>
+                      {program.netIncrementalRevenueKES.toFixed(2)}
+                    </Text>
                   </td>
                 </tr>
               ))}
             </tbody>
-        </Table>
+          </Table>
+        </div>
       </Card>
       </Stack>
     </Container>
