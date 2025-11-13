@@ -259,7 +259,19 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
             db.query(RewardModel, LoyaltyProgram, User)
             .join(LoyaltyProgram, RewardModel.program_id == LoyaltyProgram.id)
             .join(User, RewardModel.customer_id == User.id)
-            .filter(RewardModel.merchant_id == merchant.id)
+            .filter(
+                RewardModel.merchant_id == merchant.id,
+                RewardModel.status.in_(
+                    [
+                        RewardStatus.REDEEMABLE,
+                        RewardStatus.REDEEMED,
+                        RewardStatus.EXPIRED,
+                        RewardStatus.REDEEMABLE.value,
+                        RewardStatus.REDEEMED.value,
+                        RewardStatus.EXPIRED.value,
+                    ]
+                ),
+            )
             .order_by(desc(RewardModel.reached_at))
             .limit(100)
             .all()
