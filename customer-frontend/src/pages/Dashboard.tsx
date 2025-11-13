@@ -1,12 +1,13 @@
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Gift01, AlertTriangle } from '@untitled-ui/icons-react';
 import ProgramCard from '../components/ProgramCard';
 import MerchantModal from '../components/MerchantModal';
 import { BottomNav } from '../components/BottomNav';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import ConfettiOverlay from '../components/ConfettiOverlay';
 
 type Membership = {
   id: string;
@@ -58,6 +59,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { lastMessage } = useWebSocket();
   const navigate = useNavigate();
+  const location = useLocation();
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -69,8 +71,28 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationError, setNotificationError] = useState('');
   const [query, setQuery] = useState('');
+  const [redeemSuccessMessage, setRedeemSuccessMessage] = useState<string | null>(null);
+  const [redeemConfetti, setRedeemConfetti] = useState(false);
 
   const unreadCount = notifications.filter(note => !readNotifications.has(note.id)).length;
+
+  const dismissRedeemSuccess = () => setRedeemSuccessMessage(null);
+  const handleConfettiComplete = () => setRedeemConfetti(false);
+
+  useEffect(() => {
+    const state = location.state as { rewardRedeemed?: boolean; rewardProgramName?: string } | null;
+    if (state?.rewardRedeemed) {
+      const message = state.rewardProgramName
+        ? `${state.rewardProgramName} reward redeemed!`
+        : 'Reward redeemed successfully!';
+      setRedeemSuccessMessage(message);
+      setRedeemConfetti(true);
+      const timer = setTimeout(() => setRedeemSuccessMessage(null), 5000);
+      navigate(location.pathname, { replace: true, state: {} });
+      return () => clearTimeout(timer);
+    }
+    return;
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -349,6 +371,27 @@ const Dashboard = () => {
 
   return (
     <>
+      <ConfettiOverlay visible={redeemConfetti} onComplete={handleConfettiComplete} />
+      {redeemSuccessMessage && (
+        <div className="fixed inset-x-0 top-4 z-40 flex justify-center px-4">
+          <div className="flex w-full max-w-lg items-center gap-3 rounded-2xl border border-emerald-200 bg-white/90 p-4 shadow-lg">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <Gift01 className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <p className="font-semibold text-emerald-700">Reward redeemed!</p>
+              <p className="text-sm text-emerald-700/80">{redeemSuccessMessage}</p>
+            </div>
+            <button
+              type="button"
+              className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700"
+              onClick={dismissRedeemSuccess}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
       <main className="min-h-screen bg-[var(--rudi-background)] pb-16">
         <header className="bg-white shadow-sm pt-4 pb-4">
         <div className="flex items-center justify-between p-4">

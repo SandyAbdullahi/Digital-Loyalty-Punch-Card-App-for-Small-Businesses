@@ -205,7 +205,17 @@ const ProgramDetail = () => {
           clearInterval(pollRef.current);
           pollRef.current = null;
         }
-        setTimeout(() => navigate('/dashboard', { replace: true }), 600);
+        setTimeout(
+          () =>
+            navigate('/dashboard', {
+              replace: true,
+              state: {
+                rewardRedeemed: true,
+                rewardProgramName: membership?.program?.name,
+              },
+            }),
+          600
+        );
       }
     };
 
