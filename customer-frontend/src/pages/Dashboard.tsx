@@ -274,10 +274,25 @@ const Dashboard = () => {
   };
 
   const thresholdFor = (membership: Membership) => {
-    if (membership.program.logic_type === 'punch_card') {
-      return membership.program.earn_rule?.stamps_needed ?? 10;
-    }
-    return 10; // default for points or other types
+    const program = membership.program;
+    const parsedEarnRule =
+      typeof program.earn_rule === 'string'
+        ? (() => {
+            try {
+              return JSON.parse(program.earn_rule);
+            } catch {
+              return undefined;
+            }
+          })()
+        : program.earn_rule;
+
+    return (
+      program.stamps_required ??
+      program.reward_threshold ??
+      parsedEarnRule?.stamps_needed ??
+      parsedEarnRule?.threshold ??
+      10
+    );
   };
 
   const actionLabelFor = (membership: Membership) =>
