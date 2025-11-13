@@ -1,6 +1,6 @@
 import math
 import redis
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 from uuid import UUID
 
@@ -17,6 +17,7 @@ from ...core.security import verify_jws_token
 from ...db.session import get_db
 from ...api.deps import get_current_user
 from ...services.membership import get_membership_by_customer_and_program, earn_stamps
+from ...services.reward_service import issue_stamp
 from ...api.v1.websocket import get_websocket_manager
 from ...services.auth import get_user_by_email
 from ...services.loyalty_program import get_loyalty_program
@@ -124,7 +125,7 @@ def issue_join_qr(request: IssueJoinRequest, db: Session = Depends(get_db), curr
     payload = {
         "type": "join",
         "program_id": str(request.program_id),
-        "exp": (datetime.utcnow() + timedelta(seconds=60)).timestamp(),
+        "exp": (datetime.now(timezone.utc) + timedelta(seconds=60)).timestamp(),
         "nonce": str(uuid.uuid4()),  # Simple nonce
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
@@ -144,7 +145,7 @@ def issue_stamp_qr(request: IssueStampRequest, db: Session = Depends(get_db), cu
         "type": "stamp",
         "program_id": str(request.program_id),
         "purchase_total": request.purchase_total,
-        "exp": (datetime.utcnow() + timedelta(seconds=60)).timestamp(),
+        "exp": (datetime.now(timezone.utc) + timedelta(seconds=60)).timestamp(),
         "nonce": str(uuid.uuid4()),
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
@@ -167,7 +168,7 @@ def _scan_join_logic(request: ScanRequest, db: Session, user):
         pass  # Skip nonce check if Redis unavailable
 
     # Check expiration
-    if datetime.utcnow().timestamp() > payload["exp"]:
+    if datetime.now(timezone.utc).timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="QR code has expired. Please request a new one from the merchant.")
 
     program_id_str = payload.get("program_id") or payload.get("location_id")
@@ -194,6 +195,7 @@ def _scan_join_logic(request: ScanRequest, db: Session, user):
         membership = create_membership(db, CustomerProgramMembershipCreate(
             customer_user_id=user.id,
             program_id=program_id,
+            merchant_id=program.merchant_id,
         ))
 
     # Mark nonce as used
@@ -228,7 +230,7 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
     except Exception:
         pass  # Skip nonce check if Redis unavailable
 
-    if datetime.utcnow().timestamp() > payload["exp"]:
+    if datetime.now(timezone.utc).timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="QR code has expired. Please request a new one from the merchant.")
 
     program_id_str = payload.get("program_id") or payload.get("location_id")
@@ -251,13 +253,38 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
     if not membership:
         raise HTTPException(status_code=400, detail="You are not a member of this program. Please join first.")
 
-    # Earn stamps with scan prefix for notification detection
-    updated_membership = earn_stamps(db, membership.id, 1, tx_ref=f"scan_{nonce}", device_fingerprint=request.device_fingerprint)
+    updated_membership = membership
+    if program.logic_type == "punch_card":
+        try:
+            issue_stamp(db, enrollment_id=membership.id, tx_id=f"scan_{nonce}", staff_id=None)
+            db.refresh(membership)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+    else:
+        updated_membership = earn_stamps(
+            db,
+            membership.id,
+            1,
+            tx_id=f"scan_{nonce}",
+            device_fingerprint=request.device_fingerprint,
+        )
 
-    # Broadcast the update to the customer via WebSocket
     if updated_membership:
         ws_manager = get_websocket_manager()
         ws_manager.broadcast_stamp_update_sync(str(user.id), str(updated_membership.program_id), updated_membership.current_balance)
+        owner_id = getattr(program.merchant, "owner_user_id", None) if program.merchant else None
+        if owner_id:
+            ws_manager.broadcast_merchant_customer_update_sync(
+                str(owner_id),
+                {
+                    "customer_id": str(user.id),
+                    "program_id": str(program.id),
+                    "delta": 1,
+                    "new_balance": updated_membership.current_balance,
+                    "program_name": program.name,
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
+            )
 
     # Mark nonce as used
     try:
@@ -289,7 +316,7 @@ def issue_redeem_qr(request: IssueRedeemRequest, db: Session = Depends(get_db), 
         "type": "redeem",
         "program_id": str(request.program_id),
         "amount": request.amount,
-        "exp": (datetime.utcnow() + timedelta(seconds=60)).timestamp(),
+        "exp": (datetime.now(timezone.utc) + timedelta(seconds=60)).timestamp(),
         "nonce": str(uuid.uuid4()),
     }
     token = jws.sign(payload, settings.SIGNING_KEY, algorithm="HS256")
@@ -311,7 +338,7 @@ def _scan_redeem_logic(request: ScanRequest, db: Session, user):
     except Exception:
         pass  # Skip nonce check if Redis unavailable
 
-    if datetime.utcnow().timestamp() > payload["exp"]:
+    if datetime.now(timezone.utc).timestamp() > payload["exp"]:
         raise HTTPException(status_code=400, detail="QR code has expired. Please request a new one from the merchant.")
 
     program_id_str = payload.get("program_id") or payload.get("location_id")
@@ -340,7 +367,7 @@ def _scan_redeem_logic(request: ScanRequest, db: Session, user):
 
     # Redeem stamps
     from ...services.membership import redeem_stamps
-    updated_membership = redeem_stamps(db, membership.id, amount, tx_ref=nonce, device_fingerprint=request.device_fingerprint)
+    updated_membership = redeem_stamps(db, membership.id, amount, tx_id=nonce, device_fingerprint=request.device_fingerprint)
     if not updated_membership:
         raise HTTPException(status_code=400, detail="Redeem failed")
 
