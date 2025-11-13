@@ -293,6 +293,186 @@ def get_merchant_customers(
     return customers
 
 
+@router.get("/customers/{customer_id}")
+def get_customer_detail(
+    customer_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+    from ...models.customer_program_membership import CustomerProgramMembership
+    from ...models.user import User
+
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+
+    merchant = merchants[0]
+
+    memberships = (
+        db.query(CustomerProgramMembership)
+        .options(joinedload(CustomerProgramMembership.program))
+        .filter(
+            CustomerProgramMembership.customer_user_id == customer_id,
+            CustomerProgramMembership.merchant_id == merchant.id,
+        )
+        .all()
+    )
+
+    if not memberships:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    customer = db.query(User).filter(User.id == customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer profile not found")
+
+    membership_ids = [membership.id for membership in memberships]
+    total_stamps = sum(m.current_balance for m in memberships)
+
+    programs = []
+    for membership in memberships:
+        program = membership.program
+        program_name = program.name if program else "Program"
+        threshold = _program_threshold(program) if program else 10
+        programs.append(
+            {
+                "id": str(membership.program_id),
+                "name": program_name,
+                "progress": membership.current_balance,
+                "threshold": threshold,
+                "current_cycle": membership.current_cycle,
+                "joined_at": format_local(membership.joined_at),
+            }
+        )
+
+    last_visit_entry = (
+        db.query(LedgerEntry.created_at)
+        .filter(
+            LedgerEntry.membership_id.in_(membership_ids),
+            LedgerEntry.merchant_id == merchant.id,
+        )
+        .order_by(desc(LedgerEntry.created_at))
+        .first()
+    )
+
+    last_visit_iso = last_visit_entry[0].isoformat() if last_visit_entry else None
+    last_visit_display = (
+        format_local(last_visit_entry[0]) if last_visit_entry else None
+    )
+
+    valid_statuses = [
+        RewardStatus.REDEEMABLE.value,
+        RewardStatus.REDEEMED.value,
+        RewardStatus.EXPIRED.value,
+    ]
+
+    rewards = (
+        db.query(RewardModel, LoyaltyProgram)
+        .join(LoyaltyProgram, RewardModel.program_id == LoyaltyProgram.id)
+        .filter(
+            RewardModel.merchant_id == merchant.id,
+            RewardModel.customer_id == customer_id,
+            RewardModel.status.in_(valid_statuses),
+        )
+        .order_by(desc(RewardModel.reached_at))
+        .limit(30)
+        .all()
+    )
+
+    redemption_history: List[dict] = []
+    seen_reward_ids: set[str] = set()
+    redeemed_total = 0
+    redeemable_total = 0
+    expired_total = 0
+
+    for reward, program in rewards:
+        reward_id = str(reward.id)
+        if reward_id in seen_reward_ids:
+            continue
+        seen_reward_ids.add(reward_id)
+        status_value = (
+            reward.status.value
+            if isinstance(reward.status, RewardStatus)
+            else str(reward.status)
+        )
+        if status_value == RewardStatus.REDEEMED.value:
+            redeemed_total += 1
+        elif status_value == RewardStatus.REDEEMABLE.value:
+            redeemable_total += 1
+        elif status_value == RewardStatus.EXPIRED.value:
+            expired_total += 1
+
+        redemption_history.append(
+            {
+                "id": reward_id,
+                "program_id": str(reward.program_id),
+                "program_name": program.name if program else "Program",
+                "status": status_value,
+                "reached_at": format_local(reward.reached_at),
+                "redeemed_at": format_local(reward.redeemed_at),
+                "voucher_code": reward.voucher_code,
+                "cycle": reward.cycle,
+            }
+        )
+
+    ledger_entries = (
+        db.query(LedgerEntry)
+        .filter(
+            LedgerEntry.merchant_id == merchant.id,
+            LedgerEntry.customer_id == customer_id,
+        )
+        .order_by(desc(LedgerEntry.created_at))
+        .limit(25)
+        .all()
+    )
+
+    recent_activity: List[dict] = []
+    for entry in ledger_entries:
+        entry_type = (
+            entry.entry_type.value
+            if hasattr(entry.entry_type, "value")
+            else str(entry.entry_type)
+        )
+        timestamp = format_local(entry.created_at)
+        related_program = next(
+            (p for p in programs if p["id"] == str(entry.program_id)), None
+        )
+        recent_activity.append(
+            {
+                "id": str(entry.id),
+                "program_id": str(entry.program_id),
+                "program_name": related_program["name"] if related_program else None,
+                "entry_type": entry_type,
+                "change": entry.amount,
+                "timestamp": timestamp,
+                "notes": entry.notes,
+            }
+        )
+
+    return {
+        "id": str(customer.id),
+        "name": customer.name or customer.email.split("@")[0],
+        "email": customer.email,
+        "avatar": customer.avatar_url,
+        "total_stamps": total_stamps,
+        "last_visit": last_visit_iso,
+        "last_visit_display": last_visit_display,
+        "programs": programs,
+        "redemption_history": redemption_history,
+        "recent_activity": recent_activity,
+        "reward_summary": {
+            "redeemed": redeemed_total,
+            "redeemable": redeemable_total,
+            "expired": expired_total,
+        },
+    }
+
+
 # Merchant rewards
 @router.get("/rewards")
 def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
@@ -884,54 +1064,6 @@ def delete_customer(
         db.delete(membership)
     db.commit()
     return {"message": "Customer removed from all programs"}
-
-
-# Analytics
-@router.get("/{merchant_id}/analytics")
-def get_merchant_analytics_endpoint(
-    merchant_id: UUID,
-    period: str = Query(Period.THIS_MONTH, enum=[p.value for p in Period]),
-    db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
-):
-    user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Check if user owns the merchant
-    merchant = db.query(MerchantModel).filter(MerchantModel.id == merchant_id, MerchantModel.owner_user_id == user.id).first()
-    if not merchant:
-        raise HTTPException(status_code=403, detail="Not authorized to access this merchant's analytics")
-
-    try:
-        analytics = get_merchant_analytics(db, merchant_id, period)
-        return analytics
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.get("/{merchant_id}/analytics/customers")
-def get_top_customers_endpoint(
-    merchant_id: UUID,
-    period: str = Query(Period.THIS_MONTH, enum=[p.value for p in Period]),
-    limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
-):
-    user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Check if user owns the merchant
-    merchant = db.query(MerchantModel).filter(MerchantModel.id == merchant_id, MerchantModel.owner_user_id == user.id).first()
-    if not merchant:
-        raise HTTPException(status_code=403, detail="Not authorized to access this merchant's analytics")
-
-    try:
-        customers = get_top_customers(db, merchant_id, period, limit)
-        return {"customers": customers}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 # Public search

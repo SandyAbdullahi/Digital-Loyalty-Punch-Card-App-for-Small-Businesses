@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import {
+  Badge,
   Button,
+  Loader,
   Modal,
   TextInput,
   Text,
@@ -25,6 +27,39 @@ type CustomerRecord = {
   programs: CustomerProgram[]
 }
 
+type RedemptionEvent = {
+  id: string
+  programId: string
+  programName: string
+  status: string
+  reachedAt?: string | null
+  redeemedAt?: string | null
+  voucherCode?: string | null
+  cycle?: number | null
+}
+
+type ActivityEvent = {
+  id: string
+  programId: string
+  programName?: string | null
+  entryType: string
+  change: number
+  timestamp?: string | null
+  notes?: string | null
+}
+
+type RewardSummary = {
+  redeemed: number
+  redeemable: number
+  expired: number
+}
+
+type CustomerDetail = CustomerRecord & {
+  redemptionHistory: RedemptionEvent[]
+  recentActivity: ActivityEvent[]
+  rewardSummary: RewardSummary
+}
+
 const Customers = () => {
   const [customers, setCustomers] = useState<CustomerRecord[]>([])
   const [query, setQuery] = useState('')
@@ -32,8 +67,11 @@ const Customers = () => {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'info'; message: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [customerDetail, setCustomerDetail] = useState<CustomerDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const { lastMessage } = useWebSocket()
   const selectedCustomerIdRef = useRef<string | null>(null)
+  const detailCacheRef = useRef<Record<string, CustomerDetail>>({})
 
   const apiBaseUrl =
     (import.meta as any)?.env?.VITE_API_URL ||
@@ -72,6 +110,24 @@ const Customers = () => {
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  const formatTimelineValue = (rawValue?: string | null): string | null => {
+    if (!rawValue) return null
+    return formatLastVisit(rawValue) ?? rawValue
+  }
+
+  const statusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'redeemed':
+        return 'teal'
+      case 'redeemable':
+        return 'blue'
+      case 'expired':
+        return 'gray'
+      default:
+        return 'dark'
+    }
   }
 
   const fetchCustomers = async () => {
@@ -116,6 +172,14 @@ const Customers = () => {
 
   useEffect(() => {
     selectedCustomerIdRef.current = selectedCustomer?.id ?? null
+  }, [selectedCustomer])
+
+  useEffect(() => {
+    if (!selectedCustomer) {
+      setCustomerDetail(null)
+      return
+    }
+    void loadCustomerDetail(selectedCustomer.id)
   }, [selectedCustomer])
 
   useEffect(() => {
@@ -211,6 +275,19 @@ const Customers = () => {
 
     if (nextSelection) {
       setSelectedCustomer(nextSelection)
+      setCustomerDetail((prev) => {
+        if (!prev || prev.id !== nextSelection.id) {
+          return prev
+        }
+        const updatedDetail: CustomerDetail = {
+          ...prev,
+          programs: nextSelection.programs,
+          totalStamps: nextSelection.totalStamps,
+          lastVisit: nextSelection.lastVisit ?? prev.lastVisit,
+        }
+        detailCacheRef.current[nextSelection.id] = updatedDetail
+        return updatedDetail
+      })
     }
 
     if (typeof delta === 'number') {
@@ -231,13 +308,108 @@ const Customers = () => {
     )
   }, [customers, query])
 
+  const detailSource = customerDetail ?? selectedCustomer
+
   const showToast = (type: 'success' | 'info', message: string) => {
     setToast({ type, message })
     setTimeout(() => setToast(null), 2400)
   }
 
+  const loadCustomerDetail = async (customerId: string, forceRefresh = false) => {
+    if (!customerId) return
+    if (!forceRefresh) {
+      const cached = detailCacheRef.current[customerId]
+      if (cached) {
+        setCustomerDetail(cached)
+        return
+      }
+    }
+    setDetailLoading(true)
+    try {
+      const response = await axios.get(`/api/v1/merchants/customers/${customerId}`)
+      const payload = response.data ?? {}
+
+      const programs: CustomerProgram[] = (payload.programs ?? []).map((program: any) => ({
+        id: program.id ?? crypto.randomUUID(),
+        name: program.name ?? 'Program',
+        progress: program.progress ?? 0,
+        threshold: program.threshold ?? 10,
+      }))
+
+      const seenHistoryIds = new Set<string>()
+      const redemptionHistory: RedemptionEvent[] = []
+      const rawHistory = payload.redemption_history ?? payload.redemptionHistory ?? []
+      for (const entry of rawHistory) {
+        const id = entry?.id ?? crypto.randomUUID()
+        if (seenHistoryIds.has(id)) continue
+        seenHistoryIds.add(id)
+        redemptionHistory.push({
+          id,
+          programId: entry?.program_id ?? entry?.programId ?? crypto.randomUUID(),
+          programName: entry?.program_name ?? entry?.programName ?? 'Program',
+          status: (entry?.status ?? 'unknown').toString(),
+          reachedAt: entry?.reached_at ?? entry?.reachedAt ?? null,
+          redeemedAt: entry?.redeemed_at ?? entry?.redeemedAt ?? null,
+          voucherCode: entry?.voucher_code ?? entry?.voucherCode ?? null,
+          cycle: entry?.cycle ?? null,
+        })
+      }
+
+      const recentActivity: ActivityEvent[] = (
+        payload.recent_activity ?? payload.recentActivity ?? []
+      ).map((activity: any) => ({
+        id: activity.id ?? crypto.randomUUID(),
+        programId: activity.program_id ?? activity.programId ?? crypto.randomUUID(),
+        programName: activity.program_name ?? activity.programName ?? null,
+        entryType: (activity.entry_type ?? activity.entryType ?? 'EARN').toString(),
+        change:
+          typeof activity.change === 'number'
+            ? activity.change
+            : typeof activity.amount === 'number'
+            ? activity.amount
+            : 0,
+        timestamp: activity.timestamp ?? activity.created_at ?? activity.createdAt ?? null,
+        notes: activity.notes ?? null,
+      }))
+
+      const rewardSummary: RewardSummary =
+        payload.reward_summary ?? payload.rewardSummary ?? {
+          redeemed: 0,
+          redeemable: 0,
+          expired: 0,
+        }
+
+      const normalized: CustomerDetail = {
+        id: payload.id ?? customerId,
+        name: payload.name ?? selectedCustomer?.name ?? 'Valued Guest',
+        email: payload.email ?? selectedCustomer?.email ?? 'unknown',
+        avatar: resolveAvatarUrl(payload.avatar) ?? selectedCustomer?.avatar,
+        totalStamps:
+          payload.total_stamps ?? payload.totalStamps ?? programs.reduce((sum, p) => sum + p.progress, 0),
+        lastVisit:
+          formatTimelineValue(payload.last_visit_display ?? payload.last_visit ?? payload.lastVisit) ??
+          selectedCustomer?.lastVisit ??
+          null,
+        programs: programs.length ? programs : selectedCustomer?.programs ?? [],
+        redemptionHistory,
+        recentActivity,
+        rewardSummary,
+      }
+
+      detailCacheRef.current[customerId] = normalized
+      setCustomerDetail(normalized)
+    } catch (error) {
+      console.error('Failed to load customer details', error)
+      showToast('info', 'Unable to load customer details.')
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
   const handleManualAction = async (action: 'add' | 'revoke') => {
     if (!selectedCustomer || selectedCustomer.programs.length === 0) return
+
+    const currentCustomerId = selectedCustomer.id
 
     const programId = selectedCustomer.programs[0].id
     const url = `/api/v1/merchants/customers/${selectedCustomer.id}/${action === 'add' ? 'add-stamp' : 'revoke-stamp'}`
@@ -270,6 +442,26 @@ const Customers = () => {
         // Update selectedCustomer with new data
         const updatedSelected = updatedCustomers.find(c => c.id === selectedCustomer.id)
         setSelectedCustomer(updatedSelected || null)
+        if (updatedSelected) {
+          detailCacheRef.current[updatedSelected.id] = {
+            ...(detailCacheRef.current[updatedSelected.id] ?? updatedSelected),
+            id: updatedSelected.id,
+            name: updatedSelected.name,
+            email: updatedSelected.email,
+            avatar: updatedSelected.avatar,
+            programs: updatedSelected.programs,
+            totalStamps: updatedSelected.totalStamps,
+            lastVisit: updatedSelected.lastVisit,
+            redemptionHistory: detailCacheRef.current[updatedSelected.id]?.redemptionHistory ?? [],
+            recentActivity: detailCacheRef.current[updatedSelected.id]?.recentActivity ?? [],
+            rewardSummary: detailCacheRef.current[updatedSelected.id]?.rewardSummary ?? {
+              redeemed: 0,
+              redeemable: 0,
+              expired: 0,
+            },
+          }
+        }
+        await loadCustomerDetail(currentCustomerId, true)
       }
     } catch (error) {
       showToast('info', 'Action failed - please try again.')
@@ -281,6 +473,8 @@ const Customers = () => {
     try {
       await axios.delete(`/api/v1/merchants/customers/${selectedCustomer.id}`)
       showToast('success', 'Customer removed successfully.')
+      delete detailCacheRef.current[selectedCustomer.id]
+      setCustomerDetail(null)
       setSelectedCustomer(null)
       setConfirmDelete(false)
       // Refetch customers
@@ -363,40 +557,64 @@ const Customers = () => {
         )}
       </div>
 
-      <Modal opened={Boolean(selectedCustomer)} onClose={() => setSelectedCustomer(null)} title={selectedCustomer?.name} size="xl">
+      <Modal opened={Boolean(selectedCustomer)} onClose={() => setSelectedCustomer(null)} title={detailSource?.name} size="xl">
         <div className="space-y-5">
           <div className="flex items-center gap-4">
-            {selectedCustomer?.avatar ? (
+            {detailSource?.avatar ? (
               <img
-                src={selectedCustomer.avatar}
-                alt={selectedCustomer.name}
+                src={detailSource.avatar}
+                alt={detailSource.name}
                 className="h-12 w-12 rounded-full object-cover"
               />
             ) : (
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-heading text-lg font-semibold text-primary">
-                {selectedCustomer?.name?.[0]?.toUpperCase()}
+                {detailSource?.name?.[0]?.toUpperCase()}
               </div>
             )}
             <div>
-              <p className="text-base font-semibold text-foreground">{selectedCustomer?.name}</p>
-              <p className="text-sm text-muted-foreground">{selectedCustomer?.email}</p>
+              <p className="text-base font-semibold text-foreground">{detailSource?.name}</p>
+              <p className="text-sm text-muted-foreground">{detailSource?.email}</p>
             </div>
           </div>
 
+          {detailLoading && (
+            <div className="flex items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              <Loader size="sm" />
+              <span>Loading detailed history...</span>
+            </div>
+          )}
+
           <div className="grid gap-4 rounded-2xl border border-primary/15 bg-muted/50 p-4 text-sm text-muted-foreground sm:grid-cols-2">
             <div>
-              <span className="font-semibold text-foreground">{selectedCustomer?.programs.reduce((sum, p) => sum + p.progress, 0)}</span>{' '}
+              <span className="font-semibold text-foreground">{detailSource?.totalStamps ?? 0}</span>{' '}
               total stamps
             </div>
-            <div>Last visit: {selectedCustomer?.lastVisit ?? 'Never'}</div>
+            <div>Last visit: {detailSource?.lastVisit ?? 'Never'}</div>
           </div>
+
+          {customerDetail?.rewardSummary && (
+            <div className="grid gap-3 rounded-2xl border border-primary/15 bg-surface/80 p-4 text-sm text-muted-foreground sm:grid-cols-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Redeemed</p>
+                <p className="text-lg font-semibold text-foreground">{customerDetail.rewardSummary.redeemed}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Ready to redeem</p>
+                <p className="text-lg font-semibold text-foreground">{customerDetail.rewardSummary.redeemable}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Expired</p>
+                <p className="text-lg font-semibold text-foreground">{customerDetail.rewardSummary.expired}</p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <Text className="text-sm font-semibold text-foreground">
               Active loyalty journeys
             </Text>
             <div className="space-y-3">
-              {selectedCustomer?.programs.map((program) => {
+              {detailSource?.programs.map((program) => {
                 const progress = Math.min(
                   Math.round((program.progress / program.threshold) * 100),
                   100
@@ -418,12 +636,71 @@ const Customers = () => {
                   </div>
                 )
               })}
-              {!selectedCustomer?.programs.length && (
+              {!detailSource?.programs.length && (
                 <div className="rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
                   No active programs yet - invite them to their first reward adventure!
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <Text className="text-sm font-semibold text-foreground">Redemption history</Text>
+            {customerDetail?.redemptionHistory?.length ? (
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                {customerDetail.redemptionHistory.map((reward) => (
+                  <div key={reward.id} className="rounded-2xl border border-primary/10 bg-card/70 p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{reward.programName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {reward.redeemedAt
+                            ? `Redeemed ${formatTimelineValue(reward.redeemedAt) ?? ''}`
+                            : reward.reachedAt
+                            ? `Unlocked ${formatTimelineValue(reward.reachedAt) ?? ''}`
+                            : 'Status pending'}
+                        </p>
+                      </div>
+                      <Badge color={statusColor(reward.status)} variant="light">
+                        {reward.status.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                    </div>
+                    {reward.voucherCode && (
+                      <p className="mt-2 text-xs font-mono text-muted-foreground">Code: {reward.voucherCode}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
+                No reward history recorded yet.
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <Text className="text-sm font-semibold text-foreground">Recent stamp activity</Text>
+            {customerDetail?.recentActivity?.length ? (
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {customerDetail.recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between rounded-2xl border border-primary/10 bg-surface/80 px-3 py-2 text-sm">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-foreground">{activity.programName ?? 'Program update'}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {activity.entryType} · {formatTimelineValue(activity.timestamp) ?? 'Recently'}
+                      </span>
+                    </div>
+                    <span className={`font-semibold ${activity.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {activity.change >= 0 ? `+${activity.change}` : activity.change} stamps
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
+                No recent visits logged yet.
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
