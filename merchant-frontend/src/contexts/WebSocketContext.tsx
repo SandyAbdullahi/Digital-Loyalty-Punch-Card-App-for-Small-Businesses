@@ -15,6 +15,7 @@ interface RedeemNotification {
   program_name: string
   stamps_redeemed: number
   code: string
+  reward_id: string
   timestamp: string
   read?: boolean
 }
@@ -75,6 +76,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
               program_name: message.program_name,
               stamps_redeemed: message.stamps_redeemed,
               code: message.code,
+              reward_id: String(message.reward_id ?? ''),
               timestamp: new Date().toISOString(),
               read: false
             }

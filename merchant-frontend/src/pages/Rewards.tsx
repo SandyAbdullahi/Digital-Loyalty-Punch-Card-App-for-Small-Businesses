@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import QrScanner from 'qr-scanner';
 import { Button } from '@rudi/ui';
 import { formatApiDate } from '../utils/date';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import StaffRedeemModal from '../components/StaffRedeemModal';
 
-type RewardStatus = 'claimed' | 'redeemed' | 'expired';
+type RewardStatus = 'redeemable' | 'redeemed' | 'expired' | 'inactive';
 
 type RewardRecord = {
   id: string;
@@ -18,15 +20,22 @@ type RewardRecord = {
 };
 
 const pillStyles: Record<RewardStatus, string> = {
-  claimed: 'bg-rudi-yellow/20 text-rudi-yellow',
+  redeemable: 'bg-rudi-yellow/20 text-rudi-yellow',
   redeemed: 'bg-rudi-teal/20 text-rudi-teal',
   expired: 'bg-rudi-coral/20 text-rudi-coral',
+  inactive: 'bg-rudi-teal/10 text-rudi-maroon/70',
 };
 
 const Rewards = () => {
   const [rewards, setRewards] = useState<RewardRecord[]>([]);
   const [loadingCode, setLoadingCode] = useState<string | null>(null);
-  const { redeemNotifications, markRedeemNotificationAsRead } = useWebSocket();
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [manualRedeemOpen, setManualRedeemOpen] = useState(false);
+  const [redeemNotificationLoading, setRedeemNotificationLoading] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<QrScanner | null>(null);
+  const { redeemNotifications, markRedeemNotificationAsRead, lastMessage } = useWebSocket();
 
   const fetchRewards = async () => {
     try {
@@ -34,14 +43,14 @@ const Rewards = () => {
       if (Array.isArray(response.data)) {
         setRewards(
           response.data.map((reward: Record<string, unknown>) => ({
-            id: reward.id ?? crypto.randomUUID(),
-            program: reward.program ?? 'Program name',
-            customer: reward.customer ?? 'Guest',
+            id: String(reward.id ?? crypto.randomUUID()),
+            program: String(reward.program ?? 'Program name'),
+            customer: String(reward.customer ?? 'Guest'),
             date: reward.created_at ?? reward.date ?? null,
             status: (reward.status ?? 'claimed') as RewardStatus,
             amount: reward.amount,
-            code: reward.code ?? undefined,
-            expiresAt: reward.expires_at ?? undefined,
+            code: reward.code ? String(reward.code) : undefined,
+            expiresAt: reward.expires_at ? String(reward.expires_at) : undefined,
           }))
         );
       }
@@ -51,9 +60,22 @@ const Rewards = () => {
     }
   };
 
+  const handleManualRedeemSuccess = async () => {
+    await fetchRewards();
+    setManualRedeemOpen(false);
+  };
+
   useEffect(() => {
     fetchRewards();
   }, []);
+
+  useEffect(() => {
+    if (!lastMessage || typeof lastMessage !== 'object') return;
+    const type = (lastMessage as { type?: string }).type;
+    if (type === 'redeem_request' || type === 'reward_redeemed') {
+      fetchRewards();
+    }
+  }, [lastMessage]);
 
   const redeemCode = async (code: string) => {
     try {
@@ -67,8 +89,88 @@ const Rewards = () => {
     }
   };
 
+  const confirmPendingRedeem = async (notificationId: string, rewardId: string, code: string) => {
+    if (!rewardId) {
+      console.warn('Missing reward id for notification, nothing to redeem');
+      markRedeemNotificationAsRead(notificationId);
+      return;
+    }
+    try {
+      setRedeemNotificationLoading(notificationId);
+      await axios.post(`/api/v1/merchants/rewards/${rewardId}/redeem`, {
+        voucher_code: code,
+      });
+      markRedeemNotificationAsRead(notificationId);
+      await fetchRewards();
+    } catch (error) {
+      console.error('Failed to confirm redeem request:', error);
+      alert('Failed to confirm redeem. Please try again or scan the voucher QR.');
+    } finally {
+      setRedeemNotificationLoading((current) => (current === notificationId ? null : current));
+    }
+  };
+
+  useEffect(() => {
+    if (!lastMessage || typeof lastMessage !== 'object') return;
+    if ((lastMessage as { type?: string }).type !== 'redeem_request') return;
+    fetchRewards();
+  }, [lastMessage]);
+
+  const startScanning = async () => {
+    if (!videoRef.current) return;
+
+    setScanning(true);
+    setScanError(null);
+
+    try {
+      const scanner = new QrScanner(
+        videoRef.current,
+        async (result) => {
+          const code = result.data.trim();
+          if (code) {
+            stopScanning();
+            await redeemCode(code);
+          }
+        },
+        {
+          onDecodeError: (err) => {
+            console.error('QR decode error:', err);
+          },
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+        }
+      );
+
+      scannerRef.current = scanner;
+      await scanner.start();
+    } catch (error) {
+      console.error('Failed to start scanner:', error);
+      setScanError('Failed to access camera. Please check permissions.');
+      setScanning(false);
+    }
+  };
+
+  const stopScanning = () => {
+    if (scannerRef.current) {
+      scannerRef.current.stop();
+      scannerRef.current.destroy();
+      scannerRef.current = null;
+    }
+    setScanning(false);
+    setScanError(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current.destroy();
+      }
+    };
+  }, []);
+
   const hasPending = useMemo(
-    () => rewards.some((reward) => reward.status === 'claimed' && reward.code),
+    () => rewards.some((reward) => reward.status === 'redeemable' && reward.code),
     [rewards]
   );
 
@@ -103,13 +205,61 @@ const Rewards = () => {
                 </div>
                 <Button
                   className="btn-primary h-8 px-3 text-xs"
-                  onClick={() => markRedeemNotificationAsRead(notification.id)}
+                  onClick={() =>
+                    confirmPendingRedeem(notification.id, notification.reward_id, notification.code)
+                  }
+                  disabled={redeemNotificationLoading === notification.id}
                 >
-                  Mark as Seen
+                  {redeemNotificationLoading === notification.id ? 'Confirming...' : 'Mark redeemed'}
                 </Button>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* QR Scanner */}
+      {scanning && (
+        <div className="rounded-3xl bg-white p-6 shadow-rudi-card">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading text-xl font-semibold text-rudi-maroon">
+                Scan Redeem QR Code
+              </h2>
+              <Button
+                className="btn-secondary h-8 px-3 text-xs"
+                onClick={stopScanning}
+              >
+                Cancel
+              </Button>
+            </div>
+            {scanError && (
+              <p className="text-sm text-rudi-coral">{scanError}</p>
+            )}
+            <div className="relative">
+              <video
+                ref={videoRef}
+                className="w-full max-w-md mx-auto rounded-lg border border-rudi-teal/20"
+                playsInline
+                muted
+              />
+              <div className="absolute inset-0 border-2 border-rudi-primary rounded-lg pointer-events-none" />
+            </div>
+            <p className="text-sm text-rudi-maroon/70 text-center">
+              Point your camera at the customer's redeem QR code
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!scanning && (
+        <div className="flex justify-center">
+          <Button
+            className="btn-primary"
+            onClick={startScanning}
+          >
+            📱 Scan Redeem QR Code
+          </Button>
         </div>
       )}
 
@@ -158,7 +308,7 @@ const Rewards = () => {
                   {reward.status.charAt(0).toUpperCase() + reward.status.slice(1)}
                 </span>
                 <div className="flex flex-col items-end gap-2 text-right">
-                  {reward.status === 'claimed' && reward.code ? (
+                  {reward.status === 'redeemable' && reward.code ? (
                     <>
                       <span className="font-mono text-xs text-rudi-maroon/80">
                         Code: {reward.code}
@@ -190,6 +340,11 @@ const Rewards = () => {
           </div>
         </div>
       )}
+      <StaffRedeemModal
+        opened={manualRedeemOpen}
+        onClose={() => setManualRedeemOpen(false)}
+        onRedeemed={handleManualRedeemSuccess}
+      />
     </div>
   );
 };
