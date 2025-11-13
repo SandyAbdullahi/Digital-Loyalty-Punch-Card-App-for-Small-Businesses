@@ -218,7 +218,7 @@ const Programs = () => {
             />
           </div>
           <Button
-            className="btn-primary h-11 rounded-2xl px-5"
+            className="btn-primary h-11 rounded-2xl px-5 mb-4"
             type="button"
             onClick={openCreateModal}
           >
@@ -239,7 +239,7 @@ const Programs = () => {
           return (
             <article
               key={program.id}
-              className="card-hover flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-lg animate-slide-up"
+              className="card-hover flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-lg animate-slide-up mt-4"
               style={{ animationDelay: `${index * 0.04}s` }}
             >
               <div className="flex items-start justify-between gap-3">
