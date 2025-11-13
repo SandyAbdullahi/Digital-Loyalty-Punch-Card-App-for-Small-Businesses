@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy import and_, or_, desc
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload, selectinload
 
 from ...db.session import get_db
 from ...api.deps import get_current_user
@@ -16,13 +16,15 @@ from ...services.membership import get_memberships_with_details_by_customer
 from ...schemas.customer_program_membership import CustomerProgramMembershipWithDetails
 from ...schemas.user import UserUpdate
 from ...schemas.notification import CustomerNotification
-from ...schemas.reward import CustomerRedemption
+from ...schemas.reward import CustomerRedemption, Reward as RewardSchema
 from ...models.ledger_entry import LedgerEntry, LedgerEntryType
 from ...models.customer_program_membership import CustomerProgramMembership
 from ...models.loyalty_program import LoyaltyProgram
-from ...models.redeem_code import RedeemCode
+from ...models.reward import Reward as RewardModel, RewardStatus
+from ...models.stamp import Stamp
 from ...models.merchant import Merchant
 from ...services.membership import get_membership_by_customer_and_program
+from ...services.reward_service import issue_stamp
 
 router = APIRouter()
 
@@ -47,127 +49,32 @@ def get_my_notifications(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Get ledger entry notifications
-    entries = (
-        db.query(LedgerEntry, CustomerProgramMembership, LoyaltyProgram, Merchant)
-        .join(CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id)
-        .join(LoyaltyProgram, CustomerProgramMembership.program_id == LoyaltyProgram.id)
-        .join(Merchant, LoyaltyProgram.merchant_id == Merchant.id)
-        .filter(
-            CustomerProgramMembership.customer_user_id == user.id,
-            or_(
-                and_(
-                    LedgerEntry.entry_type == LedgerEntryType.EARN.value,
-                    LedgerEntry.notes == "manual_issue",
-                ),
-                and_(
-                    LedgerEntry.entry_type == LedgerEntryType.ADJUST.value,
-                    LedgerEntry.notes == "manual_revoke",
-                    LedgerEntry.amount < 0,
-                ),
-                and_(
-                    LedgerEntry.entry_type == LedgerEntryType.EARN.value,
-                    LedgerEntry.tx_ref.like("scan_%"),
-                ),
-            ),
-        )
-        .order_by(desc(LedgerEntry.created_at))
-        .limit(limit)
-        .all()
-    )
+    # Get recent ledger entries for the customer
+    entries = db.query(LedgerEntry).filter(
+        LedgerEntry.customer_id == user.id
+    ).order_by(LedgerEntry.issued_at.desc()).limit(limit).all()
 
-    # Get redemption notifications
-    redemptions = (
-        db.query(RedeemCode, CustomerProgramMembership, LoyaltyProgram, Merchant)
-        .join(CustomerProgramMembership, RedeemCode.membership_id == CustomerProgramMembership.id)
-        .join(LoyaltyProgram, RedeemCode.program_id == LoyaltyProgram.id)
-        .join(Merchant, LoyaltyProgram.merchant_id == Merchant.id)
-        .filter(CustomerProgramMembership.customer_user_id == user.id)
-        .order_by(desc(RedeemCode.created_at))
-        .limit(limit)
-        .all()
-    )
-
-    notifications: List[CustomerNotification] = []
-
-    # Process ledger entry notifications
-    for entry, membership, program, merchant in entries:
-        merchant_name = (
-            getattr(merchant, "display_name", None)
-            or getattr(merchant, "legal_name", None)
-            or "Merchant"
-        )
-        program_name = getattr(program, "name", None) or "Programme"
-        amount = abs(int(entry.amount or 0))
-
-        if entry.entry_type in (LedgerEntryType.EARN, LedgerEntryType.EARN.value):
-            # Check if this was from a scan
-            if entry.tx_ref and entry.tx_ref.startswith("scan_"):
-                message = f"Stamp earned from scan at {merchant_name}! Congratulations 🎉"
-                type_ = "scan_earn"
-            else:
-                message = f"{merchant_name} manually added {amount} stamp{'s' if amount != 1 else ''} to {program_name}."
-                type_ = "manual_issue"
-        elif entry.entry_type in (LedgerEntryType.ADJUST, LedgerEntryType.ADJUST.value):
-            message = f"{merchant_name} removed {amount} stamp{'s' if amount != 1 else ''} from {program_name}."
-            type_ = "manual_revoke"
-        elif entry.entry_type in (LedgerEntryType.REDEEM, LedgerEntryType.REDEEM.value):
-            reward_desc = getattr(program, "reward_description", None) or "reward"
-            message = f"Congratulations! You redeemed {amount} stamp{'s' if amount != 1 else ''} for {reward_desc} at {merchant_name}!"
-            type_ = "redeem"
-        else:
+    notifications = []
+    for entry in entries:
+        program = db.query(LoyaltyProgram).filter(LoyaltyProgram.id == entry.program_id).first()
+        merchant = db.query(Merchant).filter(Merchant.id == entry.merchant_id).first()
+        if not program or not merchant:
             continue
-
-        created_at = entry.created_at
-
-        notifications.append(
-            CustomerNotification(
-                id=entry.id,
-                type=type_,
-                message=message,
-                timestamp=created_at,
-                program_name=program_name,
-                merchant_name=merchant_name,
-                amount=amount,
-            )
-        )
-
-    # Process redemption notifications
-    for code, membership, program, merchant in redemptions:
-        merchant_name = (
-            getattr(merchant, "display_name", None)
-            or getattr(merchant, "legal_name", None)
-            or "Merchant"
-        )
-        program_name = getattr(program, "name", None) or "Programme"
-
-        # Parse amount from JSON string
-        amount_raw = (code.amount or "0").strip() or "0"
-        try:
-            stamps_redeemed = int(amount_raw)
-        except ValueError:
-            stamps_redeemed = 1  # Default to 1 if parsing fails
-
-        reward_description = getattr(program, "reward_description", None) or "reward"
-
-        message = f"Congratulations! You redeemed {stamps_redeemed} stamp{'s' if stamps_redeemed != 1 else ''} for {reward_description} at {merchant_name}!"
-
-        created_at = code.created_at
-        if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
-
-        notifications.append(
-            CustomerNotification(
-                id=code.id,
-                type="reward_redeemed",
-                message=message,
-                timestamp=created_at,
-                program_name=program_name,
-                merchant_name=merchant_name,
-                amount=stamps_redeemed,
-            )
-        )
-
+        notif_type = {
+            "EARN": "scan_earn",
+            "REDEEM": "reward_redeemed",
+            "ADJUST": "manual_issue" if entry.amount > 0 else "manual_revoke"
+        }.get(entry.entry_type, "manual_issue")
+        message = f"{'Earned' if entry.entry_type == 'EARN' else 'Redeemed' if entry.entry_type == 'REDEEM' else 'Adjusted'} {entry.amount} points"
+        notifications.append({
+            "id": entry.id,
+            "type": notif_type,
+            "message": message,
+            "timestamp": entry.issued_at,
+            "program_name": program.name,
+            "merchant_name": merchant.display_name,
+            "amount": entry.amount
+        })
     return notifications
 
 
@@ -181,118 +88,57 @@ def get_my_rewards(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Get redeem codes
-    redemptions_query = (
-        db.query(RedeemCode, CustomerProgramMembership, LoyaltyProgram, Merchant)
-        .join(CustomerProgramMembership, RedeemCode.membership_id == CustomerProgramMembership.id)
-        .join(LoyaltyProgram, RedeemCode.program_id == LoyaltyProgram.id)
+    rewards_query = (
+        db.query(RewardModel, CustomerProgramMembership, LoyaltyProgram, Merchant)
+        .join(CustomerProgramMembership, RewardModel.enrollment_id == CustomerProgramMembership.id)
+        .join(LoyaltyProgram, RewardModel.program_id == LoyaltyProgram.id)
         .join(Merchant, LoyaltyProgram.merchant_id == Merchant.id)
         .filter(CustomerProgramMembership.customer_user_id == user.id)
-        .order_by(desc(RedeemCode.created_at))
+        .order_by(desc(RewardModel.reached_at))
         .limit(limit)
     )
 
-    # Get REDEEM ledger entries
-    from ...models.ledger_entry import LedgerEntry, LedgerEntryType
-    ledger_query = (
-        db.query(LedgerEntry, CustomerProgramMembership, LoyaltyProgram, Merchant)
-        .join(CustomerProgramMembership, LedgerEntry.membership_id == CustomerProgramMembership.id)
-        .join(LoyaltyProgram, LedgerEntry.program_id == LoyaltyProgram.id)
-        .join(Merchant, LedgerEntry.merchant_id == Merchant.id)
-        .filter(
-            CustomerProgramMembership.customer_user_id == user.id,
-            LedgerEntry.entry_type == LedgerEntryType.REDEEM
-        )
-        .order_by(desc(LedgerEntry.created_at))
-        .limit(limit)
-    )
-
-    now_utc = datetime.now(timezone.utc)
     rewards: List[CustomerRedemption] = []
+    status_map = {
+        RewardStatus.REDEEMABLE: "claimed",
+        RewardStatus.REDEEMED: "redeemed",
+        RewardStatus.EXPIRED: "expired",
+    }
 
-    # Process redeem codes
-    for code, membership, program, merchant in redemptions_query:
-        created_at = code.created_at or datetime.utcnow()
+    for reward, membership, program, merchant in rewards_query:
+        status = status_map.get(reward.status)
+        if not status:
+            continue
+
+        created_at = reward.reached_at or membership.joined_at or datetime.utcnow()
         if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
-            # Database stores times in UTC+3, convert to UTC
-            utc_time = created_at - timedelta(hours=3)
-            created_at = utc_time.replace(tzinfo=timezone.utc)
+            created_at = created_at.replace(tzinfo=timezone.utc)
 
-        expires_at = code.expires_at
-        if expires_at is not None and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
-            # Database stores times in UTC+3, convert to UTC
-            utc_time = expires_at - timedelta(hours=3)
-            expires_at = utc_time.replace(tzinfo=timezone.utc)
+        expires_at = reward.redeem_expires_at
+        if expires_at and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
 
-        used_at = code.used_at
-        if used_at is not None and (used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None):
-            # Database stores times in UTC+3, convert to UTC
-            utc_time = used_at - timedelta(hours=3)
-            used_at = utc_time.replace(tzinfo=timezone.utc)
+        used_at = reward.redeemed_at
+        if used_at and (used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None):
+            used_at = used_at.replace(tzinfo=timezone.utc)
 
-        is_used = str(code.is_used).lower() == "true"
-        if is_used:
-            status = "redeemed"
-        elif expires_at and expires_at < now_utc:
-            status = "expired"
-        else:
-            status = "claimed"
-
-        reward_description = getattr(program, "reward_description", None)
-        amount_raw = (code.amount or "0").strip() or "0"
-        try:
-            stamps_redeemed = int(amount_raw)
-        except ValueError:
-            stamps_redeemed = None
+        stamps_required = getattr(program, "stamps_required", 0) or 0
+        reward_description = getattr(program, "reward_description", None) or program.name or "Reward"
+        merchant_name = getattr(merchant, "display_name", None) or getattr(merchant, "legal_name", None)
 
         rewards.append(
             CustomerRedemption(
-                id=str(code.id),
-                code=code.code,
+                id=str(reward.id),
+                code=reward.voucher_code or "N/A",
                 status=status,
-                amount=amount_raw,
+                amount=str(stamps_required),
                 created_at=created_at.isoformat(),
                 expires_at=expires_at.isoformat() if expires_at else None,
                 used_at=used_at.isoformat() if used_at else None,
                 program_name=getattr(program, "name", None) or "Programme",
-                merchant_name=getattr(merchant, "display_name", None)
-                or getattr(merchant, "legal_name", None)
-                or "Merchant",
+                merchant_name=merchant_name or "Merchant",
                 reward_description=reward_description,
-                stamps_redeemed=stamps_redeemed,
-            )
-        )
-
-    # Process REDEEM ledger entries
-    for entry, membership, program, merchant in ledger_query:
-        created_at = entry.created_at or datetime.utcnow()
-        if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
-            # Database stores times in UTC+3, convert to UTC
-            utc_time = created_at - timedelta(hours=3)
-            created_at = utc_time.replace(tzinfo=timezone.utc)
-
-        # For instant redeems, status is always "redeemed"
-        status = "redeemed"
-
-        reward_description = getattr(program, "reward_description", None)
-        amount_raw = str(entry.amount)
-        stamps_redeemed = entry.amount
-
-        rewards.append(
-            CustomerRedemption(
-                id=str(entry.id),
-                code=entry.tx_ref or f"redeem_{entry.id}",
-                status=status,
-                amount=amount_raw,
-                created_at=created_at.isoformat(),
-                expires_at=None,  # Instant redeems don't expire
-                used_at=created_at.isoformat(),  # Used immediately
-                program_name=getattr(program, "name", None) or "Programme",
-                merchant_name=getattr(merchant, "display_name", None)
-                or getattr(merchant, "legal_name", None)
-                or "Merchant",
-                reward_description=reward_description,
-                stamps_redeemed=stamps_redeemed,
+                stamps_redeemed=stamps_required if status != "claimed" else None,
             )
         )
 
@@ -360,11 +206,72 @@ def leave_program(
         raise HTTPException(status_code=404, detail="Membership not found")
 
     # Delete related records first to avoid foreign key constraint violations
-    db.query(RedeemCode).filter(RedeemCode.membership_id == membership.id).delete()
-    db.query(LedgerEntry).filter(LedgerEntry.membership_id == membership.id).delete()
+    db.query(RewardModel).filter(RewardModel.enrollment_id == membership.id).delete(synchronize_session=False)
+    db.query(Stamp).filter(Stamp.enrollment_id == membership.id).delete(synchronize_session=False)
+    db.query(LedgerEntry).filter(LedgerEntry.membership_id == membership.id).delete(synchronize_session=False)
 
     # Delete the membership
     db.delete(membership)
     db.commit()
 
     return {"message": "Successfully left the program"}
+
+
+@router.post("/programs/{program_id}/enroll")
+def enroll_in_program(
+    program_id: UUID,
+    qr_token: str = Query(...),  # Assume token is passed
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    # Validate QR token (placeholder)
+    # Assume token contains program_id, merchant_id, ts, nonce
+    # Validate HMAC
+
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if already enrolled
+    existing = get_membership_by_customer_and_program(db, user.id, program_id)
+    if existing:
+        return {"enrollment": existing}
+
+    # Create enrollment
+    from ...models import CustomerProgramMembership, JoinedVia
+    program = db.query(LoyaltyProgram).options(joinedload(LoyaltyProgram.merchant)).filter(LoyaltyProgram.id == program_id).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Program not found")
+
+    enrollment = CustomerProgramMembership(
+        customer_user_id=user.id,
+        merchant_id=program.merchant_id,
+        program_id=program_id,
+        joined_via=JoinedVia.QR
+    )
+    db.add(enrollment)
+    db.commit()
+    db.refresh(enrollment)
+    # Load the program with merchant
+    enrollment.program = program
+    return {"enrollment": enrollment}
+
+
+@router.get("/enrollments/{enrollment_id}/reward", response_model=RewardSchema)
+def get_reward_status(
+    enrollment_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    reward = db.query(RewardModel).filter(
+        RewardModel.enrollment_id == enrollment_id,
+        RewardModel.customer_id == user.id
+    ).first()
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+
+    return reward
