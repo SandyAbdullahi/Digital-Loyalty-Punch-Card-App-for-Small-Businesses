@@ -21,13 +21,13 @@ class MerchantSettings(Base):
         UUID(as_uuid=True), ForeignKey("merchants.id"), primary_key=True
     )
     avg_spend_per_visit_kes: Mapped[float] = mapped_column(
-        Numeric(12, 2), nullable=False, default=0
+        Numeric(12, 2), nullable=True
     )
     baseline_visits_per_customer_per_period: Mapped[float] = mapped_column(
-        Numeric(6, 2), nullable=False, default=0
+        Numeric(6, 2), nullable=True
     )
     avg_reward_cost_kes: Mapped[float] = mapped_column(
-        Numeric(12, 2), nullable=False, default=0
+        Numeric(12, 2), nullable=True
     )
     default_period: Mapped[PeriodEnum] = mapped_column(
         String, nullable=False, default=PeriodEnum.MONTH

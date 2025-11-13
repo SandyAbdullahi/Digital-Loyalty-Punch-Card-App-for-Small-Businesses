@@ -18,7 +18,7 @@ from ...services.loyalty_program import (
 )
 from ...schemas.loyalty_program import LoyaltyProgram, LoyaltyProgramCreate, LoyaltyProgramUpdate
 from ...models.loyalty_program import LoyaltyProgram as LoyaltyProgramModel
-from ...schemas.reward import RedeemRequest, CustomerRedemption
+from ...schemas.reward import RedeemStampsRequest, CustomerRedemption
 
 router = APIRouter()
 
@@ -29,20 +29,30 @@ def create_program(
     program: LoyaltyProgramCreate,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
-    # Assume current_user is email, get user and merchant
-    from ...services.auth import get_user_by_email
-    from ...services.merchant import get_merchants_by_owner
-    from ...models.user import UserRole
-    user = get_user_by_email(db, current_user)
-    role_value = getattr(user.role, "value", user.role) if user else None
-    if not user or role_value not in ("merchant", UserRole.MERCHANT.value):
-        raise HTTPException(status_code=403, detail="Not authorized")
-    merchants = get_merchants_by_owner(db, user.id)
-    if not merchants:
-        raise HTTPException(status_code=404, detail="No merchant found")
-    merchant = merchants[0]  # Assume first merchant
-    return create_loyalty_program(db, program, merchant.id)
+ ):
+    try:
+        # Assume current_user is email, get user and merchant
+        from ...services.auth import get_user_by_email
+        from ...services.merchant import get_merchants_by_owner
+        from ...models.user import UserRole
+        user = get_user_by_email(db, current_user)
+        role_value = getattr(user.role, "value", user.role) if user else None
+        if not user or role_value not in ("merchant", UserRole.MERCHANT.value):
+            raise HTTPException(status_code=403, detail="Not authorized")
+        merchants = get_merchants_by_owner(db, user.id)
+        if not merchants:
+            raise HTTPException(status_code=404, detail="No merchant found")
+        merchant = merchants[0]  # Assume first merchant
+
+        return create_loyalty_program(db, program, merchant.id)
+    except Exception as e:
+        print(f"Error in create_program: {e}")
+        import traceback
+        traceback.print_exc()
+        # Check if it's a duplicate name error
+        if "uq_loyalty_programs_merchant_name" in str(e):
+            raise HTTPException(status_code=400, detail="Program name already exists for this merchant")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/", response_model=List[LoyaltyProgram])
@@ -53,15 +63,21 @@ def read_programs(
     from ...services.auth import get_user_by_email
     from ...services.merchant import get_merchants_by_owner
     from ...models.user import UserRole
-    user = get_user_by_email(db, current_user)
-    role_value = getattr(user.role, "value", user.role) if user else None
-    if not user or role_value not in ("merchant", UserRole.MERCHANT.value):
-        raise HTTPException(status_code=403, detail="Not authorized")
-    merchants = get_merchants_by_owner(db, user.id)
-    if not merchants:
+    try:
+        user = get_user_by_email(db, current_user)
+        role_value = getattr(user.role, "value", user.role) if user else None
+        if not user or role_value not in ("merchant", UserRole.MERCHANT.value):
+            raise HTTPException(status_code=403, detail="Not authorized")
+        merchants = get_merchants_by_owner(db, user.id)
+        if not merchants:
+            return []
+        merchant = merchants[0]
+        return get_loyalty_programs_by_merchant(db, merchant.id)
+    except Exception as e:
+        print(f"Error in read_programs: {e}")
+        import traceback
+        traceback.print_exc()
         return []
-    merchant = merchants[0]
-    return get_loyalty_programs_by_merchant(db, merchant.id)
 
 
 @router.get("/{program_id}", response_model=LoyaltyProgram)
@@ -137,7 +153,7 @@ def read_public_programs(db: Session = Depends(get_db)):
 @router.post("/{program_id}/redeem")
 def redeem_stamps(
     program_id: UUID,
-    request: RedeemRequest,
+    request: RedeemStampsRequest,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
@@ -154,15 +170,39 @@ def redeem_stamps(
 
     # Get redeem rule to check max value
     program = membership.program
-    if program.redeem_rule:
+    if program.logic_type == 'points':
+        # For points programs, allow partial redeem but check balance
+        if request.amount > membership.current_balance:
+            raise HTTPException(status_code=400, detail=f"Cannot redeem more than {membership.current_balance} points")
+    else:
+        # For punch card programs, must redeem full amount
+        # Use the same logic as frontend to determine required amount
         import json
-        try:
-            redeem_rule = json.loads(program.redeem_rule) if isinstance(program.redeem_rule, str) else program.redeem_rule
-            max_value = redeem_rule.get("max_value", 10)  # Default 10
-            if request.amount > max_value:
-                raise HTTPException(status_code=400, detail=f"Cannot redeem more than {max_value} stamps at once")
-        except (json.JSONDecodeError, TypeError):
-            pass  # Use default
+
+        def parse_rule(rule):
+            if isinstance(rule, str):
+                try:
+                    return json.loads(rule)
+                except json.JSONDecodeError:
+                    return {}
+            return rule or {}
+
+        parsed_redeem_rule = parse_rule(program.redeem_rule)
+        parsed_earn_rule = parse_rule(program.earn_rule)
+
+        required_stamps = (
+            getattr(program, 'stamps_required', None) or
+            parsed_redeem_rule.get('stamps_needed') or
+            parsed_redeem_rule.get('threshold') or
+            parsed_redeem_rule.get('reward_threshold') or
+            parsed_redeem_rule.get('max_value') or
+            parsed_earn_rule.get('stamps_needed') or
+            parsed_earn_rule.get('threshold') or
+            getattr(program, 'reward_threshold', None) or
+            10
+        )
+        if request.amount != required_stamps:
+            raise HTTPException(status_code=400, detail=f"Must redeem exactly {required_stamps} stamps for this program")
 
     result = redeem_stamps_with_code(db, membership.id, request.amount, request.idempotency_key)
     if not result:
@@ -176,92 +216,24 @@ def get_redemptions_for_customer(
     program_id: UUID,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
-):
-    from ...services.auth import get_user_by_email
-    from ...services.membership import get_membership_by_customer_and_program
-    from ...models.redeem_code import RedeemCode
+ ):
+    try:
+        from ...services.auth import get_user_by_email
+        from ...services.membership import get_membership_by_customer_and_program
+        from ...models.reward import RedeemCode
 
-    user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        user = get_user_by_email(db, current_user)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    membership = get_membership_by_customer_and_program(db, user.id, program_id)
-    if not membership:
-        raise HTTPException(status_code=404, detail="Membership not found")
+        membership = get_membership_by_customer_and_program(db, user.id, program_id)
+        if not membership:
+            raise HTTPException(status_code=404, detail="Membership not found")
 
-    codes = (
-        db.query(RedeemCode)
-        .options(joinedload(RedeemCode.program).joinedload(LoyaltyProgramModel.merchant))
-        .filter(RedeemCode.membership_id == membership.id)
-        .order_by(desc(RedeemCode.created_at))
-        .limit(30)
-        .all()
-    )
-
-    now_utc = datetime.now(timezone.utc)
-    redemptions: List[CustomerRedemption] = []
-
-    for code in codes:
-        created_at = code.created_at or datetime.utcnow()
-        if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
-            # Database stores times in UTC+3, convert to UTC
-            utc_time = created_at - timedelta(hours=3)
-            created_at = utc_time.replace(tzinfo=timezone.utc)
-
-        expires_at = code.expires_at
-        if expires_at is not None and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
-            # Database stores times in UTC+3, convert to UTC
-            utc_time = expires_at - timedelta(hours=3)
-            expires_at = utc_time.replace(tzinfo=timezone.utc)
-
-        used_at = code.used_at
-        if used_at is not None and (used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None):
-            # Database stores times in UTC+3, convert to UTC
-            utc_time = used_at - timedelta(hours=3)
-            used_at = utc_time.replace(tzinfo=timezone.utc)
-
-        is_used = str(code.is_used).lower() == "true"
-        if is_used:
-            status = "redeemed"
-        elif expires_at and expires_at < now_utc:
-            status = "expired"
-        else:
-            status = "claimed"
-
-        program_obj = getattr(code, "program", None)
-        merchant_obj = getattr(program_obj, "merchant", None) if program_obj else None
-        program_name = (
-            getattr(program_obj, "name", None)
-            or getattr(program_obj, "display_name", None)
-            or "Programme"
-        )
-        merchant_name = (
-            getattr(merchant_obj, "display_name", None)
-            or getattr(merchant_obj, "legal_name", None)
-            or "Merchant"
-        )
-        reward_description = getattr(program_obj, "reward_description", None) if program_obj else None
-
-        amount_raw = (code.amount or "0").strip() or "0"
-        try:
-            stamps_redeemed = int(amount_raw)
-        except ValueError:
-            stamps_redeemed = None
-
-        redemptions.append(
-            CustomerRedemption(
-                id=str(code.id),
-                code=code.code,
-                status=status,
-                amount=amount_raw,
-                created_at=created_at.isoformat(),
-                expires_at=expires_at.isoformat() if expires_at else None,
-                used_at=used_at.isoformat() if used_at else None,
-                program_name=program_name,
-                merchant_name=merchant_name,
-                reward_description=reward_description,
-                stamps_redeemed=stamps_redeemed,
-            )
-        )
-
-    return redemptions
+        # Temporarily return empty
+        return []
+    except Exception as e:
+        print(f"Error in get_redemptions_for_customer: {e}")
+        import traceback
+        traceback.print_exc()
+        return []

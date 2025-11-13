@@ -7,6 +7,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import './index.css';
 import './styles/animations.css';
+import './config/api';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

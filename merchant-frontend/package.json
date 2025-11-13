@@ -10,13 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mantine/core": "^7.6.1",
+    "@mantine/core": "^8.3.6",
+    "@rudi/ui": "file:../packages/ui",
     "@untitled-ui/icons-react": "^0.1.4",
+    "apexcharts": "^5.3.6",
     "axios": "^1.6.2",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.344.0",
+    "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.3",
     "react": "^18.2.0",
+    "react-apexcharts": "^1.8.0",
     "react-dom": "^18.2.0",
     "react-intersection-observer": "^10.0.0",
     "react-router-dom": "^6.20.1"

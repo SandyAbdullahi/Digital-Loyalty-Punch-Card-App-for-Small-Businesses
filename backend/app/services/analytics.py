@@ -6,7 +6,7 @@ from ..models.customer_program_membership import CustomerProgramMembership
 from ..models.ledger_entry import LedgerEntry
 from ..models.loyalty_program import LoyaltyProgram
 from ..models.user import User
-from ..models.redeem_code import RedeemCode
+from ..models.reward import RedeemCode
 from ..models.analytics_snapshot import AnalyticsSnapshot
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple
@@ -70,7 +70,7 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
 
     if snapshot:
         # Return cached data
-        total_reward_cost = snapshot.rewards_redeemed * settings.avg_reward_cost_kes
+        total_reward_cost = snapshot.rewards_redeemed * (settings.avg_reward_cost_kes or 0)
         return {
             "merchantId": str(merchant_id),
             "period": {
@@ -118,43 +118,59 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
             and_(
                 LoyaltyProgram.merchant_id == merchant_id,
                 LedgerEntry.entry_type == 'EARN',
-                LedgerEntry.created_at >= start_date,
-                LedgerEntry.created_at <= end_date
+                LedgerEntry.issued_at >= start_date,
+                LedgerEntry.issued_at <= end_date
             )
         )
     ).scalar()
 
-    # Rewards redeemed in period
+    # Rewards redeemed in period (sum of redemption amounts)
     rewards_redeemed_count = db.execute(
-        select(func.count(LedgerEntry.id))
+        select(func.sum(LedgerEntry.amount))
         .join(CustomerProgramMembership)
         .join(LoyaltyProgram)
         .where(
             and_(
                 LoyaltyProgram.merchant_id == merchant_id,
                 LedgerEntry.entry_type == 'REDEEM',
-                LedgerEntry.created_at >= start_date,
-                LedgerEntry.created_at <= end_date
+                LedgerEntry.issued_at >= start_date,
+                LedgerEntry.issued_at <= end_date
             )
         )
-    ).scalar()
+    ).scalar() or 0
 
-    # Formulas
-    baseline_visits = customers_enrolled * settings.baseline_visits_per_customer_per_period
+    # Calculate baseline visits
+    baseline_visits_per_period = float(settings.baseline_visits_per_customer_per_period or 0)
+    baseline_visits = customers_enrolled * baseline_visits_per_period
+
     estimated_extra_visits = max(0, visits_by_enrolled_customers - baseline_visits)
-    estimated_extra_revenue = estimated_extra_visits * settings.avg_spend_per_visit_kes
-    total_reward_cost = settings.avg_reward_cost_kes
+    estimated_extra_revenue = estimated_extra_visits * float(settings.avg_spend_per_visit_kes or 0)
+    total_reward_cost = rewards_redeemed_count * float(settings.avg_reward_cost_kes or 0)
     net_incremental_revenue = estimated_extra_revenue - total_reward_cost
 
     # Additional metrics
     repeat_visit_rate = visits_by_enrolled_customers / customers_enrolled if customers_enrolled > 0 else 0
-    conservative_lower = float(estimated_extra_revenue) * 0.8
-    conservative_upper = float(estimated_extra_revenue) * 1.2
+
+    # Improved confidence intervals based on data variability
+    revenue_confidence_factor = 0.15 if customers_enrolled > 100 else 0.25  # More confidence with larger sample
+    conservative_lower = float(estimated_extra_revenue) * (1 - revenue_confidence_factor)
+    conservative_upper = float(estimated_extra_revenue) * (1 + revenue_confidence_factor)
+
+    # Calculate ROI and other metrics
+    roi_percentage = (net_incremental_revenue / total_reward_cost * 100) if total_reward_cost > 0 else 0
+    avg_visits_per_customer = visits_by_enrolled_customers / customers_enrolled if customers_enrolled > 0 else 0
+
     anomaly_flags = []
     if net_incremental_revenue < 0:
         anomaly_flags.append("negative_net_revenue")
     if estimated_extra_visits == 0 and visits_by_enrolled_customers > 0:
         anomaly_flags.append("no_uplift_despite_visits")
+    if customers_enrolled < 10:
+        anomaly_flags.append("small_sample_size")
+    if settings.avg_spend_per_visit_kes == 0 or settings.avg_spend_per_visit_kes is None:
+        anomaly_flags.append("missing_spend_estimate")
+    if settings.avg_reward_cost_kes == 0 or settings.avg_reward_cost_kes is None:
+        anomaly_flags.append("missing_reward_cost_estimate")
 
     # Program breakdown
     programs = db.execute(
@@ -163,13 +179,13 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
             LoyaltyProgram.name,
             func.count(func.distinct(CustomerProgramMembership.customer_user_id)).label('customers_enrolled'),
             func.sum(case((LedgerEntry.entry_type == 'EARN', 1), else_=0)).label('visits'),
-            func.sum(case((LedgerEntry.entry_type == 'REDEEM', 1), else_=0)).label('redemptions')
+            func.sum(case((LedgerEntry.entry_type == 'REDEEM', LedgerEntry.amount), else_=0)).label('redemptions')
         )
         .outerjoin(CustomerProgramMembership, LoyaltyProgram.id == CustomerProgramMembership.program_id)
         .outerjoin(LedgerEntry, and_(
             LedgerEntry.membership_id == CustomerProgramMembership.id,
-            LedgerEntry.created_at >= start_date,
-            LedgerEntry.created_at <= end_date
+            LedgerEntry.issued_at >= start_date,
+            LedgerEntry.issued_at <= end_date
         ))
         .where(LoyaltyProgram.merchant_id == merchant_id)
         .group_by(LoyaltyProgram.id, LoyaltyProgram.name)
@@ -177,10 +193,11 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
 
     program_breakdown = []
     for prog in programs:
-        prog_baseline = prog.customers_enrolled * settings.baseline_visits_per_customer_per_period
+        prog_baseline = prog.customers_enrolled * float(settings.baseline_visits_per_customer_per_period or 0)
         prog_extra = max(0, prog.visits - prog_baseline)
-        prog_revenue = prog_extra * settings.avg_spend_per_visit_kes
-        prog_net = prog_revenue - (prog.redemptions * settings.avg_reward_cost_kes)
+        prog_revenue = prog_extra * float(settings.avg_spend_per_visit_kes or 0)
+        prog_reward_cost = prog.redemptions * float(settings.avg_reward_cost_kes or 0)
+        prog_net = prog_revenue - prog_reward_cost
         program_breakdown.append({
             "programId": str(prog.id),
             "name": prog.name,
@@ -191,6 +208,7 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
             "baselineVisits": prog_baseline,
             "estimatedExtraVisits": prog_extra,
             "estimatedExtraRevenueKES": prog_revenue,
+            "totalRewardCostKES": prog_reward_cost,
             "netIncrementalRevenueKES": prog_net
         })
 
@@ -221,7 +239,8 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
             "totalCustomersEnrolled": customers_enrolled,
             "stampsIssued": visits_by_enrolled_customers,
             "rewardsRedeemed": rewards_redeemed_count,
-            "repeatVisitRate": repeat_visit_rate
+            "repeatVisitRate": repeat_visit_rate,
+            "avgVisitsPerCustomer": avg_visits_per_customer
         },
         "revenueEstimation": {
             "baselineVisits": baseline_visits,
@@ -230,7 +249,9 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
             "conservativeLowerKES": conservative_lower,
             "conservativeUpperKES": conservative_upper,
             "totalRewardCostKES": total_reward_cost,
-            "netIncrementalRevenueKES": net_incremental_revenue
+            "netIncrementalRevenueKES": net_incremental_revenue,
+            "roiPercentage": roi_percentage,
+            "confidenceInterval": f"{revenue_confidence_factor * 100:.0f}%"
         },
         "anomalyFlags": anomaly_flags,
         "programs": program_breakdown
@@ -256,7 +277,7 @@ def get_top_customers(db: Session, merchant_id: UUID, period: str = Period.THIS_
 
     start_date, end_date, _ = resolve_period(period)
 
-    baseline_per_customer = settings.baseline_visits_per_customer_per_period
+    baseline_per_customer = settings.baseline_visits_per_customer_per_period or 0
 
     # Top customers by visits in period
     top_customers_query = db.execute(
@@ -273,8 +294,8 @@ def get_top_customers(db: Session, merchant_id: UUID, period: str = Period.THIS_
             and_(
                 LoyaltyProgram.merchant_id == merchant_id,
                 LedgerEntry.entry_type == 'EARN',
-                LedgerEntry.created_at >= start_date,
-                LedgerEntry.created_at <= end_date,
+                LedgerEntry.issued_at >= start_date,
+                LedgerEntry.issued_at <= end_date,
                 CustomerProgramMembership.joined_at <= end_date
             )
         )
@@ -287,7 +308,7 @@ def get_top_customers(db: Session, merchant_id: UUID, period: str = Period.THIS_
     for user_id, name, email, visits in top_customers_query:
         customer_name = name or (email.split('@')[0] if email else 'Unknown')
         extra_visits = max(0, visits - baseline_per_customer)
-        estimated_revenue = extra_visits * settings.avg_spend_per_visit_kes
+        estimated_revenue = extra_visits * (settings.avg_spend_per_visit_kes or 0)
         result.append({
             "customerId": str(user_id),
             "name": customer_name,

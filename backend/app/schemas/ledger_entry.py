@@ -9,9 +9,10 @@ class LedgerEntryBase(BaseModel):
     membership_id: UUID
     entry_type: str
     amount: int
-    tx_ref: Optional[str] = None
+    tx_id: Optional[str] = None
     device_fingerprint: Optional[str] = None
     notes: Optional[str] = None
+    created_at: Optional[datetime] = None
 
 
 class LedgerEntryCreate(LedgerEntryBase):
@@ -24,7 +25,7 @@ class LedgerEntryUpdate(BaseModel):
 
 class LedgerEntryInDBBase(LedgerEntryBase):
     id: UUID
-    created_at: datetime
+    issued_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

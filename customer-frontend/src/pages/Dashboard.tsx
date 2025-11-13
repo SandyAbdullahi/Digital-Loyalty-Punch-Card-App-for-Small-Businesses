@@ -85,6 +85,24 @@ const Dashboard = () => {
       const message = state.rewardProgramName
         ? `${state.rewardProgramName} reward redeemed!`
         : 'Reward redeemed successfully!';
+      const notificationId = `redeem-${Date.now()}`;
+      setNotifications((prev) => [
+        {
+          id: notificationId,
+          type: 'reward_redeemed',
+          message,
+          timestamp: new Date().toISOString(),
+          program_name: state.rewardProgramName ?? 'Programme',
+          merchant_name: 'Merchant',
+          amount: 0,
+        },
+        ...prev,
+      ]);
+      setReadNotifications((prev) => {
+        const next = new Set(prev);
+        next.delete(notificationId);
+        return next;
+      });
       setRedeemSuccessMessage(message);
       setRedeemConfetti(true);
       const timer = setTimeout(() => setRedeemSuccessMessage(null), 5000);

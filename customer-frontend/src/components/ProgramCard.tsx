@@ -12,6 +12,9 @@ type ProgramCardProps = {
   onCardClick?: () => void;
   logoUrl?: string;
   stampIcon?: string;
+  rewardStatus?: 'inactive' | 'redeemable' | 'redeemed' | 'expired';
+  voucherCode?: string;
+  redeemExpiresAt?: string;
 };
 
 const ProgramCard = ({
@@ -25,6 +28,9 @@ const ProgramCard = ({
   onCardClick,
   logoUrl,
   stampIcon,
+  rewardStatus,
+  voucherCode,
+  redeemExpiresAt,
 }: ProgramCardProps) => (
   <article
     className={`bg-white p-4 rounded-2xl shadow-md flex gap-3 items-start ${onCardClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
@@ -48,6 +54,25 @@ const ProgramCard = ({
         <p className="text-sm text-[var(--rudi-text)]/70">{merchantAddress}</p>
       )}
       <StampDots earned={earned} threshold={threshold} icon={stampIcon} />
+      {rewardStatus === 'redeemable' && voucherCode && (
+        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm font-semibold text-green-800">Reward Available!</p>
+          <p className="text-xs text-green-700">Code: {voucherCode}</p>
+          {redeemExpiresAt && (
+            <p className="text-xs text-green-700">Valid until: {new Date(redeemExpiresAt).toLocaleDateString()}</p>
+          )}
+          <button
+            type="button"
+            className="mt-1 px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Do not redeem here; just show code
+            }}
+          >
+            Redeem in Store
+          </button>
+        </div>
+      )}
     </div>
     <button
       type="button"

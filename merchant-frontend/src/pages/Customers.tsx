@@ -164,6 +164,7 @@ const Customers = () => {
     if (typeof new_balance !== 'number') return
 
     let nextSelection: CustomerRecord | null = null
+    let updatedCustomerFound = false
     const selectedId = selectedCustomerIdRef.current
 
     setCustomers((prev) =>
@@ -171,9 +172,22 @@ const Customers = () => {
         if (customer.id !== customer_id) {
           return customer
         }
-        const programs = customer.programs.map((program) =>
-          program.id === program_id ? { ...program, progress: new_balance } : program
-        )
+        updatedCustomerFound = true
+        const programExists = customer.programs.some((program) => program.id === program_id)
+        const inferredThreshold = customer.programs[0]?.threshold ?? 10
+        const programs = programExists
+          ? customer.programs.map((program) =>
+              program.id === program_id ? { ...program, progress: new_balance } : program
+            )
+          : [
+              ...customer.programs,
+              {
+                id: program_id,
+                name: program_name ?? 'Program',
+                progress: new_balance,
+                threshold: inferredThreshold,
+              },
+            ]
         const totalStamps = programs.reduce((sum, p) => sum + p.progress, 0)
         const formattedLastVisit =
           (typeof timestamp === 'string' && formatLastVisit(timestamp)) || customer.lastVisit
@@ -189,6 +203,11 @@ const Customers = () => {
         return updatedCustomer
       })
     )
+
+    if (!updatedCustomerFound) {
+      void fetchCustomers()
+      return
+    }
 
     if (nextSelection) {
       setSelectedCustomer(nextSelection)

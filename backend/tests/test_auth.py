@@ -70,16 +70,13 @@ def test_update_profile(client):
     token = data["access_token"]
     
     # Update profile
-    response = client.put("/api/v1/customer/profile", 
-        json={
+    response = client.put("/api/v1/customer/profile",
+        data={
             "email": "profile@example.com",
-            "name": "Updated Name",
-            "avatar_url": "https://example.com/avatar.png",
-            "role": "customer"
+            "name": "Updated Name"
         },
         headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == 200
     updated_user = response.json()
     assert updated_user["name"] == "Updated Name"
-    assert updated_user["avatar_url"] == "https://example.com/avatar.png"

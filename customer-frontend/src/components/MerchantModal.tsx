@@ -53,6 +53,13 @@ const MerchantModal = ({ merchant, program, programId, isOpen, onClose, onExitPr
   const handleExitProgram = async () => {
     if (!programId || !onExitProgram) return;
 
+    const confirmed = window.confirm(
+      'Are you sure you want to leave this programme? Your collected stamps will be lost.'
+    );
+    if (!confirmed) {
+      return;
+    }
+
     setIsExiting(true);
     try {
       await axios.delete(`/api/v1/customer/memberships/${programId}`);

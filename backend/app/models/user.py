@@ -31,6 +31,5 @@ class User(Base):
     last_login_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    # Relationship
-    merchants: Mapped[list["Merchant"]] = relationship("Merchant", back_populates="owner")
-    memberships: Mapped[list["CustomerProgramMembership"]] = relationship("CustomerProgramMembership", back_populates="customer")
+    merchants = relationship("Merchant", back_populates="owner", cascade="all, delete-orphan")
+    memberships = relationship("CustomerProgramMembership", back_populates="customer")

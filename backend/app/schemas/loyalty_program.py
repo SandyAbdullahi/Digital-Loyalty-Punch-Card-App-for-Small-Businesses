@@ -1,18 +1,25 @@
 import json
+import json
 from typing import Dict, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from .merchant import Merchant
 
 class LoyaltyProgramBase(BaseModel):
     name: str
     description: Optional[str] = None
     logic_type: str  # punch_card or points
-    earn_rule: Dict
-    redeem_rule: Dict
+    earn_rule: Optional[Dict] = {}
+    redeem_rule: Optional[Dict] = {}
     terms: Optional[str] = None
     stamp_icon: Optional[str] = None
+    stamps_required: Optional[int] = None
+    reward_description: Optional[str] = None
+    reward_value_hint_kes: Optional[float] = None
+    reward_expiry_days: Optional[int] = None
+    allow_repeat_cycles: Optional[bool] = True
 
     @field_validator('earn_rule', 'redeem_rule', mode='before')
     @classmethod
@@ -42,11 +49,10 @@ class LoyaltyProgramInDBBase(LoyaltyProgramBase):
 
 
 class LoyaltyProgram(LoyaltyProgramInDBBase):
-    merchant: "Merchant | None" = None
+    merchant: Optional[Merchant] = None
 
 
-# Import here to avoid circular import
-from .merchant import Merchant
+
 
 
 class LoyaltyProgramInDB(LoyaltyProgramInDBBase):

@@ -35,11 +35,16 @@ class LedgerEntry(Base):
     )
     entry_type: Mapped[LedgerEntryType] = mapped_column(String, nullable=False)
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
-    tx_ref: Mapped[str] = mapped_column(String, nullable=True)
+    tx_id: Mapped[str] = mapped_column(String, nullable=True)
+    issued_by_staff_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=True)
     device_fingerprint: Mapped[str] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    issued_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     notes: Mapped[str] = mapped_column(Text, nullable=True)
 
-    __table_args__ = (
-        Index("ix_ledger_entries_merchant_created", "merchant_id", "created_at"),
-    )
+    # __table_args__ = (
+    #     Index("ix_ledger_entries_merchant_created", "merchant_id", "issued_at"),
+    #     Index("ix_ledger_entries_type_created", "entry_type", "issued_at"),
+    #     Index("ix_ledger_entries_membership_created", "membership_id", "issued_at"),
+    #     Index("unique_program_tx", "program_id", "tx_id", unique=True),
+    # )

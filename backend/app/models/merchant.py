@@ -28,7 +28,8 @@ class Merchant(Base):
     baseline_visits_per_period: Mapped[int] = mapped_column(Integer, nullable=True)
     reward_cost_estimate: Mapped[float] = mapped_column(Float, nullable=True)
 
-    # Relationship
-    owner: Mapped["User"] = relationship("User", back_populates="merchants")
-    locations: Mapped[list["Location"]] = relationship("Location", back_populates="merchant")
-    programs: Mapped[list["LoyaltyProgram"]] = relationship("LoyaltyProgram", back_populates="merchant")
+    # Relationships for eager loading in analytics + QR flows
+    owner = relationship("User", back_populates="merchants", lazy="joined")
+    locations = relationship("Location", back_populates="merchant", cascade="all, delete-orphan")
+    programs = relationship("LoyaltyProgram", back_populates="merchant", cascade="all, delete-orphan")
+    memberships = relationship("CustomerProgramMembership", back_populates="merchant")

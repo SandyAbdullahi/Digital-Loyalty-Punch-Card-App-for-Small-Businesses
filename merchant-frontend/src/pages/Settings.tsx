@@ -39,10 +39,10 @@ const Settings = () => {
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState<MerchantSettings | null>(null)
   const [settingsForm, setSettingsForm] = useState({
-    avg_spend_per_visit_kes: 0,
-    baseline_visits_per_customer_per_period: 0,
-    avg_reward_cost_kes: 0,
-    monthly_subscription_kes: 0,
+    avg_spend_per_visit_kes: '',
+    baseline_visits_per_customer_per_period: '',
+    avg_reward_cost_kes: '',
+    monthly_subscription_kes: '',
   })
   const [savingSettings, setSavingSettings] = useState(false)
 
@@ -64,33 +64,64 @@ const Settings = () => {
           })
 
           // Fetch settings with correct merchant id
-          const settingsResponse = await axios.get(`/api/v1/merchants/${merchantData.id}/settings`)
-          if (settingsResponse.data) {
-            setSettings(settingsResponse.data)
-            setSettingsForm({
-              avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes || 0,
-              baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period || 0,
-              avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes || 0,
-              monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes || 0,
-            })
+          try {
+            const settingsResponse = await axios.get(`/api/v1/merchants/${merchantData.id}/settings`)
+            if (settingsResponse.data) {
+              setSettings(settingsResponse.data)
+              setSettingsForm({
+                avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes !== null ? settingsResponse.data.avg_spend_per_visit_kes.toString() : '',
+                baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period !== null ? settingsResponse.data.baseline_visits_per_customer_per_period.toString() : '',
+                avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes !== null ? settingsResponse.data.avg_reward_cost_kes.toString() : '',
+                monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes !== null ? settingsResponse.data.monthly_subscription_kes.toString() : '',
+              })
+            }
+          } catch (settingsError: any) {
+            // If settings don't exist (404), set default values
+            if (settingsError.response?.status === 404) {
+              setSettingsForm({
+                avg_spend_per_visit_kes: '500',
+                baseline_visits_per_customer_per_period: '1',
+                avg_reward_cost_kes: '100',
+                monthly_subscription_kes: '',
+              })
+            }
           }
-        }
-
-        if (settingsResponse.data) {
-          setSettings(settingsResponse.data)
-          setSettingsForm({
-            avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes,
-            baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period,
-            avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes,
-            monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes || 0,
-          })
         }
       } catch (error) {
         console.error('Failed to fetch data', error)
       }
     }
+
+    const fetchSettingsForExistingMerchant = async () => {
+      if (!contextMerchant) return
+      try {
+        const settingsResponse = await axios.get(`/api/v1/merchants/${contextMerchant.id}/settings`)
+        if (settingsResponse.data) {
+          setSettings(settingsResponse.data)
+          setSettingsForm({
+            avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes !== null ? settingsResponse.data.avg_spend_per_visit_kes.toString() : '',
+            baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period !== null ? settingsResponse.data.baseline_visits_per_customer_per_period.toString() : '',
+            avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes !== null ? settingsResponse.data.avg_reward_cost_kes.toString() : '',
+            monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes !== null ? settingsResponse.data.monthly_subscription_kes.toString() : '',
+          })
+        }
+      } catch (error: any) {
+        // If settings don't exist (404), set default values
+        if (error.response?.status === 404) {
+          setSettingsForm({
+            avg_spend_per_visit_kes: '500',
+            baseline_visits_per_customer_per_period: '1',
+            avg_reward_cost_kes: '100',
+            monthly_subscription_kes: '',
+          })
+        } else {
+          console.error('Failed to fetch settings', error)
+        }
+      }
+    }
+
     if (!contextMerchant) {
-      fetchMerchant()
+      fetchData()
     } else {
       setMerchant(contextMerchant)
       setFormState({
@@ -101,6 +132,7 @@ const Settings = () => {
         logoUrl: contextMerchant.logo_url || '',
         about: contextMerchant.description || '',
       })
+      fetchSettingsForExistingMerchant()
     }
   }, [contextMerchant, user?.email, updateMerchant])
 
@@ -108,7 +140,7 @@ const Settings = () => {
     setFormState((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSettingsChange = (field: keyof typeof settingsForm, value: number) => {
+  const handleSettingsChange = (field: keyof typeof settingsForm, value: string) => {
     setSettingsForm((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -116,7 +148,31 @@ const Settings = () => {
     if (!merchant?.id) return
     setSavingSettings(true)
     try {
-      await axios.put(`/api/v1/merchants/${merchant.id}/settings`, settingsForm)
+      const dataToSend: any = {}
+      if (typeof settingsForm.avg_spend_per_visit_kes === 'string' && settingsForm.avg_spend_per_visit_kes.trim()) {
+        dataToSend.avg_spend_per_visit_kes = parseFloat(settingsForm.avg_spend_per_visit_kes)
+      }
+      if (typeof settingsForm.baseline_visits_per_customer_per_period === 'string' && settingsForm.baseline_visits_per_customer_per_period.trim()) {
+        dataToSend.baseline_visits_per_customer_per_period = parseFloat(settingsForm.baseline_visits_per_customer_per_period)
+      }
+      if (typeof settingsForm.avg_reward_cost_kes === 'string' && settingsForm.avg_reward_cost_kes.trim()) {
+        dataToSend.avg_reward_cost_kes = parseFloat(settingsForm.avg_reward_cost_kes)
+      }
+      if (typeof settingsForm.monthly_subscription_kes === 'string' && settingsForm.monthly_subscription_kes.trim()) {
+        dataToSend.monthly_subscription_kes = parseFloat(settingsForm.monthly_subscription_kes)
+      }
+      await axios.put(`/api/v1/merchants/${merchant.id}/settings`, dataToSend)
+      // Refetch settings to confirm
+      const settingsResponse = await axios.get(`/api/v1/merchants/${merchant.id}/settings`)
+      if (settingsResponse.data) {
+        setSettings(settingsResponse.data)
+        setSettingsForm({
+          avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes || 0,
+          baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period || 0,
+          avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes || 0,
+          monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes || 0,
+        })
+      }
       setToast({ type: 'success', message: 'Analytics settings saved successfully.' })
     } catch (error) {
       console.error('Failed to save settings', error)
@@ -274,72 +330,166 @@ const Settings = () => {
         </div>
       </form>
 
-      <div className="space-y-1">
-        <h2 className="font-heading text-2xl font-semibold text-foreground">Analytics Assumptions</h2>
-        <p className="text-sm text-muted-foreground">
-          Configure assumptions for revenue estimation.
-        </p>
-      </div>
+       <div className="space-y-4">
+         <div className="space-y-1">
+           <h2 className="font-heading text-2xl font-semibold text-foreground">Analytics Assumptions</h2>
+           <p className="text-sm text-muted-foreground">
+             Configure key assumptions to calculate the revenue impact of your loyalty programs.
+           </p>
+         </div>
 
-      <form className="mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-3xl bg-card p-8 shadow-lg">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Avg Spend per Visit (KES)</Label>
-            <Input
-              type="number"
-              value={settingsForm.avg_spend_per_visit_kes}
-              onChange={(event) => handleSettingsChange('avg_spend_per_visit_kes', parseFloat(event.target.value) || 0)}
-              className="h-11 rounded-2xl border-border bg-background"
-              placeholder="500"
-              min="0"
-              step="0.01"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Baseline Visits per Customer per Period</Label>
-            <Input
-              type="number"
-              value={settingsForm.baseline_visits_per_customer_per_period}
-              onChange={(event) => handleSettingsChange('baseline_visits_per_customer_per_period', parseFloat(event.target.value) || 0)}
-              className="h-11 rounded-2xl border-border bg-background"
-              placeholder="2.5"
-              min="0"
-              step="0.1"
-            />
-          </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Avg Reward Cost (KES)</Label>
-            <Input
-              type="number"
-              value={settingsForm.avg_reward_cost_kes}
-              onChange={(event) => handleSettingsChange('avg_reward_cost_kes', parseFloat(event.target.value) || 0)}
-              className="h-11 rounded-2xl border-border bg-background"
-              placeholder="100"
-              min="0"
-              step="0.01"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Monthly Subscription (KES)</Label>
-            <Input
-              type="number"
-              value={settingsForm.monthly_subscription_kes}
-              onChange={(event) => handleSettingsChange('monthly_subscription_kes', parseFloat(event.target.value) || 0)}
-              className="h-11 rounded-2xl border-border bg-background"
-              placeholder="5000"
-              min="0"
-              step="0.01"
-            />
-          </div>
-        </div>
-        <div className="flex justify-end pt-2">
-          <Button type="button" onClick={handleSaveSettings} className="btn-primary px-6" disabled={savingSettings}>
-            {savingSettings ? 'Saving…' : 'Save Analytics Settings'}
-          </Button>
-        </div>
-      </form>
+         <div className="rounded-2xl bg-muted/30 p-6 border border-border">
+           <h3 className="font-heading text-lg font-semibold text-foreground mb-3">How These Values Work</h3>
+           <div className="space-y-3 text-sm text-muted-foreground">
+             <p>
+               <strong>Revenue Estimation:</strong> We calculate the incremental revenue from your loyalty program by comparing actual customer visits against a baseline (what they'd visit without the program).
+             </p>
+             <ul className="list-disc list-inside space-y-1 ml-4">
+               <li><strong>Avg Spend per Visit:</strong> How much does a typical customer spend when they visit? This is multiplied by extra visits to estimate revenue uplift.</li>
+               <li><strong>Baseline Visits:</strong> How many times would customers visit per month without your loyalty program? This helps measure the program's effectiveness.</li>
+               <li><strong>Avg Reward Cost:</strong> What's the average cost of providing rewards (like free items or discounts)? This is subtracted from the revenue uplift.</li>
+               <li><strong>Monthly Subscription:</strong> Optional platform fee - included in net calculations if applicable.</li>
+             </ul>
+             <p className="text-xs mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+               <strong>Example:</strong> If customers spend KES 500/visit, visit 3 times/month (baseline 2), and rewards cost KES 100 each, your program generates KES 300 extra revenue per customer per month (after costs).
+             </p>
+           </div>
+         </div>
+         </div>
+
+         {settings && (
+           <div className="rounded-2xl bg-card p-6 shadow-lg">
+             <h3 className="font-heading text-lg font-semibold text-foreground mb-4">Current Settings</h3>
+             <div className="overflow-x-auto">
+               <table className="w-full text-sm">
+                 <thead>
+                   <tr className="border-b border-border">
+                     <th className="text-left py-2 font-semibold text-foreground">Assumption</th>
+                     <th className="text-left py-2 font-semibold text-foreground">Current Value</th>
+                     <th className="text-left py-2 font-semibold text-foreground">Unit</th>
+                     <th className="text-left py-2 font-semibold text-foreground">Last Updated</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-border">
+                   <tr>
+                     <td className="py-3 text-muted-foreground">Avg Spend per Visit</td>
+                     <td className="py-3 font-medium">{settings.avg_spend_per_visit_kes ? settings.avg_spend_per_visit_kes.toFixed(2) : 'Not set'}</td>
+                     <td className="py-3 text-muted-foreground">KES</td>
+                     <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
+                   </tr>
+                   <tr>
+                     <td className="py-3 text-muted-foreground">Baseline Visits per Customer per Period</td>
+                     <td className="py-3 font-medium">{settings.baseline_visits_per_customer_per_period ? settings.baseline_visits_per_customer_per_period.toFixed(1) : 'Not set'}</td>
+                     <td className="py-3 text-muted-foreground">visits</td>
+                     <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
+                   </tr>
+                   <tr>
+                     <td className="py-3 text-muted-foreground">Avg Reward Cost</td>
+                     <td className="py-3 font-medium">{settings.avg_reward_cost_kes ? settings.avg_reward_cost_kes.toFixed(2) : 'Not set'}</td>
+                     <td className="py-3 text-muted-foreground">KES</td>
+                     <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
+                   </tr>
+                   <tr>
+                     <td className="py-3 text-muted-foreground">Monthly Subscription</td>
+                     <td className="py-3 font-medium">{settings.monthly_subscription_kes ? settings.monthly_subscription_kes.toFixed(2) : 'Not set'}</td>
+                     <td className="py-3 text-muted-foreground">KES</td>
+                     <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
+                   </tr>
+                 </tbody>
+               </table>
+             </div>
+           </div>
+         )}
+
+       <form className="mx-auto flex w-full max-w-2xl flex-col gap-6 rounded-3xl bg-card p-8 shadow-lg">
+         <div className="grid gap-6 sm:grid-cols-2">
+           <div className="space-y-3">
+             <div>
+               <Label className="text-sm font-semibold text-foreground">Avg Spend per Visit (KES)</Label>
+               <p className="text-xs text-muted-foreground mt-1">
+                 Average amount customers spend per visit
+               </p>
+             </div>
+             <Input
+               type="number"
+               value={settingsForm.avg_spend_per_visit_kes}
+               onChange={(event) => handleSettingsChange('avg_spend_per_visit_kes', event.target.value)}
+               onFocus={(e) => e.target.select()}
+               className="h-11 rounded-2xl border-border bg-background"
+               placeholder="e.g., 500"
+               min="0"
+               step="0.01"
+               required
+             />
+           </div>
+           <div className="space-y-3">
+             <div>
+               <Label className="text-sm font-semibold text-foreground">Baseline Visits per Customer per Period</Label>
+               <p className="text-xs text-muted-foreground mt-1">
+                 Expected visits without loyalty program
+               </p>
+             </div>
+             <Input
+               type="number"
+               value={settingsForm.baseline_visits_per_customer_per_period}
+               onChange={(event) => handleSettingsChange('baseline_visits_per_customer_per_period', event.target.value)}
+               onFocus={(e) => e.target.select()}
+               className="h-11 rounded-2xl border-border bg-background"
+               placeholder="e.g., 2.5"
+               min="0"
+               step="0.1"
+               required
+             />
+           </div>
+         </div>
+         <div className="grid gap-6 sm:grid-cols-2">
+           <div className="space-y-3">
+             <div>
+               <Label className="text-sm font-semibold text-foreground">Avg Reward Cost (KES)</Label>
+               <p className="text-xs text-muted-foreground mt-1">
+                 Cost of providing rewards to customers
+               </p>
+             </div>
+             <Input
+               type="number"
+               value={settingsForm.avg_reward_cost_kes}
+               onChange={(event) => handleSettingsChange('avg_reward_cost_kes', event.target.value)}
+               onFocus={(e) => e.target.select()}
+               className="h-11 rounded-2xl border-border bg-background"
+               placeholder="e.g., 100"
+               min="0"
+               step="0.01"
+               required
+             />
+           </div>
+           <div className="space-y-3">
+             <div>
+               <Label className="text-sm font-semibold text-foreground">Monthly Subscription (KES)</Label>
+               <p className="text-xs text-muted-foreground mt-1">
+                 Optional monthly platform fee
+               </p>
+             </div>
+             <Input
+               type="number"
+               value={settingsForm.monthly_subscription_kes}
+               onChange={(event) => handleSettingsChange('monthly_subscription_kes', event.target.value)}
+               onFocus={(e) => e.target.select()}
+               className="h-11 rounded-2xl border-border bg-background"
+               placeholder="e.g., 5000"
+               min="0"
+               step="0.01"
+             />
+           </div>
+         </div>
+         <div className="flex items-center justify-between pt-4 border-t border-border">
+           <div className="text-sm text-muted-foreground">
+             These values help calculate revenue impact of your loyalty programs
+           </div>
+           <Button type="button" onClick={handleSaveSettings} className="btn-primary px-6" disabled={savingSettings}>
+             {savingSettings ? 'Saving…' : 'Save Analytics Settings'}
+           </Button>
+         </div>
+       </form>
 
       {toast && (
         <div

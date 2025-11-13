@@ -20,5 +20,4 @@ class Location(Base):
     lng: Mapped[float] = mapped_column(Float, nullable=False)
     address: Mapped[str] = mapped_column(String, nullable=False)
 
-    # Relationship
-    merchant: Mapped["Merchant"] = relationship("Merchant", back_populates="locations")
+    merchant = relationship("Merchant", back_populates="locations")

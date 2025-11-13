@@ -1,26 +1,59 @@
+from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel
 
 
-class Reward(BaseModel):
-    id: str
-    program: str
-    customer: str
-    date: str
+class RewardBase(BaseModel):
+    enrollment_id: UUID
+    program_id: UUID
+    merchant_id: UUID
+    customer_id: UUID
     status: str
-    amount: str
-    code: Optional[str] = None
-    expires_at: Optional[str] = None
+    cycle: int
+
+
+class RewardCreate(RewardBase):
+    pass
+
+
+class RewardUpdate(BaseModel):
+    status: Optional[str] = None
+    redeemed_at: Optional[datetime] = None
+    redeemed_by_staff_id: Optional[UUID] = None
+
+
+class Reward(RewardBase):
+    id: UUID
+    reached_at: Optional[datetime]
+    voucher_code: Optional[str]
+    redeem_expires_at: Optional[datetime]
+    redeemed_at: Optional[datetime]
+    redeemed_by_staff_id: Optional[UUID]
+    audit: Optional[dict]
+
+    class Config:
+        from_attributes = True
+
+
+class StampIssueRequest(BaseModel):
+    tx_id: str
+    issued_by_staff_id: Optional[UUID] = None
 
 
 class RedeemRequest(BaseModel):
-    amount: int
-    idempotency_key: Optional[str] = None
+    voucher_code: str
+    redeemed_by_staff_id: Optional[UUID] = None
 
 
 class RedeemCodeConfirm(BaseModel):
     code: str
+
+
+class RedeemStampsRequest(BaseModel):
+    amount: int
+    idempotency_key: Optional[str] = None
 
 
 class CustomerRedemption(BaseModel):
