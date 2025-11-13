@@ -279,6 +279,7 @@ const Dashboard = () => {
 
   // Save read notifications to localStorage
   const markAsRead = (notificationId: string) => {
+    setNotifications((prev) => prev.filter((notification) => notification.id !== notificationId));
     const newRead = new Set(readNotifications);
     newRead.add(notificationId);
     setReadNotifications(newRead);
