@@ -29,11 +29,13 @@ from ...services.analytics import get_merchant_analytics, get_top_customers, Per
 from ...services.merchant_settings import get_merchant_settings, upsert_merchant_settings
 from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
-from ...schemas.reward import Reward, RedeemCodeConfirm
+from ...schemas.reward import Reward, RedeemCodeConfirm, StampIssueRequest, RedeemRequest
 from ...schemas.merchant_settings import MerchantSettings, MerchantSettingsCreate, MerchantSettingsUpdate
 from ...models.ledger_entry import LedgerEntry
-from ...models.redeem_code import RedeemCode
+from ...models.reward import Reward as RewardModel, RewardStatus
+from ...models.loyalty_program import LoyaltyProgram
 from ...models.merchant import Merchant as MerchantModel
+from ...models.user import User
 
 router = APIRouter()
 
@@ -240,102 +242,73 @@ def get_merchant_customers(
 # Merchant rewards
 @router.get("/rewards", response_model=List[Reward])
 def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
-    user = get_user_by_email(db, current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    merchants = get_merchants_by_owner(db, user.id)
-    if not merchants:
-        return []
+    try:
+        user = get_user_by_email(db, current_user)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        merchants = get_merchants_by_owner(db, user.id)
+        if not merchants:
+            return []
 
-    merchant = merchants[0]
+        merchant = merchants[0]
 
-    from ...models.redeem_code import RedeemCode
-
-    redeem_codes = (
-        db.query(RedeemCode)
-        .options(
-            joinedload(RedeemCode.program),
-            joinedload(RedeemCode.customer),
+        reward_rows = (
+            db.query(RewardModel, LoyaltyProgram, User)
+            .join(LoyaltyProgram, RewardModel.program_id == LoyaltyProgram.id)
+            .join(User, RewardModel.customer_id == User.id)
+            .filter(RewardModel.merchant_id == merchant.id)
+            .order_by(desc(RewardModel.reached_at))
+            .limit(100)
+            .all()
         )
-        .filter(
-            RedeemCode.merchant_id == merchant.id
-        )
-        .order_by(desc(RedeemCode.created_at))
-        .limit(100)
-        .all()
-    )
 
-    rewards: List[Reward] = []
-    now = datetime.now(timezone.utc)
+        rewards: List[Reward] = []
+        now = datetime.now(timezone.utc)
 
-    for code in redeem_codes:
-        program_obj = getattr(code, "program", None)
-        program_name = (
-            getattr(program_obj, "name", None)
-            or getattr(program_obj, "display_name", None)
-            or "Program"
-        ) if program_obj else "Program"
+        for reward, program, customer in reward_rows:
+            program_name = program.name or "Program"
+            customer_label = customer.name or customer.email.split("@")[0]
 
-        customer_obj = getattr(code, "customer", None)
-        if customer_obj:
-            raw_name = (getattr(customer_obj, "name", "") or "").strip()
-            if raw_name:
-                customer_label = raw_name
-            else:
-                email_value = (getattr(customer_obj, "email", "") or "").strip()
-                customer_label = email_value.split("@")[0] if email_value else "Customer"
-        else:
-            customer_label = "Customer"
+            expires_at = reward.redeem_expires_at
+            if expires_at and expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
 
-        expires_at = code.expires_at
-        if expires_at and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
-            # Database stores times in UTC+3, convert to UTC
-            utc_time = expires_at - timedelta(hours=3)
-            expires_at = utc_time.replace(tzinfo=timezone.utc)
+            timestamp = reward.reached_at or now
+            if timestamp.tzinfo is None:
+                timestamp = timestamp.replace(tzinfo=timezone.utc)
 
-        timestamp = code.created_at or datetime.utcnow()
-        if timestamp.tzinfo is None or timestamp.tzinfo.utcoffset(timestamp) is None:
-            # Database stores times in UTC+3, convert to UTC
-            utc_time = timestamp - timedelta(hours=3)
-            timestamp = utc_time.replace(tzinfo=timezone.utc)
+            raw_status = reward.status or RewardStatus.INACTIVE.value
+            status_value = raw_status.value if isinstance(raw_status, RewardStatus) else str(raw_status)
 
-        is_used = str(code.is_used).lower() == "true"
-        if is_used:
-            status = "redeemed"
-            # For redeemed codes, use used_at if available
-            if code.used_at:
-                used_at = code.used_at
-                if used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None:
-                    # Database stores times in UTC+3, convert to UTC
-                    utc_time = used_at - timedelta(hours=3)
-                    used_at = utc_time.replace(tzinfo=timezone.utc)
-                timestamp = used_at
-        elif expires_at and expires_at < now:
-            status = "expired"
-            timestamp = expires_at
-        else:
-            status = "claimed"
+            if status_value == RewardStatus.REDEEMED.value:
+                if reward.redeemed_at:
+                    ts = reward.redeemed_at
+                    if ts.tzinfo is None:
+                        ts = ts.replace(tzinfo=timezone.utc)
+                    timestamp = ts
+            elif status_value == RewardStatus.EXPIRED.value:
+                if expires_at:
+                    timestamp = expires_at
 
-        amount_value = (code.amount or "").strip()
-        safe_amount = amount_value if amount_value else "1"
-
-        # For redeemed codes, always show value as 1
-        display_amount = "1" if status == "redeemed" else safe_amount
-
-        rewards.append(
-            Reward(
-                id=str(code.id),
-                program=program_name,
-                customer=customer_label,
-                date=timestamp.isoformat(),
-                status=status,
-                amount=display_amount,
-                code=code.code if status == "claimed" else None,
-                expires_at=expires_at.isoformat() if expires_at else None,
+            rewards.append(
+                Reward(
+                    id=str(reward.id),
+                    program=program_name,
+                    customer=customer_label,
+                    date=timestamp.isoformat(),
+                    status=status_value,
+                    amount="1",
+                    code=reward.voucher_code if status_value == RewardStatus.REDEEMABLE.value else None,
+                    expires_at=expires_at.isoformat() if expires_at else None,
+                )
             )
-        )
 
-    return [reward.model_dump() for reward in rewards]
+        return [reward.model_dump() for reward in rewards]
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"Error in get_merchant_rewards: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to load rewards")
 
 
 @router.get("/{merchant_id}", response_model=Merchant)
@@ -761,3 +734,123 @@ def search_merchants_endpoint(
     db: Session = Depends(get_db),
 ):
     return search_merchants(db, query, near_lat, near_lng, radius_m)
+
+
+# Reward logic endpoints
+@router.post("/enrollments/{enrollment_id}/stamps")
+def issue_stamp_endpoint(
+    enrollment_id: UUID,
+    request: StampIssueRequest,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if user is staff/owner of the merchant
+    from ...models import CustomerProgramMembership
+    enrollment = db.query(CustomerProgramMembership).filter(CustomerProgramMembership.id == enrollment_id).first()
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Enrollment not found")
+
+    merchant = db.query(MerchantModel).filter(MerchantModel.id == enrollment.merchant_id).first()
+    if merchant.owner_user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    try:
+        stamp = issue_stamp(db, enrollment_id=enrollment_id, tx_id=request.tx_id, staff_id=request.issued_by_staff_id or user.id)
+        ws_manager = get_websocket_manager()
+        ws_manager.broadcast_stamp_update_sync(
+            str(enrollment.customer_user_id),
+            str(enrollment.program_id),
+            enrollment.current_balance,
+        )
+        ws_manager.broadcast_merchant_customer_update_sync(
+            str(merchant.owner_user_id),
+            {
+                "customer_id": str(enrollment.customer_user_id),
+                "program_id": str(enrollment.program_id),
+                "delta": 1,
+                "new_balance": enrollment.current_balance,
+                "program_name": program.name,
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+        )
+        return {"stamp": stamp, "message": "Stamp issued"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/rewards/{reward_id}/redeem")
+def redeem_reward_endpoint(
+    reward_id: UUID,
+    request: RedeemRequest,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    from ...models import Reward
+    reward = db.query(Reward).filter(Reward.id == reward_id).first()
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+
+    merchant = db.query(MerchantModel).filter(MerchantModel.id == reward.merchant_id).first()
+    if merchant.owner_user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    code_value = (request.voucher_code or "").strip()
+    if not code_value:
+        raise HTTPException(status_code=400, detail="Voucher code is required")
+    if reward.voucher_code and reward.voucher_code != code_value:
+        raise HTTPException(status_code=409, detail="Voucher code mismatch")
+
+    try:
+        redeemed_reward = redeem_reward(
+            db,
+            reward_id=reward.id,
+            staff_id=request.redeemed_by_staff_id or user.id,
+            merchant_id=reward.merchant_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except TimeoutError as e:
+        raise HTTPException(status_code=410, detail=str(e))
+
+    program = (
+        db.query(LoyaltyProgram)
+        .options(joinedload(LoyaltyProgram.merchant))
+        .filter(LoyaltyProgram.id == redeemed_reward.program_id)
+        .first()
+    )
+
+    ws_manager = get_websocket_manager()
+    try:
+        ws_manager.broadcast_reward_status_sync(
+            str(redeemed_reward.customer_id),
+            {
+                "reward_id": str(redeemed_reward.id),
+                "program_id": str(redeemed_reward.program_id),
+                "status": redeemed_reward.status,
+                "timestamp": (redeemed_reward.redeemed_at or datetime.utcnow()).isoformat(),
+            },
+        )
+        if program and program.merchant:
+            ws_manager.broadcast_merchant_reward_update_sync(
+                str(program.merchant.owner_user_id),
+                {
+                    "reward_id": str(redeemed_reward.id),
+                    "status": redeemed_reward.status,
+                    "program_id": str(redeemed_reward.program_id),
+                    "timestamp": (redeemed_reward.redeemed_at or datetime.utcnow()).isoformat(),
+                },
+            )
+    except Exception as exc:
+        print(f"Failed to broadcast merchant reward redeem: {exc}")
+
+    return {"reward": redeemed_reward, "message": "Reward redeemed"}
