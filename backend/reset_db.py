@@ -4,8 +4,8 @@ from psycopg2 import sql
 # Connect to the default postgres database to manage other databases
 conn = psycopg2.connect(
     dbname="postgres",
-    user="loyalty_user",
-    password="mypassword101",
+    user="rudi_user",
+    password="rudi_password",
     host="localhost",
     port="5432"
 )
