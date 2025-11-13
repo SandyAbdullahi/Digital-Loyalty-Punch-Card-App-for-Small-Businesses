@@ -59,7 +59,6 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
 
     start_date, end_date, period_label = resolve_period(period)
 
-    # Check for cached snapshot
     snapshot = db.execute(select(AnalyticsSnapshot).where(
         and_(
             AnalyticsSnapshot.merchant_id == merchant_id,
@@ -67,35 +66,6 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
             AnalyticsSnapshot.period_end == end_date
         )
     )).scalar_one_or_none()
-
-    if snapshot:
-        # Return cached data
-        total_reward_cost = snapshot.rewards_redeemed * (settings.avg_reward_cost_kes or 0)
-        return {
-            "merchantId": str(merchant_id),
-            "period": {
-                "start": start_date.isoformat(),
-                "end": end_date.isoformat(),
-                "label": period_label
-            },
-            "totals": {
-                "totalCustomersEnrolled": snapshot.total_customers_enrolled,
-                "stampsIssued": snapshot.visits_by_enrolled_customers,
-                "rewardsRedeemed": snapshot.rewards_redeemed,
-                "repeatVisitRate": snapshot.visits_by_enrolled_customers / snapshot.total_customers_enrolled if snapshot.total_customers_enrolled > 0 else 0
-            },
-            "revenueEstimation": {
-                "baselineVisits": snapshot.baseline_visits_estimate,
-                "estimatedExtraVisits": snapshot.estimated_extra_visits,
-                "estimatedExtraRevenueKES": snapshot.estimated_extra_revenue_kes,
-            "conservativeLowerKES": float(snapshot.estimated_extra_revenue_kes) * 0.8,
-            "conservativeUpperKES": float(snapshot.estimated_extra_revenue_kes) * 1.2,
-                "totalRewardCostKES": total_reward_cost,
-                "netIncrementalRevenueKES": snapshot.net_incremental_revenue_kes
-            },
-            "anomalyFlags": ["negative_net_revenue"] if snapshot.net_incremental_revenue_kes < 0 else [],
-            "programs": []  # Not cached
-        }
 
     # Customers enrolled (enrolled before end_date)
     customers_enrolled = db.execute(
@@ -224,20 +194,28 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
             "netIncrementalRevenueKES": prog_net
         })
 
-    # Save snapshot for caching
-    db.add(AnalyticsSnapshot(
-        merchant_id=merchant_id,
-        period_start=start_date,
-        period_end=end_date,
-        total_customers_enrolled=customers_enrolled,
-        visits_by_enrolled_customers=visits_by_enrolled_customers,
-        rewards_redeemed=rewards_redeemed_count,
-        baseline_visits_estimate=baseline_visits,
-        estimated_extra_visits=estimated_extra_visits,
-        estimated_extra_revenue_kes=estimated_extra_revenue,
-        net_incremental_revenue_kes=net_incremental_revenue,
-        created_at=datetime.utcnow()
-    ))
+    if snapshot:
+        snapshot.total_customers_enrolled = customers_enrolled
+        snapshot.visits_by_enrolled_customers = visits_by_enrolled_customers
+        snapshot.rewards_redeemed = rewards_redeemed_count
+        snapshot.baseline_visits_estimate = baseline_visits
+        snapshot.estimated_extra_visits = estimated_extra_visits
+        snapshot.estimated_extra_revenue_kes = estimated_extra_revenue
+        snapshot.net_incremental_revenue_kes = net_incremental_revenue
+    else:
+        db.add(AnalyticsSnapshot(
+            merchant_id=merchant_id,
+            period_start=start_date,
+            period_end=end_date,
+            total_customers_enrolled=customers_enrolled,
+            visits_by_enrolled_customers=visits_by_enrolled_customers,
+            rewards_redeemed=rewards_redeemed_count,
+            baseline_visits_estimate=baseline_visits,
+            estimated_extra_visits=estimated_extra_visits,
+            estimated_extra_revenue_kes=estimated_extra_revenue,
+            net_incremental_revenue_kes=net_incremental_revenue,
+            created_at=datetime.utcnow()
+        ))
     db.commit()
 
     return {
