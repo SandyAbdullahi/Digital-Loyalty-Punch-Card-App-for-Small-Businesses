@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null
   token: string | null
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, role: string) => Promise<void>
+  register: (email: string, password: string, confirmPassword: string, role: string) => Promise<void>
   logout: () => void
   updateUser: (newUser: User) => void
   loading: boolean
@@ -64,13 +64,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const errorMessage = error.response?.data?.detail || 'Invalid email or password'
         throw new Error(errorMessage)
       }
+      if (error.response?.status === 403) {
+        throw new Error('This account cannot be used on the customer app. Please log in through the merchant portal.')
+      }
       throw error
     }
   }
 
-  const register = async (email: string, password: string, role: string) => {
+  const register = async (email: string, password: string, confirmPassword: string, role: string) => {
     try {
-      const response = await axios.post('/api/v1/auth/register', { email, password, role })
+      const response = await axios.post('/api/v1/auth/register', { email, password, confirm_password: confirmPassword, role })
       const { access_token, user: userData } = response.data
       setToken(access_token)
       setUser(userData)
@@ -81,6 +84,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Re-throw with a more user-friendly message
       if (error.response?.status === 400) {
         throw new Error('Account already exists with this email')
+      }
+      if (error.response?.status === 403) {
+        throw new Error('This account cannot register on the customer app. Please use the merchant portal if you are a merchant.')
       }
       throw error
     }

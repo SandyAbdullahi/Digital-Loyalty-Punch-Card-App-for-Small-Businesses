@@ -30,15 +30,14 @@ def login(auth_data: AuthRequest, db: Session = Depends(get_db)):
             detail="Wrong password",
         )
 
-    requested_role = _normalize_role(auth_data.role)
-    # Update role if provided and different
-    if requested_role and user.role != requested_role:
-        user.role = requested_role  # type: ignore[assignment]
-        db.commit()
-        db.refresh(user)
-
-    # Ensure merchant profile exists for merchant users
+    requested_role = _normalize_role(auth_data.role) if auth_data.role is not None else None
     user_role_value = getattr(user.role, "value", user.role)
+    if requested_role and user_role_value != requested_role.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account type is not permitted in this application.",
+        )
+
     if user_role_value == UserRole.MERCHANT.value:
         merchants = get_merchants_by_owner(db, user.id)
         if not merchants:
@@ -72,6 +71,11 @@ def login(auth_data: AuthRequest, db: Session = Depends(get_db)):
 
 @router.post("/register", response_model=Token)
 def register(auth_data: AuthRequest, db: Session = Depends(get_db)):
+    if auth_data.confirm_password is not None and auth_data.password != auth_data.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match",
+        )
     # Check if user already exists
     existing_user = get_user_by_email(db, auth_data.email)
     if existing_user:
@@ -133,7 +137,7 @@ def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
     This endpoint will be removed in a future version.
     """
     user = get_user_by_email(db, auth_data.email)
-    requested_role = _normalize_role(auth_data.role)
+    requested_role = _normalize_role(auth_data.role) if auth_data.role is not None else None
 
     if user:
         # Login
@@ -142,17 +146,24 @@ def login_or_register(auth_data: AuthRequest, db: Session = Depends(get_db)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Incorrect password",
             )
-        # Update role if provided
-        if requested_role and user.role != requested_role:
-            user.role = requested_role  # type: ignore[assignment]
-            db.commit()
-            db.refresh(user)
+        stored_role = getattr(user.role, "value", user.role)
+        if requested_role and stored_role != requested_role.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This account type is not permitted in this application.",
+            )
     else:
         # Register
+        if auth_data.confirm_password is not None and auth_data.password != auth_data.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Passwords do not match",
+            )
+
         user_create = UserCreate(
             email=auth_data.email,
             password=auth_data.password,
-            role=requested_role,
+            role=requested_role or UserRole.CUSTOMER,
         )
         user = create_user(db, user_create)
 

@@ -60,16 +60,24 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await register(email, password, "customer");
+      await register(email, password, confirmPassword, "customer");
       navigate("/dashboard");
     } catch (err: any) {
-      const message = err?.response?.data?.detail ?? "We could not create your account. Try again.";
+      const message =
+        err?.message ||
+        err?.response?.data?.detail ||
+        "We could not create your account. Try again.";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -167,6 +175,27 @@ const Register = () => {
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="new-password"
+                  required
+                  leftSection={<Lock01 className="h-4 w-4 text-[#666666]" />}
+                  styles={{
+                    input: {
+                      height: "3.1rem",
+                      borderRadius: "0.85rem",
+                      backgroundColor: "#FFFFFF",
+                      borderColor: "#E0E6F0",
+                      color: "#1A1A1A",
+                      fontWeight: 500,
+                      paddingLeft: "2.75rem",
+                      transition: "border-color 200ms ease, box-shadow 200ms ease",
+                    },
+                  }}
+                />
+                <TextInput
+                  placeholder="Re-enter password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
                   autoComplete="new-password"
                   required
                   leftSection={<Lock01 className="h-4 w-4 text-[#666666]" />}

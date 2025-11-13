@@ -30,14 +30,18 @@ export default function Register() {
 
     try {
       setSubmitting(true);
-      await register(formState.email, formState.password, {
+      await register(formState.email, formState.password, formState.confirmPassword, {
         averageSpendPerVisit: formState.averageSpendPerVisit ? parseFloat(formState.averageSpendPerVisit) : undefined,
         baselineVisitsPerPeriod: formState.baselineVisitsPerPeriod ? parseInt(formState.baselineVisitsPerPeriod) : undefined,
         rewardCostEstimate: formState.rewardCostEstimate ? parseFloat(formState.rewardCostEstimate) : undefined,
       });
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err?.response?.data?.detail ?? 'Registration failed');
+      const message =
+        err?.message ||
+        err?.response?.data?.detail ||
+        'Registration failed';
+      setError(message);
     } finally {
       setSubmitting(false);
     }

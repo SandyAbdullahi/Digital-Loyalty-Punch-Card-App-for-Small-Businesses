@@ -6,7 +6,7 @@ from ..models.customer_program_membership import CustomerProgramMembership
 from ..models.ledger_entry import LedgerEntry
 from ..models.loyalty_program import LoyaltyProgram
 from ..models.user import User
-from ..models.reward import RedeemCode
+from ..models.reward import RedeemCode, Reward, RewardStatus
 from ..models.analytics_snapshot import AnalyticsSnapshot
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple
@@ -124,17 +124,15 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
         )
     ).scalar()
 
-    # Rewards redeemed in period (sum of redemption amounts)
+    # Rewards redeemed in period (count of redemption events)
     rewards_redeemed_count = db.execute(
-        select(func.sum(LedgerEntry.amount))
-        .join(CustomerProgramMembership)
-        .join(LoyaltyProgram)
+        select(func.count(Reward.id))
         .where(
             and_(
-                LoyaltyProgram.merchant_id == merchant_id,
-                LedgerEntry.entry_type == 'REDEEM',
-                LedgerEntry.issued_at >= start_date,
-                LedgerEntry.issued_at <= end_date
+                Reward.merchant_id == merchant_id,
+                Reward.status == RewardStatus.REDEEMED,
+                Reward.redeemed_at >= start_date,
+                Reward.redeemed_at <= end_date
             )
         )
     ).scalar() or 0
@@ -179,7 +177,21 @@ def get_merchant_analytics(db: Session, merchant_id: UUID, period: str = Period.
             LoyaltyProgram.name,
             func.count(func.distinct(CustomerProgramMembership.customer_user_id)).label('customers_enrolled'),
             func.sum(case((LedgerEntry.entry_type == 'EARN', 1), else_=0)).label('visits'),
-            func.sum(case((LedgerEntry.entry_type == 'REDEEM', LedgerEntry.amount), else_=0)).label('redemptions')
+            func.coalesce(
+                select(func.count(Reward.id))
+                .where(
+                    and_(
+                        Reward.program_id == LoyaltyProgram.id,
+                        Reward.merchant_id == merchant_id,
+                        Reward.status == RewardStatus.REDEEMED,
+                        Reward.redeemed_at >= start_date,
+                        Reward.redeemed_at <= end_date,
+                    )
+                )
+                .correlate(LoyaltyProgram)
+                .scalar_subquery(),
+                0,
+            ).label('redemptions')
         )
         .outerjoin(CustomerProgramMembership, LoyaltyProgram.id == CustomerProgramMembership.program_id)
         .outerjoin(LedgerEntry, and_(

@@ -22,7 +22,12 @@ interface AuthContextType {
   merchant: Merchant | null
   token: string | null
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, analytics?: { averageSpendPerVisit?: number; baselineVisitsPerPeriod?: number; rewardCostEstimate?: number }) => Promise<void>
+  register: (
+    email: string,
+    password: string,
+    confirmPassword: string,
+    analytics?: { averageSpendPerVisit?: number; baselineVisitsPerPeriod?: number; rewardCostEstimate?: number }
+  ) => Promise<void>
   logout: () => void
   updateUser: (user: User) => void
   updateMerchant: (merchant: Merchant) => void
@@ -90,15 +95,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const errorMessage = error.response?.data?.detail || 'Invalid email or password'
         throw new Error(errorMessage)
       }
+      if (error.response?.status === 403) {
+        throw new Error('This account is not allowed to log in to the merchant portal. Please use the customer app instead.')
+      }
       throw error
     }
   }
 
-  const register = async (email: string, password: string, analytics?: { averageSpendPerVisit?: number; baselineVisitsPerPeriod?: number; rewardCostEstimate?: number }) => {
+  const register = async (
+    email: string,
+    password: string,
+    confirmPassword: string,
+    analytics?: { averageSpendPerVisit?: number; baselineVisitsPerPeriod?: number; rewardCostEstimate?: number }
+  ) => {
     try {
       const response = await axios.post('/api/v1/auth/register', {
         email,
         password,
+        confirm_password: confirmPassword,
         role: 'merchant',
         average_spend_per_visit: analytics?.averageSpendPerVisit,
         baseline_visits_per_period: analytics?.baselineVisitsPerPeriod,
@@ -125,6 +139,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Re-throw with a more user-friendly message
       if (error.response?.status === 400) {
         throw new Error('Account already exists with this email')
+      }
+      if (error.response?.status === 403) {
+        throw new Error('This account cannot be used on the merchant portal. Please sign up as a merchant or log in through the customer app.')
       }
       throw error
     }

@@ -15,6 +15,7 @@ class TokenData(BaseModel):
 class AuthRequest(BaseModel):
     email: str
     password: str
+    confirm_password: str | None = None
     role: str = "customer"
     average_spend_per_visit: float | None = None
     baseline_visits_per_period: int | None = None
