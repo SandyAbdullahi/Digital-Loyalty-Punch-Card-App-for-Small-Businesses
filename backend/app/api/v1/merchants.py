@@ -34,6 +34,7 @@ from ...schemas.reward import RedeemCodeConfirm, StampIssueRequest, RedeemReques
 from ...schemas.merchant_settings import MerchantSettings, MerchantSettingsCreate, MerchantSettingsUpdate
 from ...models.ledger_entry import LedgerEntry
 from ...models.reward import Reward as RewardModel, RewardStatus
+from ...models.customer_program_membership import CustomerProgramMembership
 from ...models.loyalty_program import LoyaltyProgram
 from ...models.merchant import Merchant as MerchantModel
 from ...models.user import User
