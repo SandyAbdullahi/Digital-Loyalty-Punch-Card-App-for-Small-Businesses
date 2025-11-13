@@ -25,6 +25,7 @@ interface Program {
   stamp_icon?: string
   is_active: boolean
   expires_at?: string | null
+  stamps_required?: number
 }
 
 type ProgramFormState = {
@@ -115,7 +116,8 @@ const Programs = () => {
       logic_type: program.logic_type ?? 'punch_card',
       rewardThreshold:
         String(
-          redeemRule.reward_threshold ??
+          program.stamps_required ??
+            redeemRule.reward_threshold ??
             earnRule.stamps_needed ??
             defaultFormState.rewardThreshold
         ),
@@ -168,6 +170,7 @@ const Programs = () => {
       name: formData.name,
       description: formData.description,
       logic_type: formData.logic_type,
+      stamps_required: Number(formData.rewardThreshold),
       earn_rule: earnRule,
       redeem_rule: redeemRule,
       terms: formData.notes,
@@ -530,7 +533,7 @@ const Programs = () => {
                     </Button>
                   )}
                   {formStep === 1 && (
-                    <Button type="submit" className="btn-primary">
+                    <Button type="submit" className="btn-primary px-4">
                       {editingProgram ? 'Save changes' : 'Save program'}
                     </Button>
                   )}
