@@ -9,6 +9,7 @@ from .api.v1.merchants import router as merchants_router
 from .api.v1.programs import router as programs_router
 from .api.v1.qr import router as qr_router
 from .api.v1.analytics import router as analytics_router
+from .api.v1.merchant_analytics import router as merchant_analytics_router
 from .api.v1.websocket import router as websocket_router
 from .api.v1.reward_logic import router as reward_logic_router
 from .core.config import settings
@@ -35,6 +36,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(customer_router, prefix=f"{settings.API_V1_STR}/customer", tags=["customer"])
 app.include_router(merchants_router, prefix=f"{settings.API_V1_STR}/merchants", tags=["merchants"])
+app.include_router(merchant_analytics_router, prefix=f"{settings.API_V1_STR}", tags=["analytics"])
 app.include_router(programs_router, prefix=f"{settings.API_V1_STR}/programs", tags=["programs"])
 app.include_router(qr_router, prefix=f"{settings.API_V1_STR}/qr", tags=["qr"])
 app.include_router(analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])

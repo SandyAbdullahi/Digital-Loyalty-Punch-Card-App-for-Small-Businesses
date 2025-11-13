@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,4 +33,5 @@ class Stamp(Base):
 
     __table_args__ = (
         UniqueConstraint("program_id", "tx_id", name="uq_stamps_program_tx"),
+        Index("ix_stamps_merchant_issued_at", "merchant_id", "issued_at"),
     )

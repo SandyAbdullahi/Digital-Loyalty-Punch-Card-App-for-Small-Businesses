@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -45,6 +45,7 @@ class Reward(Base):
 
     __table_args__ = (
         UniqueConstraint("enrollment_id", "cycle", name="uq_rewards_enrollment_cycle"),
+        Index("ix_rewards_merchant_redeemed_at", "merchant_id", "redeemed_at"),
     )
 
 
