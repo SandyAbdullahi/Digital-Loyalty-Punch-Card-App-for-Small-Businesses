@@ -556,6 +556,52 @@ def redeem_code(
 
     customer = db.query(User).filter(User.id == reward.customer_id).first()
     program = db.query(LoyaltyProgram).filter(LoyaltyProgram.id == reward.program_id).first()
+    enrollment = (
+        db.query(CustomerProgramMembership)
+        .filter(CustomerProgramMembership.id == reward.enrollment_id)
+        .first()
+    )
+    new_balance = enrollment.current_balance if enrollment else 0
+    timestamp = (updated.redeemed_at or datetime.utcnow()).isoformat()
+
+    ws_manager = get_websocket_manager()
+    try:
+        ws_manager.broadcast_reward_status_sync(
+            str(updated.customer_id),
+            {
+                "reward_id": str(updated.id),
+                "program_id": str(updated.program_id),
+                "status": updated.status,
+                "timestamp": timestamp,
+            },
+        )
+        ws_manager.broadcast_stamp_update_sync(
+            str(updated.customer_id),
+            str(updated.program_id),
+            new_balance,
+        )
+        ws_manager.broadcast_merchant_reward_update_sync(
+            str(merchant.owner_user_id),
+            {
+                "reward_id": str(updated.id),
+                "status": updated.status,
+                "program_id": str(updated.program_id),
+                "timestamp": timestamp,
+            },
+        )
+        ws_manager.broadcast_merchant_customer_update_sync(
+            str(merchant.owner_user_id),
+            {
+                "customer_id": str(updated.customer_id),
+                "customer_name": customer.name or customer.email.split("@")[0] if customer else "Customer",
+                "program_id": str(updated.program_id),
+                "program_name": program.name if program else "Program",
+                "new_balance": new_balance,
+                "timestamp": timestamp,
+            },
+        )
+    except Exception as exc:
+        print(f"Failed to broadcast redeem code update: {exc}")
 
     return {
         "id": str(updated.id),
@@ -823,6 +869,7 @@ def redeem_reward_endpoint(
     merchant = db.query(MerchantModel).filter(MerchantModel.id == reward.merchant_id).first()
     if merchant.owner_user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
+    customer = db.query(User).filter(User.id == reward.customer_id).first()
 
     code_value = (request.voucher_code or "").strip()
     if not code_value:
@@ -850,6 +897,13 @@ def redeem_reward_endpoint(
         .filter(LoyaltyProgram.id == redeemed_reward.program_id)
         .first()
     )
+    enrollment = (
+        db.query(CustomerProgramMembership)
+        .filter(CustomerProgramMembership.id == redeemed_reward.enrollment_id)
+        .first()
+    )
+    current_balance = enrollment.current_balance if enrollment else 0
+    timestamp = (redeemed_reward.redeemed_at or datetime.utcnow()).isoformat()
 
     ws_manager = get_websocket_manager()
     try:
@@ -859,17 +913,38 @@ def redeem_reward_endpoint(
                 "reward_id": str(redeemed_reward.id),
                 "program_id": str(redeemed_reward.program_id),
                 "status": redeemed_reward.status,
-                "timestamp": (redeemed_reward.redeemed_at or datetime.utcnow()).isoformat(),
+                "timestamp": timestamp,
             },
         )
+        ws_manager.broadcast_stamp_update_sync(
+            str(redeemed_reward.customer_id),
+            str(redeemed_reward.program_id),
+            current_balance,
+        )
         if program and program.merchant:
+            customer_name = (
+                customer.name or customer.email.split("@")[0]
+                if customer
+                else "Customer"
+            )
             ws_manager.broadcast_merchant_reward_update_sync(
                 str(program.merchant.owner_user_id),
                 {
                     "reward_id": str(redeemed_reward.id),
                     "status": redeemed_reward.status,
                     "program_id": str(redeemed_reward.program_id),
-                    "timestamp": (redeemed_reward.redeemed_at or datetime.utcnow()).isoformat(),
+                    "timestamp": timestamp,
+                },
+            )
+            ws_manager.broadcast_merchant_customer_update_sync(
+                str(program.merchant.owner_user_id),
+                {
+                    "customer_id": str(redeemed_reward.customer_id),
+                    "customer_name": customer_name,
+                    "program_id": str(redeemed_reward.program_id),
+                    "program_name": program.name,
+                    "new_balance": current_balance,
+                    "timestamp": timestamp,
                 },
             )
     except Exception as exc:
