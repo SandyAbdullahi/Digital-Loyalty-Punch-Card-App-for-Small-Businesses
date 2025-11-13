@@ -26,6 +26,7 @@ from ...services.merchant import (
     search_merchants,
 )
 from ...services.analytics import get_merchant_analytics, get_top_customers, Period
+from ...api.v1.websocket import get_websocket_manager
 from ...services.merchant_settings import get_merchant_settings, upsert_merchant_settings
 from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
@@ -36,6 +37,8 @@ from ...models.reward import Reward as RewardModel, RewardStatus
 from ...models.loyalty_program import LoyaltyProgram
 from ...models.merchant import Merchant as MerchantModel
 from ...models.user import User
+from ...services.reward_service import issue_stamp, redeem_reward, revoke_last_stamp
+from ...services.membership import earn_stamps, adjust_balance
 
 router = APIRouter()
 
