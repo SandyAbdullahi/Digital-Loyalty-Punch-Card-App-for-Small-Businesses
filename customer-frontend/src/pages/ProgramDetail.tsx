@@ -1,8 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import QRCode from 'qrcode';
 import StampDots from '../components/StampDots';
 import ConfettiOverlay from '../components/ConfettiOverlay';
+import CustomerCard, { CustomerRewardStatus } from '../components/CustomerCard';
 import {
   ArrowNarrowLeft,
   ArrowNarrowRight,
@@ -11,6 +13,7 @@ import {
   ShieldTick,
 } from '@untitled-ui/icons-react';
 import { formatApiDate, parseApiDate } from '../utils/date';
+import { useWebSocket } from '../contexts/WebSocketContext';
 
 type Membership = {
   id: string;
@@ -22,6 +25,8 @@ type Membership = {
     description?: string;
     reward_description?: string;
     reward_threshold?: number;
+    stamps_required?: number;
+    logic_type?: string;
     earn_rule?: {
       threshold?: number;
     } | null;
@@ -61,6 +66,17 @@ type RedemptionHistoryItem = {
   stamps_redeemed?: number;
 };
 
+type RewardState = {
+  reward: {
+    id: string;
+    status: CustomerRewardStatus;
+    voucher_code?: string | null;
+    redeem_expires_at?: string | null;
+  };
+  stamps_in_cycle: number;
+  stamps_required: number;
+};
+
 const ProgramDetail = () => {
   const { id } = useParams();
   const location = useLocation();
@@ -77,12 +93,65 @@ const ProgramDetail = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
   const [redeemCode, setRedeemCode] = useState<RedeemResponse | null>(null);
+  const [redeemQrCode, setRedeemQrCode] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [redemptions, setRedemptions] = useState<RedemptionHistoryItem[]>([]);
+  const { lastMessage } = useWebSocket();
+  const [rewardState, setRewardState] = useState<RewardState | null>(null);
+  const [rewardLoading, setRewardLoading] = useState(false);
+  const [rewardError, setRewardError] = useState<string | null>(null);
   const prevBalanceRef = useRef<number>(
     initialMembership?.current_balance ?? 0
   );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchRewardState = useCallback(async (enrollmentId: string) => {
+    try {
+      setRewardLoading(true);
+      setRewardError(null);
+      const response = await axios.get<RewardState>(
+        `/api/v1/enrollments/${enrollmentId}/reward`
+      );
+      setRewardState(response.data);
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        setRewardState(null);
+      } else {
+        console.error('Failed to fetch reward state', err);
+        setRewardError('Unable to load reward status right now.');
+      }
+    } finally {
+      setRewardLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (membership?.id) {
+      void fetchRewardState(membership.id);
+    }
+  }, [membership?.id, fetchRewardState]);
+
+  useEffect(() => {
+    if (!lastMessage || typeof lastMessage !== 'object') return;
+    if ((lastMessage as { type?: string }).type !== 'reward_status') return;
+    const { program_id, reward_id } = lastMessage as Record<string, any>;
+    if (!program_id || !membership || program_id !== membership.program_id) return;
+    void refreshMembership();
+    void fetchRedemptions();
+  }, [lastMessage]);
+
+  useEffect(() => {
+    if (!lastMessage || typeof lastMessage !== 'object') return;
+    if ((lastMessage as { type?: string }).type !== 'membership_left') return;
+    const { program_id, membership_id } = lastMessage as Record<string, any>;
+    if (
+      membership &&
+      ((membership_id && membership_id === membership.id) ||
+        (program_id && program_id === membership.program_id))
+    ) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [lastMessage, membership, navigate]);
 
   const refreshMembership = async (): Promise<Membership | null> => {
     if (!id) return null;
@@ -92,6 +161,7 @@ const ProgramDetail = () => {
     const updated = response.data.find((item) => item.program_id === id);
     if (updated) {
       setMembership(updated);
+      void fetchRewardState(updated.id);
       return updated;
     }
     return null;
@@ -170,12 +240,18 @@ const ProgramDetail = () => {
   useEffect(() => {
     if (!redeemCode) {
       setTimeLeft(0);
+      setRedeemQrCode('');
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
       }
       return;
     }
+
+    // Generate QR code for the redeem code
+    QRCode.toDataURL(redeemCode.code, { width: 200, margin: 2 })
+      .then(setRedeemQrCode)
+      .catch(console.error);
 
     const expiresAt = parseApiDate(redeemCode.expires_at);
     if (!expiresAt) {
@@ -243,27 +319,63 @@ const ProgramDetail = () => {
 
   const rawThreshold =
     membership.program?.stamps_required ??
+    parsedRedeemRule?.stamps_needed ??
+    parsedRedeemRule?.threshold ??
     parsedRedeemRule?.reward_threshold ??
     parsedRedeemRule?.max_value ??
     parsedEarnRule?.stamps_needed ??
     parsedEarnRule?.threshold ??
     membership.program?.reward_threshold ??
     10;
-  const redeemAmount = Math.max(1, rawThreshold);
-  const canRedeem = membership.current_balance >= redeemAmount;
+  const isPointsProgram = membership.program?.logic_type === 'points';
+  const isPunchCardProgram = !isPointsProgram;
+  const maxRedeemAmount = isPointsProgram ? membership.current_balance : Math.max(1, rawThreshold);
+  const [customRedeemAmount, setCustomRedeemAmount] = useState(maxRedeemAmount);
+  const redeemAmount = isPointsProgram ? customRedeemAmount : maxRedeemAmount;
+  const canRedeem = isPointsProgram
+    ? membership.current_balance >= redeemAmount && redeemAmount > 0
+    : rewardState?.reward.status === 'redeemable';
   const merchant = membership.program?.merchant;
   const merchantDisplayName =
-    merchant?.display_name ?? merchant?.name ?? 'Unknown Merchant';
+    merchant?.display_name ?? merchant?.legal_name ?? merchant?.id ?? 'Unknown Merchant';
   const merchantAddress = merchant?.address;
   const merchantLogo = merchant?.logo_url;
 
   const handleRedeem = async () => {
+    if (isPunchCardProgram) {
+      const reward = rewardState?.reward;
+      if (!reward || reward.status !== 'redeemable' || !reward.voucher_code) {
+        alert('Reward not yet ready to redeem.');
+        return;
+      }
+      try {
+        await axios.post(`/api/v1/rewards/${reward.id}/request`);
+      } catch (notifyError) {
+        console.error('Failed to notify merchant about redeem request:', notifyError);
+      }
+
+      setRedeemCode({
+        code: reward.voucher_code,
+        expires_at: reward.redeem_expires_at ?? '',
+        amount: String(rewardState?.stamps_required ?? redeemAmount),
+        reward_description: membership.program?.reward_description ?? membership.program?.name ?? 'Reward',
+        stamps_redeemed: rewardState?.stamps_required ?? redeemAmount,
+        status: 'claimed',
+        id: reward.id,
+        program_name: membership.program?.name,
+        merchant_name: membership.program?.merchant?.display_name,
+        created_at: reward.reached_at ?? new Date().toISOString(),
+      });
+      setShowConfetti(true);
+      return;
+    }
+
     setRedeeming(true);
     try {
       const response = await axios.post(
         `/api/v1/programs/${membership.program_id}/redeem`,
         {
-          amount: redeemAmount, // Redeem full requirement
+          amount: redeemAmount,
         }
       );
       setRedeemCode(response.data);
@@ -272,7 +384,8 @@ const ProgramDetail = () => {
       await fetchRedemptions();
     } catch (err: any) {
       console.error('Redeem failed:', err);
-      // Could show error toast here
+      const errorMessage = err?.response?.data?.detail || err?.message || 'Unknown error';
+      alert(`Redeem failed: ${errorMessage}`);
     } finally {
       setRedeeming(false);
     }
@@ -318,20 +431,69 @@ const ProgramDetail = () => {
             )}
           </header>
           <div className="space-y-3">
-            <div className="rudi-card bg-[var(--rudi-background)]/60 shadow-none border border-[var(--rudi-text)]/10 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">Your progress</span>
-                <span className="text-sm text-[var(--rudi-text)]/70">
-                  {membership.current_balance}/{redeemAmount}
-                </span>
+             <div className="rudi-card bg-[var(--rudi-background)]/60 shadow-none border border-[var(--rudi-text)]/10 p-4 space-y-3">
+               <div className="flex items-center justify-between">
+                 <span className="text-sm font-semibold">Your progress</span>
+                 <span className="text-sm text-[var(--rudi-text)]/70">
+                   {membership.current_balance}{isPointsProgram ? '' : `/${redeemAmount}`}
+                 </span>
+               </div>
+               {isPointsProgram ? (
+                 <div className="text-center">
+                   <div className="text-2xl font-bold text-[var(--rudi-primary)]">
+                     {membership.current_balance} points
+                   </div>
+                   <p className="text-sm text-[var(--rudi-text)]/70">Available to redeem</p>
+                 </div>
+               ) : (
+                  <StampDots
+                    threshold={redeemAmount}
+                    earned={membership.current_balance}
+                    size="lg"
+                    icon={membership.program?.stamp_icon}
+                  />
+                )}
               </div>
-              <StampDots
-                threshold={redeemAmount}
-                earned={membership.current_balance}
-                size="lg"
-                icon={membership.program?.stamp_icon}
-              />
-            </div>
+              {rewardLoading && (
+                <div className="rounded-2xl border border-dashed border-[var(--rudi-text)]/20 bg-white/60 p-4 text-center text-sm text-[var(--rudi-text)]/70">
+                  Syncing reward status...
+                </div>
+              )}
+              {rewardError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {rewardError}
+                </div>
+              )}
+              {rewardState && (
+                <CustomerCard
+                  programName={membership.program?.name ?? 'Loyalty reward'}
+                  stampsRequired={
+                    rewardState.stamps_required ??
+                    membership.program?.stamps_required ??
+                    redeemAmount
+                  }
+                  stampsInCycle={rewardState.stamps_in_cycle}
+                  status={rewardState.reward.status}
+                  voucherCode={rewardState.reward.voucher_code ?? undefined}
+                  redeemExpiresAt={rewardState.reward.redeem_expires_at ?? undefined}
+                />
+              )}
+              {isPointsProgram && canRedeem && (
+                <div className="rudi-card bg-[var(--rudi-background)]/60 shadow-none border border-[var(--rudi-text)]/10 p-4 space-y-3">
+                  <label className="text-sm font-semibold">Redeem amount</label>
+                  <input
+                   type="number"
+                   min="1"
+                   max={membership.current_balance}
+                   value={customRedeemAmount}
+                   onChange={(e) => setCustomRedeemAmount(Math.min(membership.current_balance, Math.max(1, parseInt(e.target.value) || 1)))}
+                   className="w-full rounded-2xl border border-[var(--rudi-text)]/20 bg-white px-4 py-3 text-sm focus:border-[var(--rudi-primary)] focus:outline-none"
+                 />
+                 <p className="text-xs text-[var(--rudi-text)]/70">
+                   Choose how many points to redeem (1-{membership.current_balance})
+                 </p>
+               </div>
+             )}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {!canRedeem && (
@@ -352,7 +514,9 @@ const ProgramDetail = () => {
               {canRedeem
                 ? redeeming
                   ? 'Checking...'
-                  : 'Redeem reward'
+                  : isPointsProgram
+                    ? `Redeem ${redeemAmount} points`
+                    : 'Redeem reward'
                 : 'Keep earning'}
             </button>
           </div>
@@ -384,13 +548,22 @@ const ProgramDetail = () => {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-white/90 border border-[#FFE5B3] p-4 space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#987000]">
-                  Redeem code
-                </p>
-                <div className="bg-[#FFF9ED] border border-[#FFE5B3] rounded-2xl px-4 py-4 font-mono text-xl sm:text-3xl font-bold tracking-[0.35em] text-[#2F1B00] text-center break-all">
-                  {redeemCode.code}
-                </div>
+               <div className="rounded-2xl bg-white/90 border border-[#FFE5B3] p-4 space-y-3">
+                 <p className="text-xs font-semibold uppercase tracking-wide text-[#987000]">
+                   Redeem code
+                 </p>
+                 {redeemQrCode && (
+                   <div className="flex justify-center">
+                     <img
+                       src={redeemQrCode}
+                       alt="Redeem QR Code"
+                       className="w-32 h-32 rounded-lg border border-[#FFE5B3]"
+                     />
+                   </div>
+                 )}
+                 <div className="bg-[#FFF9ED] border border-[#FFE5B3] rounded-2xl px-4 py-4 font-mono text-xl sm:text-3xl font-bold tracking-[0.35em] text-[#2F1B00] text-center break-all">
+                   {redeemCode.code}
+                 </div>
                 <div className="flex flex-wrap items-center gap-4 text-sm text-[#6B4E1F]">
                   <span className="inline-flex items-center gap-2">
                     <Clock className="h-4 w-4" />

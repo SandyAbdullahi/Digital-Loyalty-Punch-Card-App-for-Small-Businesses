@@ -25,6 +25,7 @@ from ...models.stamp import Stamp
 from ...models.merchant import Merchant
 from ...services.membership import get_membership_by_customer_and_program
 from ...services.reward_service import issue_stamp
+from ...api.v1.websocket import get_websocket_manager
 
 router = APIRouter()
 
@@ -205,6 +206,24 @@ def leave_program(
     if not membership:
         raise HTTPException(status_code=404, detail="Membership not found")
 
+    program = (
+        db.query(LoyaltyProgram)
+        .options(joinedload(LoyaltyProgram.merchant))
+        .filter(LoyaltyProgram.id == membership.program_id)
+        .first()
+    )
+    merchant = (
+        db.query(Merchant)
+        .filter(Merchant.id == membership.merchant_id)
+        .first()
+    )
+
+    membership_id = str(membership.id)
+    program_id_str = str(membership.program_id)
+    program_name = program.name if program else "Program"
+    previous_balance = membership.current_balance or 0
+    merchant_owner_id = merchant.owner_user_id if merchant else None
+
     # Delete related records first to avoid foreign key constraint violations
     db.query(RewardModel).filter(RewardModel.enrollment_id == membership.id).delete(synchronize_session=False)
     db.query(Stamp).filter(Stamp.enrollment_id == membership.id).delete(synchronize_session=False)
@@ -213,6 +232,36 @@ def leave_program(
     # Delete the membership
     db.delete(membership)
     db.commit()
+
+    ws_manager = get_websocket_manager()
+    timestamp = datetime.utcnow().isoformat()
+    try:
+        ws_manager.broadcast_membership_left_sync(
+            str(user.id),
+            {
+                "membership_id": membership_id,
+                "program_id": program_id_str,
+                "program_name": program_name,
+                "timestamp": timestamp,
+            },
+        )
+        if merchant_owner_id:
+            ws_manager.broadcast_merchant_customer_update_sync(
+                str(merchant_owner_id),
+                {
+                    "customer_id": str(user.id),
+                    "customer_name": user.name or user.email.split("@")[0],
+                    "program_id": program_id_str,
+                    "program_name": program_name,
+                    "delta": -previous_balance,
+                    "new_balance": 0,
+                    "removed": True,
+                    "membership_id": membership_id,
+                    "timestamp": timestamp,
+                },
+            )
+    except Exception as exc:
+        print(f"Failed to broadcast membership leave: {exc}")
 
     return {"message": "Successfully left the program"}
 

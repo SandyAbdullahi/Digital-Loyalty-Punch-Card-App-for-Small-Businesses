@@ -16,6 +16,14 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, List[WebSocket]] = {}
 
+    @staticmethod
+    def _customer_channel(user_id: str) -> str:
+        return user_id if user_id.startswith("customer_") else f"customer_{user_id}"
+
+    @staticmethod
+    def _merchant_channel(user_id: str) -> str:
+        return user_id if user_id.startswith("merchant_") else f"merchant_{user_id}"
+
     async def connect(self, user_id: str, websocket: WebSocket):
         await websocket.accept()
         if user_id not in self.active_connections:
@@ -50,50 +58,120 @@ class ConnectionManager:
             "new_balance": new_balance,
             "timestamp": "now"
         }
-        await self.broadcast_to_user(message, user_id)
+        await self.broadcast_to_user(message, self._customer_channel(user_id))
 
     def broadcast_stamp_update_sync(self, user_id: str, program_id: str, new_balance: int):
         """Synchronous wrapper for broadcasting stamp updates"""
         # Create a new event loop if one doesn't exist, or use the current one
+        channel = self._customer_channel(user_id)
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 # If loop is already running, we need to schedule the coroutine
-                asyncio.create_task(self.broadcast_stamp_update(user_id, program_id, new_balance))
+                asyncio.create_task(self.broadcast_stamp_update(channel, program_id, new_balance))
             else:
-                loop.run_until_complete(self.broadcast_stamp_update(user_id, program_id, new_balance))
+                loop.run_until_complete(self.broadcast_stamp_update(channel, program_id, new_balance))
         except RuntimeError:
             # No event loop, create a new one
-            asyncio.run(self.broadcast_stamp_update(user_id, program_id, new_balance))
+            asyncio.run(self.broadcast_stamp_update(channel, program_id, new_balance))
 
-    async def broadcast_redeem_notification(self, merchant_user_id: str, customer_name: str, program_name: str, stamps_redeemed: int, code: str):
+    async def broadcast_redeem_notification(self, merchant_user_id: str, customer_name: str, program_name: str, stamps_redeemed: int, code: str, reward_id: str):
         message = {
             "type": "redeem_request",
             "customer_name": customer_name,
             "program_name": program_name,
             "stamps_redeemed": stamps_redeemed,
             "code": code,
+            "reward_id": reward_id,
             "timestamp": "now"
         }
-        await self.broadcast_to_user(message, f"merchant_{merchant_user_id}")
+        await self.broadcast_to_user(message, self._merchant_channel(merchant_user_id))
 
-    def broadcast_redeem_notification_sync(self, merchant_user_id: str, customer_name: str, program_name: str, stamps_redeemed: int, code: str):
+    def broadcast_redeem_notification_sync(self, merchant_user_id: str, customer_name: str, program_name: str, stamps_redeemed: int, code: str, reward_id: str):
         """Synchronous wrapper for broadcasting redeem notifications"""
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
-                asyncio.create_task(self.broadcast_redeem_notification(merchant_user_id, customer_name, program_name, stamps_redeemed, code))
+                asyncio.create_task(self.broadcast_redeem_notification(merchant_user_id, customer_name, program_name, stamps_redeemed, code, reward_id))
             else:
-                loop.run_until_complete(self.broadcast_redeem_notification(merchant_user_id, customer_name, program_name, stamps_redeemed, code))
+                loop.run_until_complete(self.broadcast_redeem_notification(merchant_user_id, customer_name, program_name, stamps_redeemed, code, reward_id))
         except RuntimeError:
-            asyncio.run(self.broadcast_redeem_notification(merchant_user_id, customer_name, program_name, stamps_redeemed, code))
+            asyncio.run(self.broadcast_redeem_notification(merchant_user_id, customer_name, program_name, stamps_redeemed, code, reward_id))
 
     async def broadcast_notification(self, user_id: str, notification_data: dict):
         message = {
             "type": "notification",
             "data": notification_data
         }
-        await self.broadcast_to_user(message, user_id)
+        await self.broadcast_to_user(message, self._customer_channel(user_id))
+
+    async def broadcast_reward_status(self, user_id: str, payload: dict):
+        message = {
+            "type": "reward_status",
+            **payload,
+        }
+        await self.broadcast_to_user(message, self._customer_channel(user_id))
+
+    def broadcast_reward_status_sync(self, user_id: str, payload: dict):
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self.broadcast_reward_status(user_id, payload))
+            else:
+                loop.run_until_complete(self.broadcast_reward_status(user_id, payload))
+        except RuntimeError:
+            asyncio.run(self.broadcast_reward_status(user_id, payload))
+
+    async def broadcast_membership_left(self, user_id: str, payload: dict):
+        message = {
+            "type": "membership_left",
+            **payload,
+        }
+        await self.broadcast_to_user(message, self._customer_channel(user_id))
+
+    def broadcast_membership_left_sync(self, user_id: str, payload: dict):
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self.broadcast_membership_left(user_id, payload))
+            else:
+                loop.run_until_complete(self.broadcast_membership_left(user_id, payload))
+        except RuntimeError:
+            asyncio.run(self.broadcast_membership_left(user_id, payload))
+
+    async def broadcast_merchant_customer_update(self, merchant_user_id: str, payload: dict):
+        message = {
+            "type": "customer_stamp_update",
+            **payload,
+        }
+        await self.broadcast_to_user(message, self._merchant_channel(merchant_user_id))
+
+    def broadcast_merchant_customer_update_sync(self, merchant_user_id: str, payload: dict):
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self.broadcast_merchant_customer_update(merchant_user_id, payload))
+            else:
+                loop.run_until_complete(self.broadcast_merchant_customer_update(merchant_user_id, payload))
+        except RuntimeError:
+            asyncio.run(self.broadcast_merchant_customer_update(merchant_user_id, payload))
+
+    async def broadcast_merchant_reward_update(self, merchant_user_id: str, payload: dict):
+        message = {
+            "type": "reward_redeemed",
+            **payload,
+        }
+        await self.broadcast_to_user(message, self._merchant_channel(merchant_user_id))
+
+    def broadcast_merchant_reward_update_sync(self, merchant_user_id: str, payload: dict):
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self.broadcast_merchant_reward_update(merchant_user_id, payload))
+            else:
+                loop.run_until_complete(self.broadcast_merchant_reward_update(merchant_user_id, payload))
+        except RuntimeError:
+            asyncio.run(self.broadcast_merchant_reward_update(merchant_user_id, payload))
 
 manager = ConnectionManager()
 

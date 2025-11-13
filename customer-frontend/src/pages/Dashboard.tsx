@@ -169,9 +169,38 @@ const Dashboard = () => {
       } else if (lastMessage.type === 'notification') {
         // Refresh notifications
         fetchNotifications();
+      } else if (lastMessage.type === 'membership_left') {
+        const membershipId = lastMessage.membership_id as string | undefined;
+        const programId = lastMessage.program_id as string | undefined;
+        if (membershipId || programId) {
+          let removedProgramId: string | null = null;
+          setMemberships((prevMemberships) =>
+            prevMemberships.filter((membership) => {
+              const shouldRemove = membershipId
+                ? membership.id === membershipId
+                : programId
+                ? membership.program_id === programId
+                : false;
+              if (shouldRemove) {
+                removedProgramId = membership.program_id;
+              }
+              return !shouldRemove;
+            })
+          );
+          if (
+            removedProgramId &&
+            selectedProgramId &&
+            removedProgramId === selectedProgramId
+          ) {
+            setIsModalOpen(false);
+            setSelectedMerchant(null);
+            setSelectedProgram(null);
+            setSelectedProgramId(undefined);
+          }
+        }
       }
     }
-  }, [lastMessage]);
+  }, [lastMessage, selectedProgramId]);
 
   const fetchNotifications = async () => {
     try {
@@ -216,7 +245,12 @@ const Dashboard = () => {
     localStorage.setItem('readNotifications', JSON.stringify([...newRead]));
   };
 
-  const handleExitProgram = async () => {
+  const handleExitProgram = async (programId?: string) => {
+    if (programId) {
+      setMemberships((prev) =>
+        prev.filter((membership) => membership.program_id !== programId)
+      );
+    }
     // Refresh memberships after exiting (the modal handles the actual deletion)
     try {
       const membershipsResult = await axios.get<Membership[]>('/api/v1/customer/memberships');

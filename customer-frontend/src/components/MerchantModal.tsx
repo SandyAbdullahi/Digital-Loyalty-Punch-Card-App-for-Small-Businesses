@@ -26,7 +26,7 @@ type MerchantModalProps = {
   programId?: string;
   isOpen: boolean;
   onClose: () => void;
-  onExitProgram?: () => void;
+  onExitProgram?: (programId?: string) => void;
 };
 
 const MerchantModal = ({ merchant, program, programId, isOpen, onClose, onExitProgram }: MerchantModalProps) => {
@@ -56,7 +56,7 @@ const MerchantModal = ({ merchant, program, programId, isOpen, onClose, onExitPr
     setIsExiting(true);
     try {
       await axios.delete(`/api/v1/customer/memberships/${programId}`);
-      onExitProgram();
+      onExitProgram(programId);
       onClose();
     } catch (error) {
       console.error('Failed to exit program:', error);

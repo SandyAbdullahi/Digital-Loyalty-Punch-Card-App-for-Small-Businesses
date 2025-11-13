@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import {
   Button,
@@ -6,6 +6,7 @@ import {
   TextInput,
   Text,
 } from '@mantine/core'
+import { useWebSocket } from '../contexts/WebSocketContext'
 
 type CustomerProgram = {
   id: string
@@ -31,6 +32,8 @@ const Customers = () => {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'info'; message: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const { lastMessage } = useWebSocket()
+  const selectedCustomerIdRef = useRef<string | null>(null)
 
   const apiBaseUrl =
     (import.meta as any)?.env?.VITE_API_URL ||
@@ -110,6 +113,95 @@ const Customers = () => {
   useEffect(() => {
     fetchCustomers()
   }, [])
+
+  useEffect(() => {
+    selectedCustomerIdRef.current = selectedCustomer?.id ?? null
+  }, [selectedCustomer])
+
+  useEffect(() => {
+    if (!lastMessage || typeof lastMessage !== 'object') return
+    if ((lastMessage as { type?: string }).type !== 'customer_stamp_update') return
+    const { customer_id, program_id, new_balance, delta, timestamp, program_name, removed } = lastMessage as Record<string, any>
+    if (!customer_id || !program_id) return
+
+    if (removed) {
+      setCustomers((prev) =>
+        prev
+          .map((customer) => {
+            if (customer.id !== customer_id) {
+              return customer
+            }
+            const programs = customer.programs.filter((program) => program.id !== program_id)
+            if (!programs.length) {
+              return null
+            }
+            return {
+              ...customer,
+              programs,
+              totalStamps: programs.reduce((sum, p) => sum + p.progress, 0),
+            }
+          })
+          .filter((customer): customer is CustomerRecord => Boolean(customer))
+      )
+
+      if (selectedCustomerIdRef.current === customer_id) {
+        setSelectedCustomer((prev) => {
+          if (!prev) return prev
+          const programs = prev.programs.filter((program) => program.id !== program_id)
+          if (!programs.length) {
+            return null
+          }
+          return {
+            ...prev,
+            programs,
+            totalStamps: programs.reduce((sum, p) => sum + p.progress, 0),
+          }
+        })
+      }
+      return
+    }
+
+    if (typeof new_balance !== 'number') return
+
+    let nextSelection: CustomerRecord | null = null
+    const selectedId = selectedCustomerIdRef.current
+
+    setCustomers((prev) =>
+      prev.map((customer) => {
+        if (customer.id !== customer_id) {
+          return customer
+        }
+        const programs = customer.programs.map((program) =>
+          program.id === program_id ? { ...program, progress: new_balance } : program
+        )
+        const totalStamps = programs.reduce((sum, p) => sum + p.progress, 0)
+        const formattedLastVisit =
+          (typeof timestamp === 'string' && formatLastVisit(timestamp)) || customer.lastVisit
+        const updatedCustomer = {
+          ...customer,
+          programs,
+          totalStamps,
+          lastVisit: formattedLastVisit ?? customer.lastVisit,
+        }
+        if (selectedId === customer_id) {
+          nextSelection = updatedCustomer
+        }
+        return updatedCustomer
+      })
+    )
+
+    if (nextSelection) {
+      setSelectedCustomer(nextSelection)
+    }
+
+    if (typeof delta === 'number') {
+      const message =
+        delta > 0
+          ? `Stamp added${program_name ? ` for ${program_name}` : ''}`
+          : `Stamp revoked${program_name ? ` for ${program_name}` : ''}`
+      showToast(delta > 0 ? 'success' : 'info', message)
+    }
+  }, [lastMessage])
 
   const filteredCustomers = useMemo(() => {
     if (!query) return customers
