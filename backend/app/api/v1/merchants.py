@@ -1,9 +1,9 @@
+import json
 import os
 import shutil
-from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Form, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
@@ -26,6 +26,7 @@ from ...services.merchant import (
     search_merchants,
 )
 from ...services.analytics import get_merchant_analytics, get_top_customers, Period
+from ...core.timezone import to_local, now_local, now_local_iso, format_local
 from ...api.v1.websocket import get_websocket_manager
 from ...services.merchant_settings import get_merchant_settings, upsert_merchant_settings
 from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
@@ -38,10 +39,59 @@ from ...models.customer_program_membership import CustomerProgramMembership
 from ...models.loyalty_program import LoyaltyProgram
 from ...models.merchant import Merchant as MerchantModel
 from ...models.user import User
-from ...services.reward_service import issue_stamp, redeem_reward, revoke_last_stamp
+from ...services.reward_service import (
+    issue_stamp,
+    redeem_reward,
+    revoke_last_stamp,
+    get_reward_state,
+)
 from ...services.membership import earn_stamps, adjust_balance
 
 router = APIRouter()
+
+
+def _parse_rule(rule_data):
+    if isinstance(rule_data, str):
+        try:
+            return json.loads(rule_data)
+        except json.JSONDecodeError:
+            return {}
+    if isinstance(rule_data, dict):
+        return rule_data
+    return {}
+
+
+def _program_threshold(program: LoyaltyProgram) -> int:
+    redeem_rule = _parse_rule(program.redeem_rule)
+    earn_rule = _parse_rule(program.earn_rule)
+    return (
+        program.stamps_required
+        or program.reward_threshold
+        or redeem_rule.get("stamps_needed")
+        or redeem_rule.get("threshold")
+        or redeem_rule.get("reward_threshold")
+        or redeem_rule.get("max_value")
+        or earn_rule.get("stamps_needed")
+        or earn_rule.get("threshold")
+        or 10
+    )
+
+
+def _broadcast_reward_snapshot(ws_manager, customer_id: UUID, reward: RewardModel | None) -> None:
+    if not reward:
+        return
+
+    status_value = reward.status.value if isinstance(reward.status, RewardStatus) else str(reward.status)
+    timestamp = format_local(reward.redeemed_at or reward.reached_at) or now_local_iso()
+    ws_manager.broadcast_reward_status_sync(
+        str(customer_id),
+        {
+            "reward_id": str(reward.id),
+            "program_id": str(reward.program_id),
+            "status": status_value,
+            "timestamp": timestamp,
+        },
+    )
 
 
 # Merchant profile
@@ -279,43 +329,35 @@ def get_merchant_rewards(db: Session = Depends(get_db), current_user: str = Depe
         )
 
         rewards: List[dict] = []
-        now = datetime.now(timezone.utc)
+        now_iso = now_local_iso()
 
         for reward, program, customer in reward_rows:
             program_name = program.name or "Program"
             customer_label = customer.name or customer.email.split("@")[0]
 
-            expires_at = reward.redeem_expires_at
-            if expires_at and expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
-
-            timestamp = reward.reached_at or now
-            if timestamp.tzinfo is None:
-                timestamp = timestamp.replace(tzinfo=timezone.utc)
+            expires_at_iso = format_local(reward.redeem_expires_at)
+            timestamp_iso = format_local(reward.reached_at) or now_iso
 
             raw_status = reward.status or RewardStatus.INACTIVE.value
             status_value = raw_status.value if isinstance(raw_status, RewardStatus) else str(raw_status)
 
             if status_value == RewardStatus.REDEEMED.value:
                 if reward.redeemed_at:
-                    ts = reward.redeemed_at
-                    if ts.tzinfo is None:
-                        ts = ts.replace(tzinfo=timezone.utc)
-                    timestamp = ts
+                    timestamp_iso = format_local(reward.redeemed_at) or timestamp_iso
             elif status_value == RewardStatus.EXPIRED.value:
-                if expires_at:
-                    timestamp = expires_at
+                if expires_at_iso:
+                    timestamp_iso = expires_at_iso
 
             rewards.append(
                 {
                     "id": str(reward.id),
                     "program": program_name,
                     "customer": customer_label,
-                    "date": timestamp.isoformat(),
+                    "date": timestamp_iso,
                     "status": status_value,
                     "amount": "1",
                     "code": reward.voucher_code if status_value == RewardStatus.REDEEMABLE.value else None,
-                    "expires_at": expires_at.isoformat() if expires_at else None,
+                    "expires_at": expires_at_iso,
                 }
             )
 
@@ -535,10 +577,8 @@ def redeem_code(
         raise HTTPException(status_code=400, detail="Reward not redeemable")
 
     expires_at = reward.redeem_expires_at
-    now = datetime.now(timezone.utc)
-    if expires_at and expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if expires_at and expires_at < now:
+    expires_local = to_local(expires_at)
+    if expires_local and expires_local < now_local():
         raise HTTPException(status_code=400, detail="Code has expired")
 
     try:
@@ -563,7 +603,7 @@ def redeem_code(
         .first()
     )
     new_balance = enrollment.current_balance if enrollment else 0
-    timestamp = (updated.redeemed_at or datetime.utcnow()).isoformat()
+    timestamp = format_local(updated.redeemed_at) or now_local_iso()
 
     ws_manager = get_websocket_manager()
     try:
@@ -627,7 +667,6 @@ def add_manual_stamp(
     from ...api.v1.websocket import get_websocket_manager
     from ...models.customer_program_membership import CustomerProgramMembership
 
-    # Verify merchant owns the program
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -643,7 +682,11 @@ def add_manual_stamp(
     if program_uuid not in program_ids:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    # Find membership
+    program = db.query(LoyaltyProgram).filter(LoyaltyProgram.id == program_uuid).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Program not found")
+    stamp_limit = _program_threshold(program)
+
     membership = db.query(CustomerProgramMembership).filter(
         CustomerProgramMembership.customer_user_id == customer_id,
         CustomerProgramMembership.program_id == program_uuid
@@ -651,15 +694,69 @@ def add_manual_stamp(
     if not membership:
         raise HTTPException(status_code=404, detail="Membership not found")
 
-    # Add stamp
+    current_balance = membership.current_balance or 0
+    ws_manager = get_websocket_manager()
+
+    if program.logic_type == "punch_card":
+        if current_balance >= stamp_limit:
+            raise HTTPException(
+                status_code=400,
+                detail="Customer already has the maximum stamps for this reward.",
+            )
+        try:
+            stamp = issue_stamp(
+                db,
+                enrollment_id=membership.id,
+                tx_id=f"manual_{uuid4().hex}",
+                staff_id=user.id,
+            )
+            db.refresh(membership)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+        new_balance = membership.current_balance or 0
+        ws_manager.broadcast_stamp_update_sync(str(customer_id), program_id, new_balance)
+        ws_manager.broadcast_merchant_customer_update_sync(
+            str(merchant.owner_user_id),
+            {
+                "customer_id": str(customer_id),
+                "program_id": str(program_uuid),
+                "delta": 1,
+                "new_balance": new_balance,
+                "program_name": program.name,
+                "timestamp": now_local_iso(),
+            },
+        )
+        reward = get_reward_state(db, membership.id)
+        _broadcast_reward_snapshot(ws_manager, customer_id, reward)
+        return {"message": "Stamp added successfully", "stamp_id": str(stamp.id)}
+
+    if current_balance >= stamp_limit:
+        raise HTTPException(
+            status_code=400,
+            detail="Customer already has the maximum points for this reward.",
+        )
+
     result = earn_stamps(db, membership.id, 1, "manual", "manual", notes="manual_issue")
     if result:
-        # Broadcast the update to the customer via WebSocket
-        ws_manager = get_websocket_manager()
-        ws_manager.broadcast_stamp_update_sync(str(customer_id), program_id, result.current_balance)
-        return {"message": "Stamp added successfully"}
-    raise HTTPException(status_code=400, detail="Failed to add stamp")
+        new_balance = result.current_balance or 0
+        ws_manager.broadcast_stamp_update_sync(str(customer_id), program_id, new_balance)
+        ws_manager.broadcast_merchant_customer_update_sync(
+            str(merchant.owner_user_id),
+            {
+                "customer_id": str(customer_id),
+                "program_id": str(program_uuid),
+                "delta": 1,
+                "new_balance": new_balance,
+                "program_name": program.name,
+                "timestamp": now_local_iso(),
+            },
+        )
+        reward = get_reward_state(db, membership.id)
+        _broadcast_reward_snapshot(ws_manager, customer_id, reward)
+        return {"message": "Points added successfully"}
 
+    raise HTTPException(status_code=400, detail="Failed to add stamp")
 
 @router.post("/customers/{customer_id}/revoke-stamp")
 def revoke_manual_stamp(
@@ -673,7 +770,6 @@ def revoke_manual_stamp(
     from ...services.membership import adjust_balance
     from ...models.customer_program_membership import CustomerProgramMembership
 
-    # Verify merchant owns the program
     user = get_user_by_email(db, current_user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -689,7 +785,6 @@ def revoke_manual_stamp(
     if program_uuid not in program_ids:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    # Find membership
     membership = db.query(CustomerProgramMembership).filter(
         CustomerProgramMembership.customer_user_id == customer_id,
         CustomerProgramMembership.program_id == program_uuid
@@ -697,12 +792,58 @@ def revoke_manual_stamp(
     if not membership:
         raise HTTPException(status_code=404, detail="Membership not found")
 
-    # Revoke stamp (adjust by -1)
+    program = db.query(LoyaltyProgram).filter(LoyaltyProgram.id == program_uuid).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Program not found")
+
+    current_balance = membership.current_balance or 0
+    ws_manager = get_websocket_manager()
+
+    if program.logic_type == "punch_card":
+        try:
+            updated = revoke_last_stamp(db, enrollment_id=membership.id, staff_id=user.id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        new_balance = updated.current_balance or 0
+        ws_manager.broadcast_stamp_update_sync(str(customer_id), program_id, new_balance)
+        ws_manager.broadcast_merchant_customer_update_sync(
+            str(merchant.owner_user_id),
+            {
+                "customer_id": str(customer_id),
+                "program_id": str(program_uuid),
+                "delta": -1,
+                "new_balance": new_balance,
+                "program_name": program.name,
+                "timestamp": now_local_iso(),
+            },
+        )
+        reward = get_reward_state(db, membership.id)
+        _broadcast_reward_snapshot(ws_manager, customer_id, reward)
+        return {"message": "Stamp revoked", "balance": new_balance}
+
+    if current_balance <= 0:
+        raise HTTPException(status_code=400, detail="Customer has no stamps to revoke")
+
     result = adjust_balance(db, membership.id, -1, "manual_revoke", "manual")
     if result:
-        return {"message": "Stamp revoked successfully"}
-    raise HTTPException(status_code=400, detail="Failed to revoke stamp")
+        new_balance = result.current_balance or 0
+        ws_manager.broadcast_stamp_update_sync(str(customer_id), program_id, new_balance)
+        ws_manager.broadcast_merchant_customer_update_sync(
+            str(merchant.owner_user_id),
+            {
+                "customer_id": str(customer_id),
+                "program_id": str(program_uuid),
+                "delta": -1,
+                "new_balance": new_balance,
+                "program_name": program.name,
+                "timestamp": now_local_iso(),
+            },
+        )
+        reward = get_reward_state(db, membership.id)
+        _broadcast_reward_snapshot(ws_manager, customer_id, reward)
+        return {"message": "Stamp revoked successfully", "balance": new_balance}
 
+    raise HTTPException(status_code=400, detail="Failed to revoke stamp")
 
 @router.delete("/customers/{customer_id}")
 def delete_customer(
@@ -843,7 +984,7 @@ def issue_stamp_endpoint(
                 "delta": 1,
                 "new_balance": enrollment.current_balance,
                 "program_name": program.name,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": now_local_iso(),
             },
         )
         return {"stamp": stamp, "message": "Stamp issued"}
@@ -904,7 +1045,7 @@ def redeem_reward_endpoint(
         .first()
     )
     current_balance = enrollment.current_balance if enrollment else 0
-    timestamp = (redeemed_reward.redeemed_at or datetime.utcnow()).isoformat()
+    timestamp = format_local(redeemed_reward.redeemed_at) or now_local_iso()
 
     ws_manager = get_websocket_manager()
     try:

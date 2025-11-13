@@ -25,6 +25,7 @@ from sqlalchemy.orm import joinedload
 from ...models.ledger_entry import LedgerEntry, LedgerEntryType
 from ...models.loyalty_program import LoyaltyProgram
 from ...models.merchant import Merchant
+from ...core.timezone import now_local_iso
 
 router = APIRouter()
 
@@ -282,7 +283,7 @@ def _scan_stamp_logic(request: ScanRequest, db: Session, user):
                     "delta": 1,
                     "new_balance": updated_membership.current_balance,
                     "program_name": program.name,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": now_local_iso(),
                 },
             )
 

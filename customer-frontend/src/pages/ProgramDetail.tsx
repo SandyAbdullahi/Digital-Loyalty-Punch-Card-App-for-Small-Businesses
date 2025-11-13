@@ -125,35 +125,7 @@ const ProgramDetail = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (membership?.id) {
-      void fetchRewardState(membership.id);
-    }
-  }, [membership?.id, fetchRewardState]);
-
-  useEffect(() => {
-    if (!lastMessage || typeof lastMessage !== 'object') return;
-    if ((lastMessage as { type?: string }).type !== 'reward_status') return;
-    const { program_id, reward_id } = lastMessage as Record<string, any>;
-    if (!program_id || !membership || program_id !== membership.program_id) return;
-    void refreshMembership();
-    void fetchRedemptions();
-  }, [lastMessage]);
-
-  useEffect(() => {
-    if (!lastMessage || typeof lastMessage !== 'object') return;
-    if ((lastMessage as { type?: string }).type !== 'membership_left') return;
-    const { program_id, membership_id } = lastMessage as Record<string, any>;
-    if (
-      membership &&
-      ((membership_id && membership_id === membership.id) ||
-        (program_id && program_id === membership.program_id))
-    ) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [lastMessage, membership, navigate]);
-
-  const refreshMembership = async (): Promise<Membership | null> => {
+  const refreshMembership = useCallback(async (): Promise<Membership | null> => {
     if (!id) return null;
     const response = await axios.get<Membership[]>(
       '/api/v1/customer/memberships'
@@ -165,9 +137,9 @@ const ProgramDetail = () => {
       return updated;
     }
     return null;
-  };
+  }, [id, fetchRewardState]);
 
-  const fetchRedemptions = async () => {
+  const fetchRedemptions = useCallback(async () => {
     if (!id) return;
     try {
       const response = await axios.get<RedemptionHistoryItem[]>(
@@ -202,7 +174,56 @@ const ProgramDetail = () => {
     } catch (err) {
       console.error('Failed to load redemption history', err);
     }
-  };
+  }, [id, redeemCode, refreshMembership, navigate]);
+
+  useEffect(() => {
+    if (membership?.id) {
+      void fetchRewardState(membership.id);
+    }
+  }, [membership?.id, fetchRewardState]);
+
+  const membershipProgramId = membership?.program_id;
+
+  useEffect(() => {
+    if (!lastMessage || typeof lastMessage !== 'object') return;
+    if ((lastMessage as { type?: string }).type !== 'reward_status') return;
+    if (!membershipProgramId) return;
+    const payload = lastMessage as Record<string, any>;
+    const { program_id: programId, status } = payload;
+    if (!programId || programId !== membershipProgramId) return;
+
+    const handleRewardStatus = async () => {
+      await refreshMembership();
+      await fetchRedemptions();
+
+      if (typeof status === 'string' && status.toLowerCase() === 'redeemed') {
+        setShowConfetti(true);
+        setRedeemCode(null);
+        setTimeLeft(0);
+        setRedeemQrCode('');
+        if (pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+        setTimeout(() => navigate('/dashboard', { replace: true }), 600);
+      }
+    };
+
+    void handleRewardStatus();
+  }, [lastMessage, membershipProgramId, refreshMembership, fetchRedemptions, navigate]);
+
+  useEffect(() => {
+    if (!lastMessage || typeof lastMessage !== 'object') return;
+    if ((lastMessage as { type?: string }).type !== 'membership_left') return;
+    const { program_id, membership_id } = lastMessage as Record<string, any>;
+    if (
+      membership &&
+      ((membership_id && membership_id === membership.id) ||
+        (program_id && program_id === membership.program_id))
+    ) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [lastMessage, membership, navigate]);
 
   useEffect(() => {
     if (!id) return;

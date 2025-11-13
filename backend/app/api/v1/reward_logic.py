@@ -37,6 +37,7 @@ from ...services.reward_service import (
     issue_stamp as issue_stamp_service,
     redeem_reward as redeem_reward_service,
 )
+from ...core.timezone import to_local, now_local, format_local, now_local_iso
 from ..v1.qr import _claim_nonce_or_raise, check_geofence, redis_client
 from ..v1.websocket import get_websocket_manager
 
@@ -161,7 +162,7 @@ def issue_stamp(
         "stamp": {
             "id": str(stamp.id),
             "txId": stamp.tx_id,
-            "issuedAt": stamp.issued_at.isoformat(),
+            "issuedAt": format_local(stamp.issued_at) or now_local_iso(),
             "cycle": stamp.cycle,
         },
         "reward": RewardSchema.model_validate(reward) if reward else None,
@@ -258,7 +259,7 @@ def redeem_reward(
                 "reward_id": str(updated.id),
                 "program_id": str(updated.program_id),
                 "status": updated.status,
-                "timestamp": (updated.redeemed_at or datetime.utcnow()).isoformat(),
+                "timestamp": format_local(updated.redeemed_at) or now_local_iso(),
             },
         )
         ws_manager.broadcast_stamp_update_sync(
@@ -273,7 +274,7 @@ def redeem_reward(
                     "reward_id": str(updated.id),
                     "status": updated.status,
                     "program_id": str(updated.program_id),
-                    "timestamp": (updated.redeemed_at or datetime.utcnow()).isoformat(),
+                    "timestamp": format_local(updated.redeemed_at) or now_local_iso(),
                 },
             )
             ws_manager.broadcast_merchant_customer_update_sync(
@@ -283,7 +284,7 @@ def redeem_reward(
                     "program_id": str(updated.program_id),
                     "program_name": program.name,
                     "new_balance": current_balance,
-                    "timestamp": (updated.redeemed_at or datetime.utcnow()).isoformat(),
+                    "timestamp": format_local(updated.redeemed_at) or now_local_iso(),
                 },
             )
     except Exception as exc:

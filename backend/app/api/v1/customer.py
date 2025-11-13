@@ -26,6 +26,7 @@ from ...models.merchant import Merchant
 from ...services.membership import get_membership_by_customer_and_program
 from ...services.reward_service import issue_stamp
 from ...api.v1.websocket import get_websocket_manager
+from ...core.timezone import to_local, format_local, now_local, now_local_iso
 
 router = APIRouter()
 
@@ -111,17 +112,13 @@ def get_my_rewards(
         if not status:
             continue
 
-        created_at = reward.reached_at or membership.joined_at or datetime.utcnow()
-        if created_at.tzinfo is None or created_at.tzinfo.utcoffset(created_at) is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
-
-        expires_at = reward.redeem_expires_at
-        if expires_at and (expires_at.tzinfo is None or expires_at.tzinfo.utcoffset(expires_at) is None):
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-
-        used_at = reward.redeemed_at
-        if used_at and (used_at.tzinfo is None or used_at.tzinfo.utcoffset(used_at) is None):
-            used_at = used_at.replace(tzinfo=timezone.utc)
+        created_at_iso = (
+            format_local(reward.reached_at)
+            or format_local(membership.joined_at)
+            or now_local_iso()
+        )
+        expires_at_iso = format_local(reward.redeem_expires_at)
+        used_at_iso = format_local(reward.redeemed_at)
 
         stamps_required = getattr(program, "stamps_required", 0) or 0
         reward_description = getattr(program, "reward_description", None) or program.name or "Reward"
@@ -133,9 +130,9 @@ def get_my_rewards(
                 code=reward.voucher_code or "N/A",
                 status=status,
                 amount=str(stamps_required),
-                created_at=created_at.isoformat(),
-                expires_at=expires_at.isoformat() if expires_at else None,
-                used_at=used_at.isoformat() if used_at else None,
+                created_at=created_at_iso,
+                expires_at=expires_at_iso,
+                used_at=used_at_iso,
                 program_name=getattr(program, "name", None) or "Programme",
                 merchant_name=merchant_name or "Merchant",
                 reward_description=reward_description,
@@ -234,7 +231,7 @@ def leave_program(
     db.commit()
 
     ws_manager = get_websocket_manager()
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = now_local_iso()
     try:
         ws_manager.broadcast_membership_left_sync(
             str(user.id),
