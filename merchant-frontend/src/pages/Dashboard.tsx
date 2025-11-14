@@ -1,10 +1,11 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Stack, SimpleGrid, Card, Text, Group, Button, Loader, Alert } from '@mantine/core';
+import { Container, Stack, SimpleGrid, Card, Text, Group, Button, Loader, Alert, Title, Paper, Progress, List, ThemeIcon, Badge, DatePicker } from '@mantine/dates';
 import { useAuth } from '../contexts/AuthContext';
 import StatsCard from '../components/StatsCard';
 import RevenueChart from '../components/RevenueChart';
+import { IconUsers, IconActivity, IconMessage, IconUserPlus, IconClock, IconGlobe, IconDeviceDesktop, IconDeviceMobile, IconDeviceTablet } from '@tabler/icons-react';
 
 type SummaryMetric = {
   label: string;
@@ -56,7 +57,22 @@ const Dashboard = () => {
   const [revenueData, setRevenueData] = useState<RevenueEstimation | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const barPalette = ['#009688', '#FFB300', '#FF6F61', '#3B1F1E', '#7C3AED', '#0EA5E9', '#F97316'];
+
+  // Mock data for Neura theme
+  const topCountries = [
+    { country: 'Bangladesh', users: 5 },
+    { country: 'India', users: 6 },
+    { country: 'Pakistan', users: 6 },
+    { country: 'Australia', users: 10 },
+  ];
+
+  const deviceBreakdown = [
+    { device: 'Desktop', percentage: 60, icon: IconDeviceDesktop },
+    { device: 'Mobile', percentage: 30, icon: IconDeviceMobile },
+    { device: 'Tablet', percentage: 10, icon: IconDeviceTablet },
+  ];
 
   useEffect(() => {
     const fetchSnapshot = async () => {
@@ -92,31 +108,34 @@ const Dashboard = () => {
 
         const derivedSummary: SummaryMetric[] = [
           {
-            label: 'Active programs',
-            value: activePrograms.toString(),
-            accent: 'primary',
-            helper:
-              activePrograms > 0
-                ? 'All systems humming'
-                : 'Your first program awaits',
-          },
-          {
-            label: 'Total customers',
+            label: 'All Users',
             value: totalCustomers.toString(),
-            accent: 'secondary',
-            helper: 'Growing community momentum',
+            accent: 'primary',
+            helper: 'Total registered customers',
           },
           {
-            label: 'Rewards redeemed',
+            label: 'Event Count',
+            value: todayScans.toString(),
+            accent: 'secondary',
+            helper: 'Scans today',
+          },
+          {
+            label: 'Conversations',
             value: rewardsRedeemed.toString(),
             accent: 'accent',
-            helper: 'Keep delighting your regulars',
+            helper: 'Rewards redeemed',
           },
           {
-            label: "Today's scans",
-            value: todayScans.toString(),
+            label: 'New Users',
+            value: Math.floor(totalCustomers * 0.1).toString(), // Mock new users
             accent: 'primary',
-            helper: 'Another round of smiles',
+            helper: 'New customers this month',
+          },
+          {
+            label: 'Users in Last 30 Minutes',
+            value: '63', // Mock
+            accent: 'secondary',
+            helper: 'Active users recently',
           },
         ];
 
@@ -229,14 +248,22 @@ const Dashboard = () => {
   return (
     <Container fluid>
       <Stack gap="lg">
-        <Group justify="space-between">
+        <Group justify="space-between" align="center">
           <div>
-            <Text size="xl" fw={700}>Dashboard</Text>
+            <Title order={2}>Analytics Dashboard</Title>
             <Text size="sm" c="dimmed">Monitor your loyalty programs and customer engagement</Text>
           </div>
-          <Button onClick={() => navigate('/programs')} size="md">
-            Create Program
-          </Button>
+          <Group>
+            <DatePicker
+              value={selectedDate}
+              onChange={setSelectedDate}
+              placeholder="Pick a date"
+              size="sm"
+            />
+            <Button onClick={() => navigate('/programs')} size="md">
+              Create Program
+            </Button>
+          </Group>
         </Group>
 
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
@@ -282,6 +309,93 @@ const Dashboard = () => {
           </Alert>
         )}
       </SimpleGrid>
+
+      <Title order={3} mt="xl">Reports Snapshot</Title>
+      <SimpleGrid cols={{ base: 1, md: 2, lg: 4 }} spacing="lg">
+        <Card withBorder padding="lg" radius="md">
+          <Group justify="space-between">
+            <div>
+              <Text size="sm" c="dimmed">Sessions</Text>
+              <Text size="xl" fw={700}>6,132</Text>
+              <Text size="sm" c="green">150% vs Previous 30 Days</Text>
+            </div>
+            <IconActivity size={40} color="blue" />
+          </Group>
+        </Card>
+        <Card withBorder padding="lg" radius="md">
+          <Group justify="space-between">
+            <div>
+              <Text size="sm" c="dimmed">Page Views</Text>
+              <Text size="xl" fw={700}>11,236</Text>
+              <Text size="sm" c="green">202% vs Previous 30 Days</Text>
+            </div>
+            <IconGlobe size={40} color="green" />
+          </Group>
+        </Card>
+        <Card withBorder padding="lg" radius="md">
+          <Group justify="space-between">
+            <div>
+              <Text size="sm" c="dimmed">Average</Text>
+              <Text size="xl" fw={700}>46</Text>
+              <Text size="sm" c="green">22% vs Previous 30 Days</Text>
+            </div>
+            <IconClock size={40} color="orange" />
+          </Group>
+        </Card>
+        <Card withBorder padding="lg" radius="md">
+          <Group justify="space-between">
+            <div>
+              <Text size="sm" c="dimmed">Bounce Rate</Text>
+              <Text size="xl" fw={700}>6,132</Text>
+              <Text size="sm" c="red">30% vs Previous 30 Days</Text>
+            </div>
+            <IconUsers size={40} color="red" />
+          </Group>
+        </Card>
+      </SimpleGrid>
+
+      <Title order={3} mt="xl">Demographic properties of your customer</Title>
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
+        <Card withBorder padding="lg" radius="md">
+          <Text size="lg" fw={600} mb="md">Top Countries</Text>
+          <List spacing="sm">
+            {topCountries.map((item) => (
+              <List.Item
+                key={item.country}
+                icon={<ThemeIcon color="blue" size={24} radius="xl"><IconGlobe size={16} /></ThemeIcon>}
+              >
+                <Group justify="space-between">
+                  <Text>{item.country}</Text>
+                  <Badge color="blue">{item.users}</Badge>
+                </Group>
+              </List.Item>
+            ))}
+          </List>
+        </Card>
+        <Card withBorder padding="lg" radius="md">
+          <Text size="lg" fw={600} mb="md">Device Breakdown</Text>
+          <Stack spacing="md">
+            {deviceBreakdown.map((item) => (
+              <div key={item.device}>
+                <Group justify="space-between" mb="xs">
+                  <Group>
+                    <item.icon size={20} />
+                    <Text size="sm">{item.device}</Text>
+                  </Group>
+                  <Text size="sm">{item.percentage}%</Text>
+                </Group>
+                <Progress value={item.percentage} color="blue" size="sm" />
+              </div>
+            ))}
+          </Stack>
+        </Card>
+      </SimpleGrid>
+
+      <Title order={3} mt="xl">New vs Returning Visitors</Title>
+      <Card withBorder padding="lg" radius="md">
+        <Text size="sm" c="dimmed">Placeholder for visitor chart</Text>
+        {/* Add chart here if available */}
+      </Card>
 
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
         {revenueData ? (
