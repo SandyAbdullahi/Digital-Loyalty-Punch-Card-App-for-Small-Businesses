@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import {
-  Button,
   Input,
   Label,
   Select,
@@ -11,6 +10,7 @@ import {
   SelectValue,
   Textarea,
 } from '@rudi/ui'
+import { Button as MantineButton } from '@mantine/core'
 import { Container, Stack, Group, Text, Loader, Alert, SimpleGrid } from '@mantine/core'
 import { AlertTriangle, BadgeCheck, Calendar, Clock, PenSquare, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -259,9 +259,9 @@ const Programs = () => {
               placeholder="Search programs"
               style={{ width: 250 }}
             />
-            <Button size="md" variant="filled" leftSection={<Plus size={16} />} onClick={openCreateModal}>
+            <MantineButton size="md" variant="filled" leftSection={<Plus size={16} />} onClick={openCreateModal}>
               Create Program
-            </Button>
+            </MantineButton>
           </Group>
         </Group>
 

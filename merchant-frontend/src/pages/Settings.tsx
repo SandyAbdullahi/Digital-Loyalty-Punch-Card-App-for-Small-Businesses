@@ -1,6 +1,7 @@
 import { FormEvent, useState, useEffect } from 'react'
 import axios from 'axios'
 import { Button, TextInput, Textarea, Text, Container, Stack, Card, Loader, Alert } from '@mantine/core'
+import { Input, Label } from '@rudi/ui'
 import { useAuth } from '../contexts/AuthContext'
 
 type Merchant = {
