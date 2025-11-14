@@ -71,7 +71,11 @@ type CustomerDetail = CustomerRecord & {
   redemptionHistory: RedemptionEvent[]
   recentActivity: ActivityEvent[]
   rewardSummary: RewardSummary
-  insights?: CustomerInsights
+  insights: CustomerInsights
+  lifetime_total_visits: number
+  lifetime_total_revenue: number
+  lifetime_rewards_redeemed: number
+  lifetime_avg_basket_size: number
 }
 
 const Customers = () => {
@@ -394,29 +398,40 @@ const Customers = () => {
         }
 
       const insightsSource = payload.insights ?? payload.customer_insights ?? null
-      const insights: CustomerInsights | undefined = insightsSource
-        ? {
-            totalPrograms: Number(insightsSource.total_programs ?? insightsSource.totalPrograms ?? programs.length ?? 0),
-            lifetimeVisits: Number(insightsSource.lifetime_visits ?? insightsSource.lifetimeVisits ?? 0),
-            visitsLast30Days: Number(
-              insightsSource.visits_last_30_days ?? insightsSource.visitsLast30Days ?? 0
-            ),
-            rewardsRedeemed: Number(
-              insightsSource.rewards_redeemed ?? insightsSource.rewardsRedeemed ?? rewardSummary.redeemed ?? 0
-            ),
-            rewardsPending: Number(
-              insightsSource.rewards_pending ?? insightsSource.rewardsPending ?? rewardSummary.redeemable ?? 0
-            ),
-            rewardsExpired: Number(
-              insightsSource.rewards_expired ?? insightsSource.rewardsExpired ?? rewardSummary.expired ?? 0
-            ),
-            averageStampsPerProgram: Number(
-              insightsSource.average_stamps_per_program ??
-                insightsSource.averageStampsPerProgram ??
-                (programs.length ? (programs.reduce((sum, p) => sum + p.progress, 0) / programs.length).toFixed(2) : 0)
-            ),
-          }
-        : undefined
+      const programCount = programs.length
+      const totalProgramStamps = programs.reduce((sum, p) => sum + (p.progress ?? 0), 0)
+      const computedAverage =
+        programCount > 0 ? Number((totalProgramStamps / programCount).toFixed(2)) : 0
+      const backendAverageRaw =
+        insightsSource?.average_stamps_per_program ??
+        insightsSource?.averageStampsPerProgram ??
+        null
+      const backendAverage =
+        backendAverageRaw !== null && backendAverageRaw !== undefined
+          ? Number(backendAverageRaw)
+          : null
+      const averageStampsPerProgram =
+        backendAverage !== null && !Number.isNaN(backendAverage) ? backendAverage : computedAverage
+
+      const insights: CustomerInsights = {
+        totalPrograms: Number(
+          insightsSource?.total_programs ?? insightsSource?.totalPrograms ?? programCount ?? 0
+        ),
+        lifetimeVisits: Number(insightsSource?.lifetime_visits ?? insightsSource?.lifetimeVisits ?? 0),
+        visitsLast30Days: Number(
+          insightsSource?.visits_last_30_days ?? insightsSource?.visitsLast30Days ?? 0
+        ),
+        rewardsRedeemed: Number(
+          insightsSource?.rewards_redeemed ?? insightsSource?.rewardsRedeemed ?? rewardSummary.redeemed ?? 0
+        ),
+        rewardsPending: Number(
+          insightsSource?.rewards_pending ?? insightsSource?.rewardsPending ?? rewardSummary.redeemable ?? 0
+        ),
+        rewardsExpired: Number(
+          insightsSource?.rewards_expired ?? insightsSource?.rewardsExpired ?? rewardSummary.expired ?? 0
+        ),
+        averageStampsPerProgram,
+      }
 
       const normalized: CustomerDetail = {
         id: payload.id ?? customerId,
@@ -434,6 +449,10 @@ const Customers = () => {
         recentActivity,
         rewardSummary,
         insights,
+        lifetime_total_visits: Number(payload.lifetime_total_visits ?? 0),
+        lifetime_total_revenue: Number(payload.lifetime_total_revenue ?? 0),
+        lifetime_rewards_redeemed: Number(payload.lifetime_rewards_redeemed ?? 0),
+        lifetime_avg_basket_size: Number(payload.lifetime_avg_basket_size ?? 0),
       }
 
       detailCacheRef.current[customerId] = normalized
@@ -499,6 +518,33 @@ const Customers = () => {
               redeemable: 0,
               expired: 0,
             },
+            insights: (() => {
+              const existing = detailCacheRef.current[updatedSelected.id]?.insights
+              if (existing) {
+                return existing
+              }
+              const programCount = updatedSelected.programs.length
+              const average =
+                programCount > 0
+                  ? Number(
+                      (
+                        updatedSelected.programs.reduce(
+                          (sum, p) => sum + (p.progress ?? 0),
+                          0
+                        ) / programCount
+                      ).toFixed(2)
+                    )
+                  : 0
+              return {
+                totalPrograms: programCount,
+                lifetimeVisits: 0,
+                visitsLast30Days: 0,
+                rewardsRedeemed: 0,
+                rewardsPending: 0,
+                rewardsExpired: 0,
+                averageStampsPerProgram: average,
+              }
+            })(),
           }
         }
         await loadCustomerDetail(currentCustomerId, true)
@@ -617,9 +663,36 @@ const Customers = () => {
               <p className="text-base font-semibold text-foreground">{detailSource?.name}</p>
               <p className="text-sm text-muted-foreground">{detailSource?.email}</p>
             </div>
-          </div>
+           </div>
 
-          {detailLoading && (
+           {/* Lifetime Value Section */}
+           <div className="rounded-2xl border border-primary/15 bg-card p-4">
+             <h3 className="mb-3 text-sm font-semibold text-foreground">Lifetime Value</h3>
+             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+               <div className="flex flex-col items-center rounded-lg bg-muted/50 p-3 text-center">
+                 <span className="text-lg font-bold text-primary">{detailSource?.lifetime_total_visits ?? 0}</span>
+                 <span className="text-xs text-muted-foreground">Total Visits</span>
+               </div>
+               <div className="flex flex-col items-center rounded-lg bg-muted/50 p-3 text-center">
+                 <span className="text-lg font-bold text-primary">
+                   {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'KES' }).format(detailSource?.lifetime_total_revenue ?? 0)}
+                 </span>
+                 <span className="text-xs text-muted-foreground">Total Revenue</span>
+               </div>
+               <div className="flex flex-col items-center rounded-lg bg-muted/50 p-3 text-center">
+                 <span className="text-lg font-bold text-primary">{detailSource?.lifetime_rewards_redeemed ?? 0}</span>
+                 <span className="text-xs text-muted-foreground">Rewards Redeemed</span>
+               </div>
+               <div className="flex flex-col items-center rounded-lg bg-muted/50 p-3 text-center">
+                 <span className="text-lg font-bold text-primary">
+                   {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'KES' }).format(detailSource?.lifetime_avg_basket_size ?? 0)}
+                 </span>
+                 <span className="text-xs text-muted-foreground">Avg Basket Size</span>
+               </div>
+             </div>
+           </div>
+
+           {detailLoading && (
             <div className="flex items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
               <Loader size="sm" />
               <span>Loading detailed history...</span>

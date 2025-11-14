@@ -34,6 +34,7 @@ from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
 from ...schemas.reward import RedeemCodeConfirm, StampIssueRequest, RedeemRequest
 from ...schemas.merchant_settings import MerchantSettings, MerchantSettingsCreate, MerchantSettingsUpdate
+from ...schemas.customer import CustomerDetail
 from ...models.ledger_entry import LedgerEntry, LedgerEntryType
 from ...models.reward import Reward as RewardModel, RewardStatus
 from ...models.customer_program_membership import CustomerProgramMembership
@@ -294,7 +295,7 @@ def get_merchant_customers(
     return customers
 
 
-@router.get("/customers/{customer_id}")
+@router.get("/customers/{customer_id}", response_model=CustomerDetail)
 def get_customer_detail(
     customer_id: UUID,
     db: Session = Depends(get_db),
@@ -432,16 +433,20 @@ def get_customer_detail(
         .all()
     )
 
-    total_visits = (
-        db.query(func.count(LedgerEntry.id))
+    total_visits_query = (
+        db.query(
+            func.count(LedgerEntry.id).label("visit_count"),
+            func.coalesce(func.sum(LedgerEntry.amount), 0).label("stamp_sum"),
+        )
         .filter(
             LedgerEntry.merchant_id == merchant.id,
             LedgerEntry.customer_id == customer_id,
             LedgerEntry.entry_type == LedgerEntryType.EARN,
         )
-        .scalar()
-        or 0
     )
+    total_visits_result = total_visits_query.first()
+    total_visits = total_visits_result.visit_count if total_visits_result else 0
+    lifetime_stamps = total_visits_result.stamp_sum if total_visits_result else 0
 
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     recent_visits = (
@@ -479,6 +484,12 @@ def get_customer_detail(
             }
         )
 
+    # Lifetime metrics
+    lifetime_total_visits = total_visits
+    lifetime_total_revenue = 0.0  # TODO: Implement actual revenue tracking
+    lifetime_rewards_redeemed = redeemed_total
+    lifetime_avg_basket_size = lifetime_total_revenue / lifetime_total_visits if lifetime_total_visits > 0 else 0.0
+
     return {
         "id": str(customer.id),
         "name": customer.name or customer.email.split("@")[0],
@@ -502,10 +513,16 @@ def get_customer_detail(
             "rewards_redeemed": redeemed_total,
             "rewards_pending": redeemable_total,
             "rewards_expired": expired_total,
-            "average_stamps_per_program": round(total_stamps / len(programs), 2)
+            "average_stamps_per_program": round(
+                lifetime_stamps / len(programs), 2
+            )
             if programs
             else 0,
         },
+        "lifetime_total_visits": lifetime_total_visits,
+        "lifetime_total_revenue": lifetime_total_revenue,
+        "lifetime_rewards_redeemed": lifetime_rewards_redeemed,
+        "lifetime_avg_basket_size": lifetime_avg_basket_size,
     }
 
 
