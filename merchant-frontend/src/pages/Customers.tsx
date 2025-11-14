@@ -592,6 +592,31 @@ const Customers = () => {
             <div>Last visit: {detailSource?.lastVisit ?? 'Never'}</div>
           </div>
 
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/15 bg-card/70 p-3">
+            <div className="text-xs text-muted-foreground">
+              Manage this customer's journey quickly:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                className="rounded-2xl bg-red-700 text-white px-4 py-2 text-sm font-semibold hover:bg-red-800"
+                onClick={() => setConfirmDelete(true)}
+              >
+                Delete Customer
+              </Button>
+              <Button
+                type="button"
+                className="rounded-2xl bg-red-500 text-white px-4 py-2 text-sm font-semibold hover:bg-red-600"
+                onClick={() => handleManualAction('revoke')}
+              >
+                Revoke stamp
+              </Button>
+              <Button type="button" className="btn-primary" onClick={() => handleManualAction('add')}>
+                Add manual stamp
+              </Button>
+            </div>
+          </div>
+
           {customerDetail?.rewardSummary && (
             <div className="grid gap-3 rounded-2xl border border-primary/15 bg-surface/80 p-4 text-sm text-muted-foreground sm:grid-cols-3">
               <div>
@@ -703,29 +728,8 @@ const Customers = () => {
             )}
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground">
-              Nice work - another happy customer!
-            </div>
-             <div className="flex gap-3">
-               <Button
-                 type="button"
-                 className="rounded-2xl bg-red-700 text-white px-4 py-2 text-sm font-semibold hover:bg-red-800"
-                 onClick={() => setConfirmDelete(true)}
-               >
-                 Delete Customer
-               </Button>
-               <Button
-                 type="button"
-                 className="rounded-2xl bg-red-500 text-white px-4 py-2 text-sm font-semibold hover:bg-red-600"
-                 onClick={() => handleManualAction('revoke')}
-               >
-                 Revoke stamp
-               </Button>
-               <Button type="button" className="btn-primary" onClick={() => handleManualAction('add')}>
-                 Add manual stamp
-               </Button>
-             </div>
+          <div className="text-xs text-muted-foreground text-center">
+            Nice work - another happy customer!
           </div>
         </div>
        </Modal>
