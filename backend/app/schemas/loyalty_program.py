@@ -20,6 +20,7 @@ class LoyaltyProgramBase(BaseModel):
     reward_value_hint_kes: Optional[float] = None
     reward_expiry_days: Optional[int] = None
     allow_repeat_cycles: Optional[bool] = True
+    max_redemptions_per_day: Optional[int] = None
 
     @field_validator('earn_rule', 'redeem_rule', mode='before')
     @classmethod

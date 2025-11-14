@@ -11,7 +11,7 @@ import {
   SelectValue,
   Textarea,
 } from '@rudi/ui'
-import { BadgeCheck, Calendar, Clock, PenSquare, Trash2 } from 'lucide-react'
+import { AlertTriangle, BadgeCheck, Calendar, Clock, PenSquare, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface Program {
@@ -36,6 +36,7 @@ type ProgramFormState = {
   stampValue: string
   expiry: string
   maxPerDay: string
+  maxRedemptionsPerDay: string
   notes: string
   stampIcon: string
 }
@@ -48,6 +49,7 @@ const defaultFormState: ProgramFormState = {
   stampValue: '1',
   expiry: '',
   maxPerDay: '',
+  maxRedemptionsPerDay: '',
   notes: '',
   stampIcon: '',
 }
@@ -65,6 +67,8 @@ const Programs = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formStep, setFormStep] = useState(0)
   const [formData, setFormData] = useState<ProgramFormState>(defaultFormState)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [warnings, setWarnings] = useState<Record<string, string>>({})
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -72,13 +76,15 @@ const Programs = () => {
   }, [])
 
   useEffect(() => {
-    if (!isModalOpen) {
-      setTimeout(() => {
-        setFormStep(0)
-        setEditingProgram(null)
-        setFormData(defaultFormState)
-      }, 200)
-    }
+      if (!isModalOpen) {
+    setTimeout(() => {
+      setFormStep(0)
+      setEditingProgram(null)
+      setFormData(defaultFormState)
+      setErrors({})
+      setWarnings({})
+    }, 200)
+      }
   }, [isModalOpen])
 
   const fetchPrograms = async () => {
@@ -116,8 +122,8 @@ const Programs = () => {
       logic_type: program.logic_type ?? 'punch_card',
       rewardThreshold:
         String(
-          program.stamps_required ??
-            redeemRule.reward_threshold ??
+          redeemRule.reward_threshold ??
+            program.stamps_required ??
             earnRule.stamps_needed ??
             defaultFormState.rewardThreshold
         ),
@@ -127,6 +133,7 @@ const Programs = () => {
         earnRule.expiry ??
         '',
       maxPerDay: String(earnRule.max_per_day ?? ''),
+      maxRedemptionsPerDay: String(program.max_redemptions_per_day ?? ''),
       notes: program.terms ?? '',
       stampIcon: program.stamp_icon ?? '',
     })
@@ -140,6 +147,8 @@ const Programs = () => {
       setFormStep(0)
       setEditingProgram(null)
       setFormData(defaultFormState)
+      setErrors({})
+      setWarnings({})
     }, 200)
   }
 
@@ -175,11 +184,38 @@ const Programs = () => {
       redeem_rule: redeemRule,
       terms: formData.notes,
       stamp_icon: formData.stampIcon,
+      max_redemptions_per_day: formData.maxRedemptionsPerDay ? Number(formData.maxRedemptionsPerDay) : undefined,
     }
+  }
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+    const newWarnings: Record<string, string> = {}
+
+    const threshold = Number(formData.rewardThreshold)
+    const stampValue = Number(formData.stampValue)
+    const maxPerDay = formData.maxPerDay ? Number(formData.maxPerDay) : null
+    const maxRedemptions = formData.maxRedemptionsPerDay ? Number(formData.maxRedemptionsPerDay) : null
+    const expiry = formData.expiry ? new Date(formData.expiry) : null
+
+    if (!formData.name.trim()) newErrors.name = 'Program name is required'
+    if (isNaN(threshold) || threshold < 1) newErrors.rewardThreshold = 'Must be an integer >= 1'
+    if (isNaN(stampValue) || stampValue < 1) newErrors.stampValue = 'Must be an integer >= 1'
+    if (maxPerDay !== null && (isNaN(maxPerDay) || maxPerDay < 1)) newErrors.maxPerDay = 'Must be an integer >= 1'
+    if (maxRedemptions !== null && (isNaN(maxRedemptions) || maxRedemptions < 1)) newErrors.maxRedemptionsPerDay = 'Must be an integer >= 1'
+    if (expiry && expiry <= new Date()) newErrors.expiry = 'Expiry must be in the future'
+
+    if (threshold <= stampValue * 2) newWarnings.rewardThreshold = 'This threshold is very low compared to your per-visit limit and may make it easy for customers to farm rewards quickly.'
+    if (!maxRedemptions || maxRedemptions > 5) newWarnings.maxRedemptionsPerDay = 'Without a daily limit on redemptions, heavy users might redeem rewards many times in one day.'
+
+    setErrors(newErrors)
+    setWarnings(newWarnings)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!validateForm()) return
     const payload = buildPayload()
 
     try {
@@ -359,13 +395,14 @@ const Programs = () => {
                     <Label htmlFor="name" className="text-sm font-semibold text-foreground">
                       Program name
                     </Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                      required
-                      className="h-11 rounded-xl border-border bg-background"
-                    />
+                     <Input
+                       id="name"
+                       value={formData.name}
+                       onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                       required
+                       className="h-11 rounded-xl border-border bg-background"
+                     />
+                     {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="description" className="text-sm font-semibold text-foreground">
@@ -429,72 +466,109 @@ const Programs = () => {
               {formStep === 1 && (
                 <div className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="rewardThreshold">Reward threshold</Label>
-                      <Input
-                        id="rewardThreshold"
-                        type="number"
-                        min={1}
-                        value={formData.rewardThreshold}
-                        onChange={(event) =>
-                          setFormData({ ...formData, rewardThreshold: event.target.value })
-                        }
-                        required
-                        className="h-11 rounded-xl border-border bg-background"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="stampValue">Stamp value</Label>
-                      <Input
-                        id="stampValue"
-                        type="number"
-                        min={1}
-                        value={formData.stampValue}
-                        onChange={(event) =>
-                          setFormData({ ...formData, stampValue: event.target.value })
-                        }
-                        required
-                        className="h-11 rounded-xl border-border bg-background"
-                      />
-                    </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="rewardThreshold">Stamps needed for a reward</Label>
+                       <Input
+                         id="rewardThreshold"
+                         type="number"
+                         min={1}
+                         value={formData.rewardThreshold}
+                         onChange={(event) =>
+                           setFormData({ ...formData, rewardThreshold: event.target.value })
+                         }
+                         required
+                         className="h-11 rounded-xl border-border bg-background"
+                       />
+                       {errors.rewardThreshold && <p className="text-sm text-red-500">{errors.rewardThreshold}</p>}
+                       {warnings.rewardThreshold && (
+                         <div className="flex items-start gap-2 rounded-md bg-yellow-50 p-2 text-sm text-yellow-800">
+                           <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                           <span>{warnings.rewardThreshold}</span>
+                         </div>
+                       )}
+                     </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="stampValue">Maximum stamps per visit</Label>
+                       <Input
+                         id="stampValue"
+                         type="number"
+                         min={1}
+                         value={formData.stampValue}
+                         onChange={(event) =>
+                           setFormData({ ...formData, stampValue: event.target.value })
+                         }
+                         required
+                         className="h-11 rounded-xl border-border bg-background"
+                       />
+                       {errors.stampValue && <p className="text-sm text-red-500">{errors.stampValue}</p>}
+                     </div>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="expiry">Expiry date</Label>
-                      <Input
-                        id="expiry"
-                        type="date"
-                        value={formData.expiry}
-                        onChange={(event) => setFormData({ ...formData, expiry: event.target.value })}
-                        className="h-11 rounded-xl border-border bg-background"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="maxPerDay">Max scans per day</Label>
-                      <Input
-                        id="maxPerDay"
-                        type="number"
-                        min={0}
-                        value={formData.maxPerDay}
-                        onChange={(event) =>
-                          setFormData({ ...formData, maxPerDay: event.target.value })
-                        }
-                        className="h-11 rounded-xl border-border bg-background"
-                      />
-                    </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="expiry">Expiry date</Label>
+                       <Input
+                         id="expiry"
+                         type="date"
+                         value={formData.expiry}
+                         onChange={(event) => setFormData({ ...formData, expiry: event.target.value })}
+                         className="h-11 rounded-xl border-border bg-background"
+                       />
+                       {errors.expiry && <p className="text-sm text-red-500">{errors.expiry}</p>}
+                     </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="maxPerDay">Max scans per day</Label>
+                       <Input
+                         id="maxPerDay"
+                         type="number"
+                         min={0}
+                         value={formData.maxPerDay}
+                         onChange={(event) =>
+                           setFormData({ ...formData, maxPerDay: event.target.value })
+                         }
+                         className="h-11 rounded-xl border-border bg-background"
+                       />
+                       {errors.maxPerDay && <p className="text-sm text-red-500">{errors.maxPerDay}</p>}
+                     </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="maxRedemptionsPerDay">Max redemptions per day per customer</Label>
+                       <Input
+                         id="maxRedemptionsPerDay"
+                         type="number"
+                         min={0}
+                         value={formData.maxRedemptionsPerDay}
+                         onChange={(event) =>
+                           setFormData({ ...formData, maxRedemptionsPerDay: event.target.value })
+                         }
+                         className="h-11 rounded-xl border-border bg-background"
+                       />
+                       {errors.maxRedemptionsPerDay && <p className="text-sm text-red-500">{errors.maxRedemptionsPerDay}</p>}
+                       {warnings.maxRedemptionsPerDay && (
+                         <div className="flex items-start gap-2 rounded-md bg-yellow-50 p-2 text-sm text-yellow-800">
+                           <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                           <span>{warnings.maxRedemptionsPerDay}</span>
+                         </div>
+                       )}
+                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes / Terms</Label>
-                    <Textarea
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(event) => setFormData({ ...formData, notes: event.target.value })}
-                      placeholder="Add any friendly reminders or terms for your guests."
-                       className="rounded-xl border-border bg-background"
-                    />
-                  </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="notes">Notes / Terms</Label>
+                     <Textarea
+                       id="notes"
+                       value={formData.notes}
+                       onChange={(event) => setFormData({ ...formData, notes: event.target.value })}
+                       placeholder="Add any friendly reminders or terms for your guests."
+                        className="rounded-xl border-border bg-background"
+                     />
+                   </div>
+
+                   <div className="rounded-lg bg-muted p-4">
+                     <h3 className="text-sm font-semibold text-foreground">Program rules & limits</h3>
+                     <p className="text-xs text-muted-foreground mt-1">
+                       Configure how customers earn and redeem stamps in your loyalty program.
+                     </p>
+                   </div>
                 </div>
               )}
 
