@@ -1,15 +1,7 @@
-import { Fragment } from 'react'
+﻿import { Fragment } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
-import {
-  BarChart3,
-  Gift,
-  LayoutDashboard,
-  QrCode,
-  Settings2,
-  Stamp,
-  Users,
-} from 'lucide-react'
+import { BarChart3, Gift, LayoutDashboard, QrCode, Settings2, Stamp, Users } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@rudi/ui'
 import { useWebSocket } from '../contexts/WebSocketContext'
 
@@ -46,17 +38,17 @@ const SidebarLink = ({
     onClick={onNavigate}
     className={({ isActive }) =>
       [
-        'group my-1 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
-        isActive
-          ? 'bg-primary text-white shadow-sm'
-          : 'text-white hover:text-white',
-      ].join(' ')
+        'sidebar-link group my-1 flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold transition-colors duration-150',
+        isActive ? 'sidebar-link-active' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
     }
   >
     <div className="relative">
-      <Icon className="h-5 w-5 group-hover:scale-105 transition-transform duration-150" />
+      <Icon className="h-5 w-5 text-inherit transition-transform duration-150 group-hover:scale-105" />
       {unreadCount && unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
           {unreadCount > 9 ? '9+' : unreadCount}
         </span>
       )}
@@ -71,41 +63,40 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const isDemo = location.pathname.startsWith('/demo')
 
   return (
-    <div className="flex h-full flex-col gap-6 bg-foreground px-5 py-6 text-white shadow-2xl lg:px-6">
-      <div className="flex flex-col items-center gap-2 bg-black/80 rounded-xl px-3 py-2">
-        <img
-          src="/logo-1.png"
-          alt="Rudi Logo"
-          className="h-10 w-10 rounded-xl object-cover"
-        />
-        <div className="text-center">
-          <p className="text-sm uppercase tracking-wide text-white/70">Rudi Merchant</p>
-          <p className="text-lg font-heading font-semibold text-white">Mission Control</p>
+    <div className="sidebar-panel flex h-full flex-col gap-6 rounded-r-3xl px-5 py-6 shadow-2xl lg:px-6">
+      <div
+        className="flex flex-col items-center gap-2 rounded-xl px-3 py-2 text-center"
+        style={{ backgroundColor: 'var(--sidebar-hover)' }}
+      >
+        <img src="/logo-1.png" alt="Rudi Logo" className="h-10 w-10 rounded-xl object-cover" />
+        <div className="text-center" style={{ color: 'var(--sidebar-foreground)' }}>
+          <p className="text-sm uppercase tracking-wide opacity-70">Rudi Merchant</p>
+          <p className="text-lg font-heading font-semibold">Mission Control</p>
         </div>
       </div>
-       <nav className="flex-1">
-         {getNavigation(isDemo).map((item, index) => (
-           <SidebarLink
-             key={`${item.name}-${index}`}
-             {...item}
-             onNavigate={onNavigate}
-             unreadCount={item.name === 'Rewards' ? unreadRedeemCount : undefined}
-           />
-         ))}
-         {isDemo && (
-           <div className="mt-4 pt-4 border-t border-white/20">
-             <a
-               href="/"
-               className="group my-1 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors text-white hover:bg-white/10 hover:text-white"
-             >
-               <span>← Back to Home</span>
-             </a>
-           </div>
-         )}
-       </nav>
-       <p className="text-xs text-white/60">
-         Nice work — another happy customer is just one scan away.
-       </p>
+      <nav className="flex-1">
+        {getNavigation(isDemo).map((item) => (
+          <SidebarLink
+            key={item.name}
+            {...item}
+            onNavigate={onNavigate}
+            unreadCount={item.name === 'Rewards' ? unreadRedeemCount : undefined}
+          />
+        ))}
+        {isDemo && (
+          <div className="mt-4 border-t border-[var(--sidebar-border)] pt-4">
+            <a
+              href="/"
+              className="sidebar-link inline-flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold transition-colors duration-150"
+            >
+              <span>Back to home</span>
+            </a>
+          </div>
+        )}
+      </nav>
+      <p className="text-xs" style={{ color: 'var(--sidebar-foreground)', opacity: 0.75 }}>
+        Nice work -- another happy customer is just one scan away.
+      </p>
     </div>
   )
 }
@@ -128,3 +119,4 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => (
 )
 
 export default Sidebar
+

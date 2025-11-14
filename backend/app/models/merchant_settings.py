@@ -35,6 +35,21 @@ class MerchantSettings(Base):
     monthly_subscription_kes: Mapped[float] = mapped_column(
         Numeric(12, 2), nullable=True
     )
+    theme_primary_color: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=text("'#00C896'"), default="#00C896"
+    )
+    theme_secondary_color: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=text("'#2196F3'"), default="#2196F3"
+    )
+    theme_accent_color: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=text("'#FF5252'"), default="#FF5252"
+    )
+    theme_background_color: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=text("'#F5F5F5'"), default="#F5F5F5"
+    )
+    theme_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=text("'light'"), default="light"
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )

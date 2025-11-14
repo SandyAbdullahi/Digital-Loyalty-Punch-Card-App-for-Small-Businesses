@@ -1,8 +1,16 @@
-import { FormEvent, useState, useEffect } from 'react'
+﻿import { FormEvent, useState, useEffect } from 'react'
 import axios from 'axios'
-import { Button, TextInput, Textarea, Text, Container, Stack, Card, Loader, Alert } from '@mantine/core'
+import { Button, Textarea, Text, Container, Stack, Card, SimpleGrid, Group } from '@mantine/core'
 import { Input, Label } from '@rudi/ui'
 import { useAuth } from '../contexts/AuthContext'
+import {
+  applyTheme,
+  extractThemeFromSettings,
+  DEFAULT_THEME,
+  PRESET_THEMES,
+  DEFAULT_PRESET_ID,
+  ThemeSettingsPayload,
+} from '../utils/theme'
 
 type Merchant = {
   id: string
@@ -22,6 +30,11 @@ type MerchantSettings = {
   default_period: string
   monthly_subscription_kes?: number
   updated_at: string
+  theme_primary_color?: string
+  theme_secondary_color?: string
+  theme_accent_color?: string
+  theme_background_color?: string
+  theme_mode?: 'light' | 'dark'
 }
 
 const Settings = () => {
@@ -44,10 +57,90 @@ const Settings = () => {
     baseline_visits_per_customer_per_period: '',
     avg_reward_cost_kes: '',
     monthly_subscription_kes: '',
+    theme_primary_color: DEFAULT_THEME.theme_primary_color,
+    theme_secondary_color: DEFAULT_THEME.theme_secondary_color,
+    theme_accent_color: DEFAULT_THEME.theme_accent_color,
+    theme_background_color: DEFAULT_THEME.theme_background_color,
+    theme_mode: DEFAULT_THEME.theme_mode,
   })
+  const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null)
   const [savingSettings, setSavingSettings] = useState(false)
 
+  const syncPresetSelection = (payload: ThemeSettingsPayload) => {
+    const normalize = (value?: string) => value?.toLowerCase() ?? ''
+    const match = PRESET_THEMES.find((preset) => {
+      const { values } = preset
+      return (
+        normalize(values.theme_primary_color) === normalize(payload.theme_primary_color) &&
+        normalize(values.theme_secondary_color) === normalize(payload.theme_secondary_color) &&
+        normalize(values.theme_accent_color) === normalize(payload.theme_accent_color) &&
+        normalize(values.theme_background_color) === normalize(payload.theme_background_color) &&
+        values.theme_mode === (payload.theme_mode ?? values.theme_mode)
+      )
+    })
+    setSelectedThemeId(match?.id ?? null)
+  }
+
+  const applyPresetValues = (values: ThemeSettingsPayload) => {
+    const normalized = extractThemeFromSettings(values)
+    setSettingsForm((prev) => ({
+      ...prev,
+      theme_primary_color: normalized.theme_primary_color,
+      theme_secondary_color: normalized.theme_secondary_color,
+      theme_accent_color: normalized.theme_accent_color,
+      theme_background_color: normalized.theme_background_color,
+      theme_mode: normalized.theme_mode,
+    }))
+    applyTheme(normalized)
+    localStorage.setItem('merchantTheme', JSON.stringify(normalized))
+    syncPresetSelection(normalized)
+  }
+
+  const handlePresetSelect = (presetId: string) => {
+    const preset = PRESET_THEMES.find((item) => item.id === presetId)
+    if (!preset) return
+    setSelectedThemeId(presetId)
+    applyPresetValues(preset.values)
+  }
+
+  const handleResetTheme = () => {
+    handlePresetSelect(DEFAULT_PRESET_ID)
+  }
+
+  const populateSettingsForm = (data: MerchantSettings) => {
+    setSettings(data)
+    setSettingsForm({
+      avg_spend_per_visit_kes: data.avg_spend_per_visit_kes !== null ? data.avg_spend_per_visit_kes.toString() : '',
+      baseline_visits_per_customer_per_period:
+        data.baseline_visits_per_customer_per_period !== null
+          ? data.baseline_visits_per_customer_per_period.toString()
+          : '',
+      avg_reward_cost_kes: data.avg_reward_cost_kes !== null ? data.avg_reward_cost_kes.toString() : '',
+      monthly_subscription_kes: data.monthly_subscription_kes !== null ? data.monthly_subscription_kes.toString() : '',
+      theme_primary_color: data.theme_primary_color ?? DEFAULT_THEME.theme_primary_color,
+      theme_secondary_color: data.theme_secondary_color ?? DEFAULT_THEME.theme_secondary_color,
+      theme_accent_color: data.theme_accent_color ?? DEFAULT_THEME.theme_accent_color,
+      theme_background_color: data.theme_background_color ?? DEFAULT_THEME.theme_background_color,
+      theme_mode: data.theme_mode ?? DEFAULT_THEME.theme_mode,
+    })
+    const themePayload = extractThemeFromSettings(data)
+    localStorage.setItem('merchantTheme', JSON.stringify(themePayload))
+    applyTheme(themePayload)
+    syncPresetSelection(themePayload)
+  }
+
   useEffect(() => {
+    const storedTheme = localStorage.getItem('merchantTheme')
+    if (storedTheme) {
+      try {
+        const payload = JSON.parse(storedTheme)
+        applyTheme(payload)
+        syncPresetSelection(payload)
+      } catch {
+        // ignore invalid theme data
+      }
+    }
+
     const fetchData = async () => {
       try {
         const merchantsResponse = await axios.get('/api/v1/merchants/')
@@ -68,23 +161,26 @@ const Settings = () => {
           try {
             const settingsResponse = await axios.get(`/api/v1/merchants/${merchantData.id}/settings`)
             if (settingsResponse.data) {
-              setSettings(settingsResponse.data)
-              setSettingsForm({
-                avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes !== null ? settingsResponse.data.avg_spend_per_visit_kes.toString() : '',
-                baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period !== null ? settingsResponse.data.baseline_visits_per_customer_per_period.toString() : '',
-                avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes !== null ? settingsResponse.data.avg_reward_cost_kes.toString() : '',
-                monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes !== null ? settingsResponse.data.monthly_subscription_kes.toString() : '',
-              })
+              populateSettingsForm(settingsResponse.data)
             }
           } catch (settingsError: any) {
             // If settings don't exist (404), set default values
             if (settingsError.response?.status === 404) {
-              setSettingsForm({
+              const defaults = {
                 avg_spend_per_visit_kes: '500',
                 baseline_visits_per_customer_per_period: '1',
                 avg_reward_cost_kes: '100',
                 monthly_subscription_kes: '',
-              })
+                theme_primary_color: DEFAULT_THEME.theme_primary_color,
+                theme_secondary_color: DEFAULT_THEME.theme_secondary_color,
+                theme_accent_color: DEFAULT_THEME.theme_accent_color,
+                theme_background_color: DEFAULT_THEME.theme_background_color,
+                theme_mode: DEFAULT_THEME.theme_mode,
+              }
+              setSettingsForm(defaults)
+              applyTheme(DEFAULT_THEME)
+              setSelectedThemeId(DEFAULT_PRESET_ID)
+              localStorage.setItem('merchantTheme', JSON.stringify(DEFAULT_THEME))
             }
           }
         }
@@ -98,23 +194,26 @@ const Settings = () => {
       try {
         const settingsResponse = await axios.get(`/api/v1/merchants/${contextMerchant.id}/settings`)
         if (settingsResponse.data) {
-          setSettings(settingsResponse.data)
-          setSettingsForm({
-            avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes !== null ? settingsResponse.data.avg_spend_per_visit_kes.toString() : '',
-            baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period !== null ? settingsResponse.data.baseline_visits_per_customer_per_period.toString() : '',
-            avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes !== null ? settingsResponse.data.avg_reward_cost_kes.toString() : '',
-            monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes !== null ? settingsResponse.data.monthly_subscription_kes.toString() : '',
-          })
+          populateSettingsForm(settingsResponse.data)
         }
       } catch (error: any) {
         // If settings don't exist (404), set default values
         if (error.response?.status === 404) {
-          setSettingsForm({
+          const defaults = {
             avg_spend_per_visit_kes: '500',
             baseline_visits_per_customer_per_period: '1',
             avg_reward_cost_kes: '100',
             monthly_subscription_kes: '',
-          })
+            theme_primary_color: DEFAULT_THEME.theme_primary_color,
+            theme_secondary_color: DEFAULT_THEME.theme_secondary_color,
+            theme_accent_color: DEFAULT_THEME.theme_accent_color,
+            theme_background_color: DEFAULT_THEME.theme_background_color,
+            theme_mode: DEFAULT_THEME.theme_mode,
+          }
+          setSettingsForm(defaults)
+          applyTheme(DEFAULT_THEME)
+          setSelectedThemeId(DEFAULT_PRESET_ID)
+          localStorage.setItem('merchantTheme', JSON.stringify(DEFAULT_THEME))
         } else {
           console.error('Failed to fetch settings', error)
         }
@@ -162,19 +261,28 @@ const Settings = () => {
       if (typeof settingsForm.monthly_subscription_kes === 'string' && settingsForm.monthly_subscription_kes.trim()) {
         dataToSend.monthly_subscription_kes = parseFloat(settingsForm.monthly_subscription_kes)
       }
+      if (settingsForm.theme_primary_color) {
+        dataToSend.theme_primary_color = settingsForm.theme_primary_color
+      }
+      if (settingsForm.theme_secondary_color) {
+        dataToSend.theme_secondary_color = settingsForm.theme_secondary_color
+      }
+      if (settingsForm.theme_accent_color) {
+        dataToSend.theme_accent_color = settingsForm.theme_accent_color
+      }
+      if (settingsForm.theme_background_color) {
+        dataToSend.theme_background_color = settingsForm.theme_background_color
+      }
+      if (settingsForm.theme_mode) {
+        dataToSend.theme_mode = settingsForm.theme_mode
+      }
       await axios.put(`/api/v1/merchants/${merchant.id}/settings`, dataToSend)
       // Refetch settings to confirm
       const settingsResponse = await axios.get(`/api/v1/merchants/${merchant.id}/settings`)
       if (settingsResponse.data) {
-        setSettings(settingsResponse.data)
-        setSettingsForm({
-          avg_spend_per_visit_kes: settingsResponse.data.avg_spend_per_visit_kes || 0,
-          baseline_visits_per_customer_per_period: settingsResponse.data.baseline_visits_per_customer_per_period || 0,
-          avg_reward_cost_kes: settingsResponse.data.avg_reward_cost_kes || 0,
-          monthly_subscription_kes: settingsResponse.data.monthly_subscription_kes || 0,
-        })
+        populateSettingsForm(settingsResponse.data)
       }
-      setToast({ type: 'success', message: 'Analytics settings saved successfully.' })
+      setToast({ type: 'success', message: 'Analytics and theme settings saved successfully.' })
     } catch (error) {
       console.error('Failed to save settings', error)
       setToast({ type: 'error', message: 'Failed to save analytics settings.' })
@@ -237,273 +345,317 @@ const Settings = () => {
     }
   }
 
+  const activePreset = selectedThemeId ? PRESET_THEMES.find((preset) => preset.id === selectedThemeId) : null
+
   return (
-    <div className="space-y-8">
-      <div className="space-y-1">
-        <h1 className="font-heading text-3xl font-semibold text-foreground">Merchant Profile</h1>
-        <p className="text-sm text-muted-foreground">
-          Set up your merchant profile to start creating loyalty programs.
-        </p>
-      </div>
+    <Container size="lg" className="py-8">
+      <Stack gap="xl">
+        <div className="space-y-1 text-center">
+          <h1 className="font-heading text-3xl font-semibold text-foreground">Merchant Mission Control</h1>
+          <p className="text-sm text-muted-foreground">
+            Keep your profile, analytics assumptions, and dashboard theme in sync for accurate insights.
+          </p>
+        </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-3xl bg-card p-8 shadow-lg"
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Business name</Label>
-            <Input
-              value={formState.businessName}
-              onChange={(event) => handleChange('businessName', event.target.value)}
-              className="h-11 rounded-2xl border-border bg-background"
-              placeholder="Rudi Coffee Collective"
-              required
-            />
+        <Card radius="xl" padding="xl" withBorder shadow="md">
+          <Stack gap="sm" mb="md">
+            <Text fw={600} size="lg">Brand Profile</Text>
+            <Text size="sm" c="dimmed">Customers see this information across the merchant and customer apps.</Text>
+          </Stack>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Business name</Label>
+                <Input
+                  value={formState.businessName}
+                  onChange={(event) => handleChange('businessName', event.target.value)}
+                  className="h-11 rounded-2xl border-border bg-background"
+                  placeholder="Rudi Coffee Collective"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Email</Label>
+                <Input
+                  type="email"
+                  value={formState.email}
+                  onChange={(event) => handleChange('email', event.target.value)}
+                  className="h-11 rounded-2xl border-border bg-background"
+                  placeholder="hello@rudicoffee.com"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Phone</Label>
+                <Input
+                  value={formState.phone}
+                  onChange={(event) => handleChange('phone', event.target.value)}
+                  className="h-11 rounded-2xl border-border bg-background"
+                  placeholder="+254 700 000 000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Logo</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setLogoFile(event.target.files?.[0] || null)}
+                  className="h-11 rounded-2xl border-border bg-background"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-foreground">Address</Label>
+              <Textarea
+                value={formState.address}
+                onChange={(event) => handleChange('address', event.target.value)}
+                className="rounded-2xl border-border bg-background"
+                placeholder="123 Brew Street, Nairobi"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-foreground">About your experience</Label>
+              <Textarea
+                value={formState.about}
+                onChange={(event) => handleChange('about', event.target.value)}
+                className="rounded-2xl border-border bg-background"
+                placeholder="Share your vibe with customers joining your loyalty journey."
+                rows={4}
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="space-x-4 text-sm">
+                <button type="button" className="text-primary hover:underline">Change password</button>
+                <button type="button" className="text-accent hover:underline">Deactivate account</button>
+              </div>
+              <Button type="submit" className="btn-primary px-6" disabled={saving}>
+                {saving ? 'Saving...' : 'Save profile'}
+              </Button>
+            </div>
+          </form>
+        </Card>
+
+        <Card radius="xl" padding="xl" withBorder shadow="md">
+          <Stack gap="sm" mb="md">
+            <Text fw={600} size="lg">Analytics Assumptions</Text>
+            <Text size="sm" c="dimmed">
+              These values feed the revenue estimation and repeat-visit metrics on your analytics dashboard.
+            </Text>
+          </Stack>
+          {settings && (
+            <div className="rounded-2xl border border-border bg-muted/20 p-4 mb-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left">
+                      <th className="py-2 font-semibold text-foreground">Assumption</th>
+                      <th className="py-2 font-semibold text-foreground">Current Value</th>
+                      <th className="py-2 font-semibold text-foreground">Unit</th>
+                      <th className="py-2 font-semibold text-foreground">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    <tr>
+                      <td className="py-3 text-muted-foreground">Avg Spend per Visit</td>
+                      <td className="py-3 font-medium">{settings.avg_spend_per_visit_kes?.toFixed(2) ?? 'Not set'}</td>
+                      <td className="py-3 text-muted-foreground">KES</td>
+                      <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 text-muted-foreground">Baseline Visits / Customer</td>
+                      <td className="py-3 font-medium">{settings.baseline_visits_per_customer_per_period?.toFixed(1) ?? 'Not set'}</td>
+                      <td className="py-3 text-muted-foreground">Visits</td>
+                      <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 text-muted-foreground">Avg Reward Cost</td>
+                      <td className="py-3 font-medium">{settings.avg_reward_cost_kes?.toFixed(2) ?? 'Not set'}</td>
+                      <td className="py-3 text-muted-foreground">KES</td>
+                      <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 text-muted-foreground">Monthly Subscription</td>
+                      <td className="py-3 font-medium">{settings.monthly_subscription_kes?.toFixed(2) ?? 'Not set'}</td>
+                      <td className="py-3 text-muted-foreground">KES</td>
+                      <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          <form className="flex flex-col gap-6">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-semibold text-foreground">Avg Spend per Visit (KES)</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    How much a typical customer spends per visit.
+                  </p>
+                </div>
+                <Input
+                  type="number"
+                  value={settingsForm.avg_spend_per_visit_kes}
+                  onChange={(event) => handleSettingsChange('avg_spend_per_visit_kes', event.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  className="h-11 rounded-2xl border-border bg-background"
+                  placeholder="e.g., 500"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-semibold text-foreground">Baseline Visits / Customer</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Visits you'd expect without a loyalty program.
+                  </p>
+                </div>
+                <Input
+                  type="number"
+                  value={settingsForm.baseline_visits_per_customer_per_period}
+                  onChange={(event) => handleSettingsChange('baseline_visits_per_customer_per_period', event.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  className="h-11 rounded-2xl border-border bg-background"
+                  placeholder="e.g., 2.5"
+                  min="0"
+                  step="0.1"
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-semibold text-foreground">Avg Reward Cost (KES)</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Average cost to fulfil a reward.</p>
+                </div>
+                <Input
+                  type="number"
+                  value={settingsForm.avg_reward_cost_kes}
+                  onChange={(event) => handleSettingsChange('avg_reward_cost_kes', event.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  className="h-11 rounded-2xl border-border bg-background"
+                  placeholder="e.g., 120"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-semibold text-foreground">Monthly Subscription (KES)</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Optional platform fee if applicable.</p>
+                </div>
+                <Input
+                  type="number"
+                  value={settingsForm.monthly_subscription_kes}
+                  onChange={(event) => handleSettingsChange('monthly_subscription_kes', event.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  className="h-11 rounded-2xl border-border bg-background"
+                  placeholder="e.g., 5000"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <Text size="sm" c="dimmed">
+                These inputs fuel revenue uplift, reward cost, and ROI calculations.
+              </Text>
+              <Button type="button" onClick={handleSaveSettings} className="btn-primary px-6" disabled={savingSettings}>
+                {savingSettings ? 'Saving...' : 'Save Analytics Settings'}
+              </Button>
+            </div>
+          </form>
+        </Card>
+
+        <Card radius="xl" padding="xl" withBorder shadow="md">
+          <Stack gap="sm" mb="md">
+            <Group justify="space-between" align="flex-start">
+              <div>
+                <Text fw={600} size="lg">Theme Customization</Text>
+                <Text size="sm" c="dimmed">
+                  Choose one of Adobe Color's UI/UX trend palettes to style your merchant mission control.
+                </Text>
+              </div>
+              <Button variant="subtle" size="xs" onClick={handleResetTheme} disabled={savingSettings}>
+                Reset to default
+              </Button>
+            </Group>
+          </Stack>
+          <Stack gap="xs" mb="lg">
+            <Text size="sm" c="dimmed">
+              Each preset applies tuned primary, navigation, accent, and background colors with the recommended light or dark mode.
+            </Text>
+            <Text size="xs" c="dimmed">
+              {activePreset
+                ? `Currently previewing: ${activePreset.label} (${activePreset.source}).`
+                : 'Currently previewing a legacy custom palette. Pick a preset to standardize your dashboard.'}
+            </Text>
+          </Stack>
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg" mb="lg">
+            {PRESET_THEMES.map((theme) => {
+              const isActive = theme.id === selectedThemeId
+              return (
+                <button
+                  type="button"
+                  key={theme.id}
+                  onClick={() => handlePresetSelect(theme.id)}
+                  className={[
+                    'w-full rounded-2xl border-2 p-4 text-left transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+                    isActive ? 'border-primary shadow-xl ring-2 ring-primary/30' : 'border-border hover:-translate-y-0.5 hover:border-primary/40',
+                  ].join(' ')}
+                  aria-pressed={isActive}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="font-heading text-base font-semibold text-foreground">{theme.label}</p>
+                      <p className="text-xs text-muted-foreground">{theme.description}</p>
+                    </div>
+                    <span className="rounded-full border border-border px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {theme.values.theme_mode === 'dark' ? 'Dark' : 'Light'}
+                    </span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {theme.swatches.map((swatch) => (
+                      <span
+                        key={`${theme.id}-${swatch}`}
+                        className="h-9 w-9 rounded-2xl border border-border"
+                        style={{ backgroundColor: swatch }}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-4 text-[11px] uppercase tracking-wide text-muted-foreground">{theme.source}</p>
+                </button>
+              )
+            })}
+          </SimpleGrid>
+          <div className="flex items-center justify-between pt-4 border-t border-border mt-2">
+            <Text size="sm" c="dimmed">
+              Theme presets update the entire dashboard instantly. Save to persist for your whole team.
+            </Text>
+            <Button type="button" onClick={handleSaveSettings} className="btn-primary px-6" disabled={savingSettings}>
+              {savingSettings ? 'Saving...' : 'Save Theme Selection'}
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Email</Label>
-            <Input
-              type="email"
-              value={formState.email}
-              onChange={(event) => handleChange('email', event.target.value)}
-              className="h-11 rounded-2xl border-border bg-background"
-              placeholder="hello@rudicoffee.com"
-            />
+        </Card>
+
+        {toast && (
+          <div
+            className={`fixed bottom-8 right-6 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg ${
+              toast.type === 'success' ? 'bg-primary' : 'bg-accent'
+            }`}
+          >
+            {toast.message}
           </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">Phone</Label>
-            <Input
-              value={formState.phone}
-              onChange={(event) => handleChange('phone', event.target.value)}
-              className="h-11 rounded-2xl border-border bg-background"
-              placeholder="+1 555 123 4567"
-            />
-          </div>
-           <div className="space-y-2">
-             <Label className="text-sm font-semibold text-foreground">Logo</Label>
-             <Input
-               type="file"
-               accept="image/*"
-               onChange={(event) => setLogoFile(event.target.files?.[0] || null)}
-               className="h-11 rounded-2xl border-border bg-background"
-             />
-           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold text-foreground">Address</Label>
-          <Textarea
-            value={formState.address}
-            onChange={(event) => handleChange('address', event.target.value)}
-            className="rounded-2xl border-border bg-background"
-            placeholder="123 Brew Street, Lagos"
-            rows={3}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold text-foreground">About your experience</Label>
-          <Textarea
-            value={formState.about}
-            onChange={(event) => handleChange('about', event.target.value)}
-            className="rounded-2xl border-border bg-background"
-            placeholder="Share your vibe with customers joining your loyalty journey."
-            rows={4}
-          />
-        </div>
-
-        <div className="flex items-center justify-between pt-2">
-          <div className="space-x-4 text-sm">
-            <button type="button" className="text-primary hover:underline">
-              Change password
-            </button>
-            <button type="button" className="text-accent hover:underline">
-              Deactivate account
-            </button>
-          </div>
-          <Button type="submit" className="btn-primary px-6" disabled={saving}>
-            {saving ? 'Saving…' : 'Save settings'}
-          </Button>
-        </div>
-      </form>
-
-       <div className="space-y-4">
-         <div className="space-y-1">
-           <h2 className="font-heading text-2xl font-semibold text-foreground">Analytics Assumptions</h2>
-           <p className="text-sm text-muted-foreground">
-             Configure key assumptions to calculate the revenue impact of your loyalty programs.
-           </p>
-         </div>
-
-         <div className="rounded-2xl bg-muted/30 p-6 border border-border">
-           <h3 className="font-heading text-lg font-semibold text-foreground mb-3">How These Values Work</h3>
-           <div className="space-y-3 text-sm text-muted-foreground">
-             <p>
-               <strong>Revenue Estimation:</strong> We calculate the incremental revenue from your loyalty program by comparing actual customer visits against a baseline (what they'd visit without the program).
-             </p>
-             <ul className="list-disc list-inside space-y-1 ml-4">
-               <li><strong>Avg Spend per Visit:</strong> How much does a typical customer spend when they visit? This is multiplied by extra visits to estimate revenue uplift.</li>
-               <li><strong>Baseline Visits:</strong> How many times would customers visit per month without your loyalty program? This helps measure the program's effectiveness.</li>
-               <li><strong>Avg Reward Cost:</strong> What's the average cost of providing rewards (like free items or discounts)? This is subtracted from the revenue uplift.</li>
-               <li><strong>Monthly Subscription:</strong> Optional platform fee - included in net calculations if applicable.</li>
-             </ul>
-             <p className="text-xs mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-               <strong>Example:</strong> If customers spend KES 500/visit, visit 3 times/month (baseline 2), and rewards cost KES 100 each, your program generates KES 300 extra revenue per customer per month (after costs).
-             </p>
-           </div>
-         </div>
-         </div>
-
-         {settings && (
-           <div className="rounded-2xl bg-card p-6 shadow-lg">
-             <h3 className="font-heading text-lg font-semibold text-foreground mb-4">Current Settings</h3>
-             <div className="overflow-x-auto">
-               <table className="w-full text-sm">
-                 <thead>
-                   <tr className="border-b border-border">
-                     <th className="text-left py-2 font-semibold text-foreground">Assumption</th>
-                     <th className="text-left py-2 font-semibold text-foreground">Current Value</th>
-                     <th className="text-left py-2 font-semibold text-foreground">Unit</th>
-                     <th className="text-left py-2 font-semibold text-foreground">Last Updated</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y divide-border">
-                   <tr>
-                     <td className="py-3 text-muted-foreground">Avg Spend per Visit</td>
-                     <td className="py-3 font-medium">{settings.avg_spend_per_visit_kes ? settings.avg_spend_per_visit_kes.toFixed(2) : 'Not set'}</td>
-                     <td className="py-3 text-muted-foreground">KES</td>
-                     <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
-                   </tr>
-                   <tr>
-                     <td className="py-3 text-muted-foreground">Baseline Visits per Customer per Period</td>
-                     <td className="py-3 font-medium">{settings.baseline_visits_per_customer_per_period ? settings.baseline_visits_per_customer_per_period.toFixed(1) : 'Not set'}</td>
-                     <td className="py-3 text-muted-foreground">visits</td>
-                     <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
-                   </tr>
-                   <tr>
-                     <td className="py-3 text-muted-foreground">Avg Reward Cost</td>
-                     <td className="py-3 font-medium">{settings.avg_reward_cost_kes ? settings.avg_reward_cost_kes.toFixed(2) : 'Not set'}</td>
-                     <td className="py-3 text-muted-foreground">KES</td>
-                     <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
-                   </tr>
-                   <tr>
-                     <td className="py-3 text-muted-foreground">Monthly Subscription</td>
-                     <td className="py-3 font-medium">{settings.monthly_subscription_kes ? settings.monthly_subscription_kes.toFixed(2) : 'Not set'}</td>
-                     <td className="py-3 text-muted-foreground">KES</td>
-                     <td className="py-3 text-muted-foreground">{new Date(settings.updated_at).toLocaleDateString()}</td>
-                   </tr>
-                 </tbody>
-               </table>
-             </div>
-           </div>
-         )}
-
-       <form className="mx-auto flex w-full max-w-2xl flex-col gap-6 rounded-3xl bg-card p-8 shadow-lg">
-         <div className="grid gap-6 sm:grid-cols-2">
-           <div className="space-y-3">
-             <div>
-               <Label className="text-sm font-semibold text-foreground">Avg Spend per Visit (KES)</Label>
-               <p className="text-xs text-muted-foreground mt-1">
-                 Average amount customers spend per visit
-               </p>
-             </div>
-             <Input
-               type="number"
-               value={settingsForm.avg_spend_per_visit_kes}
-               onChange={(event) => handleSettingsChange('avg_spend_per_visit_kes', event.target.value)}
-               onFocus={(e) => e.target.select()}
-               className="h-11 rounded-2xl border-border bg-background"
-               placeholder="e.g., 500"
-               min="0"
-               step="0.01"
-               required
-             />
-           </div>
-           <div className="space-y-3">
-             <div>
-               <Label className="text-sm font-semibold text-foreground">Baseline Visits per Customer per Period</Label>
-               <p className="text-xs text-muted-foreground mt-1">
-                 Expected visits without loyalty program
-               </p>
-             </div>
-             <Input
-               type="number"
-               value={settingsForm.baseline_visits_per_customer_per_period}
-               onChange={(event) => handleSettingsChange('baseline_visits_per_customer_per_period', event.target.value)}
-               onFocus={(e) => e.target.select()}
-               className="h-11 rounded-2xl border-border bg-background"
-               placeholder="e.g., 2.5"
-               min="0"
-               step="0.1"
-               required
-             />
-           </div>
-         </div>
-         <div className="grid gap-6 sm:grid-cols-2">
-           <div className="space-y-3">
-             <div>
-               <Label className="text-sm font-semibold text-foreground">Avg Reward Cost (KES)</Label>
-               <p className="text-xs text-muted-foreground mt-1">
-                 Cost of providing rewards to customers
-               </p>
-             </div>
-             <Input
-               type="number"
-               value={settingsForm.avg_reward_cost_kes}
-               onChange={(event) => handleSettingsChange('avg_reward_cost_kes', event.target.value)}
-               onFocus={(e) => e.target.select()}
-               className="h-11 rounded-2xl border-border bg-background"
-               placeholder="e.g., 100"
-               min="0"
-               step="0.01"
-               required
-             />
-           </div>
-           <div className="space-y-3">
-             <div>
-               <Label className="text-sm font-semibold text-foreground">Monthly Subscription (KES)</Label>
-               <p className="text-xs text-muted-foreground mt-1">
-                 Optional monthly platform fee
-               </p>
-             </div>
-             <Input
-               type="number"
-               value={settingsForm.monthly_subscription_kes}
-               onChange={(event) => handleSettingsChange('monthly_subscription_kes', event.target.value)}
-               onFocus={(e) => e.target.select()}
-               className="h-11 rounded-2xl border-border bg-background"
-               placeholder="e.g., 5000"
-               min="0"
-               step="0.01"
-             />
-           </div>
-         </div>
-         <div className="flex items-center justify-between pt-4 border-t border-border">
-           <div className="text-sm text-muted-foreground">
-             These values help calculate revenue impact of your loyalty programs
-           </div>
-           <Button type="button" onClick={handleSaveSettings} className="btn-primary px-6" disabled={savingSettings}>
-             {savingSettings ? 'Saving…' : 'Save Analytics Settings'}
-           </Button>
-         </div>
-       </form>
-
-      {toast && (
-        <div
-          className={`fixed bottom-8 right-6 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg ${
-            toast.type === 'success' ? 'bg-primary' : 'bg-accent'
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
-    </div>
+        )}
+      </Stack>
+    </Container>
   )
 }
 
 export default Settings
-

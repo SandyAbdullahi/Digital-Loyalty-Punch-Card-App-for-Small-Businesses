@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import axios from 'axios'
+import { applyTheme, extractThemeFromSettings } from '../utils/theme'
 
 interface User {
   id: string
@@ -56,6 +57,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const storedToken = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
     const storedMerchant = localStorage.getItem('merchant')
+    const storedTheme = localStorage.getItem('merchantTheme')
     if (storedToken) {
       setToken(storedToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
@@ -66,8 +68,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setMerchant(JSON.parse(storedMerchant))
       }
     }
+    if (storedTheme) {
+      try {
+        applyTheme(JSON.parse(storedTheme))
+      } catch {
+        // ignore invalid theme
+      }
+    }
     setLoading(false)
   }, [])
+
+  const loadAndApplyTheme = async (merchantId: string) => {
+    try {
+      const settingsResponse = await axios.get(`/api/v1/merchants/${merchantId}/settings`)
+      const themePayload = extractThemeFromSettings(settingsResponse.data)
+      localStorage.setItem('merchantTheme', JSON.stringify(themePayload))
+      applyTheme(themePayload)
+    } catch (error) {
+      console.error('Failed to load merchant theme settings', error)
+    }
+  }
 
   const login = async (email: string, password: string) => {
     try {
@@ -85,6 +105,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           const merchantData = merchantResponse.data[0]
           setMerchant(merchantData)
           localStorage.setItem('merchant', JSON.stringify(merchantData))
+          await loadAndApplyTheme(merchantData.id)
         }
       } catch (error) {
         console.error('Failed to fetch merchant', error)
@@ -131,6 +152,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           const merchantData = merchantResponse.data[0]
           setMerchant(merchantData)
           localStorage.setItem('merchant', JSON.stringify(merchantData))
+          await loadAndApplyTheme(merchantData.id)
         }
       } catch (error) {
         console.error('Failed to fetch merchant', error)

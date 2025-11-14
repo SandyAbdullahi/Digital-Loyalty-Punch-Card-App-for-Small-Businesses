@@ -10,6 +10,11 @@ class MerchantSettingsBase(BaseModel):
     avg_reward_cost_kes: float = Field(default=100.0, ge=0, description="Average reward cost in KES")
     default_period: str = Field(default="month", description="Default period: month or quarter")
     monthly_subscription_kes: Optional[float] = Field(default=None, ge=0, description="Monthly subscription cost in KES")
+    theme_primary_color: str = Field(default="#00C896", description="Hex primary color for mission control UI")
+    theme_secondary_color: str = Field(default="#2196F3", description="Hex secondary color")
+    theme_accent_color: str = Field(default="#FF5252", description="Hex accent color")
+    theme_background_color: str = Field(default="#F5F5F5", description="Background color for UI")
+    theme_mode: str = Field(default="light", description="Theme mode: light or dark")
 
 
 class MerchantSettingsCreate(MerchantSettingsBase):
@@ -22,6 +27,11 @@ class MerchantSettingsUpdate(BaseModel):
     avg_reward_cost_kes: Optional[float] = Field(None, ge=0)
     default_period: Optional[str] = None
     monthly_subscription_kes: Optional[float] = Field(None, ge=0)
+    theme_primary_color: Optional[str] = None
+    theme_secondary_color: Optional[str] = None
+    theme_accent_color: Optional[str] = None
+    theme_background_color: Optional[str] = None
+    theme_mode: Optional[str] = None
 
 
 class MerchantSettings(MerchantSettingsBase):
