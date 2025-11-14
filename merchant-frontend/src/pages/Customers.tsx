@@ -542,6 +542,8 @@ const Customers = () => {
             style={{ width: 300 }}
           />
           <Button
+            variant="light"
+            color="blue"
             onClick={fetchCustomers}
             disabled={loading}
           >
@@ -581,7 +583,7 @@ const Customers = () => {
               </span>
               <span>Last visit: {customer.lastVisit ?? 'Never'}</span>
             </div>
-            <Button className="btn-secondary" type="button" onClick={() => setSelectedCustomer(customer)}>
+            <Button variant="outline" color="blue" onClick={() => setSelectedCustomer(customer)}>
               View
             </Button>
           </div>
@@ -638,20 +640,20 @@ const Customers = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
-                type="button"
-                className="rounded-2xl bg-red-700 text-white px-4 py-2 text-sm font-semibold hover:bg-red-800"
+                variant="filled"
+                color="red"
                 onClick={() => setConfirmDelete(true)}
               >
                 Delete Customer
               </Button>
               <Button
-                type="button"
-                className="rounded-2xl bg-red-500 text-white px-4 py-2 text-sm font-semibold hover:bg-red-600"
+                variant="outline"
+                color="red"
                 onClick={() => handleManualAction('revoke')}
               >
                 Revoke stamp
               </Button>
-              <Button type="button" className="btn-primary" onClick={() => handleManualAction('add')}>
+              <Button variant="filled" color="blue" onClick={() => handleManualAction('add')}>
                 Add manual stamp
               </Button>
             </div>
@@ -801,10 +803,10 @@ const Customers = () => {
 
        <Modal opened={confirmDelete} onClose={() => setConfirmDelete(false)} title="Confirm Deletion" size="sm">
          <p>Are you sure you want to remove {selectedCustomer?.name} from all your programs? This action cannot be undone.</p>
-         <div className="flex gap-3 mt-4">
-           <Button onClick={() => setConfirmDelete(false)}>Cancel</Button>
-           <Button color="red" onClick={handleDelete}>Delete</Button>
-         </div>
+          <div className="flex gap-3 mt-4">
+            <Button variant="subtle" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+            <Button variant="filled" color="red" onClick={handleDelete}>Delete</Button>
+          </div>
        </Modal>
 
        {toast && (

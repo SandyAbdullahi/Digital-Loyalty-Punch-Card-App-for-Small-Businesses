@@ -232,9 +232,9 @@ const Dashboard = () => {
             <Text size="sm" c="dimmed">Monitor your loyalty programs and customer engagement</Text>
           </div>
           <Group>
-            <Button onClick={() => navigate('/programs')} size="md">
-              Create Program
-            </Button>
+          <Button variant="filled" color="blue" size="md" onClick={() => navigate('/programs')}>
+            Create Program
+          </Button>
           </Group>
         </Group>
 
@@ -266,7 +266,7 @@ const Dashboard = () => {
             <Text size="sm" c="dimmed" ta="center" mt="xs">
               No metrics yet - your first happy customer is just a scan away!
             </Text>
-            <Button onClick={() => navigate('/programs')} mt="md" fullWidth>
+            <Button variant="filled" color="blue" mt="md" fullWidth onClick={() => navigate('/programs')}>
               Create Your First Program
             </Button>
           </Card>
@@ -275,7 +275,7 @@ const Dashboard = () => {
         {loadingError && (
           <Alert color="red" style={{ gridColumn: '1 / -1' }}>
             {loadingError}
-            <Button variant="light" size="xs" ml="md" onClick={() => window.location.reload()}>
+            <Button variant="light" color="blue" size="xs" ml="md" onClick={() => window.location.reload()}>
               Try Again
             </Button>
           </Alert>
@@ -291,7 +291,7 @@ const Dashboard = () => {
             <Text size="sm" c="dimmed" ta="center" mt="md">
               Configure settings to see revenue estimates
             </Text>
-            <Button onClick={() => navigate('/settings')} mt="md" fullWidth>
+            <Button variant="outline" color="blue" mt="md" fullWidth onClick={() => navigate('/settings')}>
               Go to Settings
             </Button>
           </Card>

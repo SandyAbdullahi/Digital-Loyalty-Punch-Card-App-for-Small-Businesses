@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import {
-  Button,
   Input,
   Label,
   Select,
@@ -11,7 +10,7 @@ import {
   SelectValue,
   Textarea,
 } from '@rudi/ui'
-import { Button as MantineButton } from '@mantine/core'
+import { Button } from '@mantine/core'
 import { Container, Stack, Group, Text, Loader, Alert, SimpleGrid } from '@mantine/core'
 import { AlertTriangle, BadgeCheck, Calendar, Clock, PenSquare, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -321,25 +320,28 @@ const Programs = () => {
               <div className="flex flex-wrap items-center gap-3">
                 <Button
                   variant="outline"
-                  className="rounded-2xl border-primary/30 text-primary hover:bg-primary/10"
+                  color="blue"
+                  radius="md"
+                  leftSection={<PenSquare size={16} />}
                   onClick={() => openEditModal(program)}
                 >
-                  <PenSquare className="mr-2 h-4 w-4" />
                   Edit
                 </Button>
                 <Button
-                  className="btn-secondary rounded-2xl px-4 py-2"
-                  type="button"
+                  variant="light"
+                  color="blue"
+                  radius="md"
                   onClick={() => navigate('/qr', { state: { programId: program.id } })}
                 >
                   View QR
                 </Button>
                 <Button
-                  variant="ghost"
-                  className="rounded-2xl px-3 py-2 text-accent hover:bg-accent/10"
+                  variant="subtle"
+                  color="red"
+                  radius="md"
+                  leftSection={<Trash2 size={16} />}
                   onClick={() => handleDelete(program.id)}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
                   Delete
                 </Button>
               </div>
@@ -353,7 +355,7 @@ const Programs = () => {
             <p className="mt-2 text-sm text-muted-foreground">
               Launch your first loyalty adventure — your customers are ready.
             </p>
-            <Button onClick={openCreateModal} className="btn-primary mt-4">
+            <Button variant="filled" color="blue" mt="md" onClick={openCreateModal}>
               Create your first program
             </Button>
           </div>
@@ -580,18 +582,14 @@ const Programs = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    type="button"
-                    variant="ghost"
-                    className="rounded-2xl px-4 py-2 text-foreground hover:bg-muted"
+                    variant="subtle"
                     onClick={closeModal}
                   >
                     Cancel
                   </Button>
                   {formStep > 0 && (
                     <Button
-                      type="button"
-                      variant="ghost"
-                      className="rounded-2xl px-4 py-2 text-foreground hover:bg-muted"
+                      variant="subtle"
                       onClick={() => setFormStep((step) => Math.max(step - 1, 0))}
                     >
                       Back
@@ -599,15 +597,15 @@ const Programs = () => {
                   )}
                   {formStep < 1 && (
                     <Button
-                      type="button"
-                      className="btn-primary"
+                      variant="filled"
+                      color="blue"
                       onClick={() => setFormStep((step) => Math.min(step + 1, 1))}
                     >
                       Next
                     </Button>
                   )}
                   {formStep === 1 && (
-                    <Button type="submit" className="btn-primary px-4">
+                    <Button type="submit" variant="filled" color="blue">
                       {editingProgram ? 'Save changes' : 'Save program'}
                     </Button>
                   )}
