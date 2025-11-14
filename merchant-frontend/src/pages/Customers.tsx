@@ -816,7 +816,8 @@ const Customers = () => {
           {toast.message}
         </div>
         )}
-      </Container>
+      </Stack>
+    </Container>
   )
 }
 
