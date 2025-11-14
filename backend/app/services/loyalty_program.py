@@ -15,6 +15,8 @@ def get_loyalty_programs_by_merchant(db: Session, merchant_id: UUID) -> list[Loy
 
 
 def create_loyalty_program(db: Session, program: LoyaltyProgramCreate, merchant_id: UUID) -> LoyaltyProgram:
+    from datetime import datetime
+    expires_at = datetime.fromisoformat(program.expires_at) if program.expires_at else None
     db_program = LoyaltyProgram(
         merchant_id=merchant_id,
         name=program.name,
@@ -29,6 +31,7 @@ def create_loyalty_program(db: Session, program: LoyaltyProgramCreate, merchant_
         reward_value_hint_kes=program.reward_value_hint_kes,
         reward_expiry_days=program.reward_expiry_days,
         allow_repeat_cycles=program.allow_repeat_cycles,
+        expires_at=expires_at,
     )
     db.add(db_program)
     db.commit()

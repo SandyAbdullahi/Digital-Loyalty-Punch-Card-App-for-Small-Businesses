@@ -21,6 +21,7 @@ class LoyaltyProgramBase(BaseModel):
     reward_expiry_days: Optional[int] = None
     allow_repeat_cycles: Optional[bool] = True
     max_redemptions_per_day: Optional[int] = None
+    expires_at: Optional[str] = None
 
     @field_validator('earn_rule', 'redeem_rule', mode='before')
     @classmethod
@@ -45,6 +46,7 @@ class LoyaltyProgramInDBBase(LoyaltyProgramBase):
     id: UUID
     merchant_id: UUID
     is_active: bool = True
+    expires_at: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

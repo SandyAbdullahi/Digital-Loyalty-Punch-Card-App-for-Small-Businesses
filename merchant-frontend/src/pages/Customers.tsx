@@ -26,8 +26,14 @@ type CustomerRecord = {
   email: string
   avatar?: string
   totalStamps: number
+  lifetimeStamps: number
+  averageStampsPerProgram: number
   lastVisit: string | null
   programs: CustomerProgram[]
+  lifetime_total_visits: number
+  lifetime_total_revenue: number
+  lifetime_rewards_redeemed: number
+  lifetime_avg_basket_size: number
 }
 
 type RedemptionEvent = {
@@ -148,33 +154,60 @@ const Customers = () => {
     }
   }
 
+  const transformCustomerPayload = (payload: any[]): CustomerRecord[] =>
+    payload.map((item: any) => {
+      const programs = (item.programs ?? []).map((program: any) => ({
+        id: program.id ?? crypto.randomUUID(),
+        name: program.name ?? 'Program',
+        progress: program.progress ?? 0,
+        threshold: program.threshold ?? 10,
+      }))
+      const programCount = programs.length
+      const totalStamps = programs.reduce((sum, p) => sum + p.progress, 0)
+      const lifetimeStampsRaw = item.lifetime_stamps ?? item.lifetimeStamps
+      const lifetimeStamps = Number(
+        lifetimeStampsRaw !== undefined && lifetimeStampsRaw !== null
+          ? lifetimeStampsRaw
+          : totalStamps
+      )
+      const computedAverage =
+        programCount > 0 ? Number((lifetimeStamps / programCount).toFixed(2)) : 0
+      const averageRaw = item.avg_stamps_per_program ?? item.avgStampsPerProgram
+      const averageStampsPerProgramValue =
+        averageRaw !== undefined && averageRaw !== null
+          ? Number(averageRaw)
+          : computedAverage
+      const averageStampsPerProgram = Number.isNaN(averageStampsPerProgramValue)
+        ? computedAverage
+        : averageStampsPerProgramValue
+      const formattedLastVisit =
+        formatLastVisit(item.last_visit_display ?? item.last_visit) ??
+        (programs.length > 0 ? 'Never' : null)
+      return {
+        id: item.id ?? crypto.randomUUID(),
+        name: item.name ?? item.email ?? 'Valued Guest',
+        email: item.email ?? 'unknown',
+        totalStamps,
+        lifetimeStamps,
+        averageStampsPerProgram,
+        avatar: resolveAvatarUrl(item.avatar),
+        lastVisit: formattedLastVisit,
+        programs,
+        lifetime_total_visits: Number(item.lifetime_total_visits ?? item.lifetimeTotalVisits ?? 0),
+        lifetime_total_revenue: Number(item.lifetime_total_revenue ?? item.lifetimeTotalRevenue ?? 0),
+        lifetime_rewards_redeemed: Number(item.lifetime_rewards_redeemed ?? item.lifetimeRewardsRedeemed ?? 0),
+        lifetime_avg_basket_size: Number(
+          item.lifetime_avg_basket_size ?? item.lifetimeAvgBasketSize ?? 0
+        ),
+      }
+    })
+
   const fetchCustomers = async () => {
     setLoading(true)
     try {
       const response = await axios.get('/api/v1/merchants/customers')
       if (Array.isArray(response.data)) {
-        setCustomers(
-          response.data.map((item: any) => {
-            const programs = (item.programs ?? []).map((program: any) => ({
-              id: program.id ?? crypto.randomUUID(),
-              name: program.name ?? 'Program',
-              progress: program.progress ?? 0,
-              threshold: program.threshold ?? 10,
-            }))
-            const formattedLastVisit =
-              formatLastVisit(item.last_visit_display ?? item.last_visit) ??
-              (programs.length > 0 ? 'Never' : null)
-            return {
-              id: item.id ?? crypto.randomUUID(),
-              name: item.name ?? item.email ?? 'Valued Guest',
-              email: item.email ?? 'unknown',
-              totalStamps: programs.reduce((sum, p) => sum + p.progress, 0),
-              avatar: resolveAvatarUrl(item.avatar),
-              lastVisit: formattedLastVisit,
-              programs,
-            }
-          })
-        )
+        setCustomers(transformCustomerPayload(response.data))
       }
      } catch (error) {
        console.error('Failed to fetch customers', error)
@@ -217,10 +250,16 @@ const Customers = () => {
             if (!programs.length) {
               return null
             }
+            const totalStamps = programs.reduce((sum, p) => sum + p.progress, 0)
+            const lifetimeStamps = customer.lifetimeStamps ?? totalStamps
             return {
               ...customer,
               programs,
-              totalStamps: programs.reduce((sum, p) => sum + p.progress, 0),
+              totalStamps,
+              lifetimeStamps,
+              averageStampsPerProgram: programs.length
+                ? Number((lifetimeStamps / programs.length).toFixed(2))
+                : 0,
             }
           })
           .filter((customer): customer is CustomerRecord => Boolean(customer))
@@ -233,10 +272,18 @@ const Customers = () => {
           if (!programs.length) {
             return null
           }
+          const totalStamps = programs.reduce((sum, p) => sum + p.progress, 0)
+          const lifetimeStampsFallback =
+            prev.lifetimeStamps ?? prev.totalStamps ?? totalStamps
+          const avg = programs.length
+            ? Number((lifetimeStampsFallback / programs.length).toFixed(2))
+            : 0
           return {
             ...prev,
             programs,
-            totalStamps: programs.reduce((sum, p) => sum + p.progress, 0),
+            totalStamps,
+            lifetimeStamps: lifetimeStampsFallback,
+            averageStampsPerProgram: avg,
           }
         })
       }
@@ -256,6 +303,8 @@ const Customers = () => {
         }
         updatedCustomerFound = true
         const programExists = customer.programs.some((program) => program.id === program_id)
+        const existingProgram = customer.programs.find((program) => program.id === program_id)
+        const previousProgress = existingProgram?.progress ?? 0
         const inferredThreshold = customer.programs[0]?.threshold ?? 10
         const programs = programExists
           ? customer.programs.map((program) =>
@@ -271,12 +320,21 @@ const Customers = () => {
               },
             ]
         const totalStamps = programs.reduce((sum, p) => sum + p.progress, 0)
+        const deltaFromMessage =
+          typeof delta === 'number' ? delta : new_balance - previousProgress
+        const lifetimeStampsBase =
+          customer.lifetimeStamps ?? customer.totalStamps ?? totalStamps
+        const adjustedLifetime = Math.max(0, lifetimeStampsBase + deltaFromMessage)
         const formattedLastVisit =
           (typeof timestamp === 'string' && formatLastVisit(timestamp)) || customer.lastVisit
         const updatedCustomer = {
           ...customer,
           programs,
           totalStamps,
+          lifetimeStamps: adjustedLifetime,
+          averageStampsPerProgram: programs.length
+            ? Number((adjustedLifetime / programs.length).toFixed(2))
+            : 0,
           lastVisit: formattedLastVisit ?? customer.lastVisit,
         }
         if (selectedId === customer_id) {
@@ -301,6 +359,9 @@ const Customers = () => {
           ...prev,
           programs: nextSelection.programs,
           totalStamps: nextSelection.totalStamps,
+          lifetimeStamps: nextSelection.lifetimeStamps ?? prev.lifetimeStamps,
+          averageStampsPerProgram:
+            nextSelection.averageStampsPerProgram ?? prev.averageStampsPerProgram,
           lastVisit: nextSelection.lastVisit ?? prev.lastVisit,
         }
         detailCacheRef.current[nextSelection.id] = updatedDetail
@@ -399,9 +460,14 @@ const Customers = () => {
 
       const insightsSource = payload.insights ?? payload.customer_insights ?? null
       const programCount = programs.length
-      const totalProgramStamps = programs.reduce((sum, p) => sum + (p.progress ?? 0), 0)
+      const lifetimeStampsInput =
+        payload.lifetime_stamps ??
+        payload.lifetimeStamps ??
+        selectedCustomer?.lifetimeStamps ??
+        programs.reduce((sum, p) => sum + (p.progress ?? 0), 0)
+      const normalizedLifetimeStamps = Number(lifetimeStampsInput ?? 0)
       const computedAverage =
-        programCount > 0 ? Number((totalProgramStamps / programCount).toFixed(2)) : 0
+        programCount > 0 ? Number((normalizedLifetimeStamps / programCount).toFixed(2)) : 0
       const backendAverageRaw =
         insightsSource?.average_stamps_per_program ??
         insightsSource?.averageStampsPerProgram ??
@@ -440,6 +506,8 @@ const Customers = () => {
         avatar: resolveAvatarUrl(payload.avatar) ?? selectedCustomer?.avatar,
         totalStamps:
           payload.total_stamps ?? payload.totalStamps ?? programs.reduce((sum, p) => sum + p.progress, 0),
+        lifetimeStamps: normalizedLifetimeStamps,
+        averageStampsPerProgram,
         lastVisit:
           formatTimelineValue(payload.last_visit_display ?? payload.last_visit ?? payload.lastVisit) ??
           selectedCustomer?.lastVisit ??
@@ -457,6 +525,21 @@ const Customers = () => {
 
       detailCacheRef.current[customerId] = normalized
       setCustomerDetail(normalized)
+      setCustomers((prev) =>
+        prev.map((customer) =>
+          customer.id === normalized.id
+            ? {
+                ...customer,
+                lifetimeStamps: normalized.lifetimeStamps,
+                averageStampsPerProgram: normalized.averageStampsPerProgram,
+                lifetime_total_visits: normalized.lifetime_total_visits,
+                lifetime_total_revenue: normalized.lifetime_total_revenue,
+                lifetime_rewards_redeemed: normalized.lifetime_rewards_redeemed,
+                lifetime_avg_basket_size: normalized.lifetime_avg_basket_size,
+              }
+            : customer
+        )
+      )
     } catch (error) {
       console.error('Failed to load customer details', error)
       showToast('info', 'Unable to load customer details.')
@@ -482,21 +565,7 @@ const Customers = () => {
       // Refetch customers to update stamps
       const response = await axios.get('/api/v1/merchants/customers')
       if (Array.isArray(response.data)) {
-        const updatedCustomers = response.data.map((item: any) => ({
-          id: item.id ?? crypto.randomUUID(),
-          name: item.name ?? item.email ?? 'Valued Guest',
-          email: item.email ?? 'unknown',
-          totalStamps: item.total_stamps ?? 0,
-          avatar: resolveAvatarUrl(item.avatar),
-          lastVisit:
-            formatLastVisit(item.last_visit_display ?? item.last_visit) ?? 'Just now',
-          programs: (item.programs ?? []).map((program: any) => ({
-            id: program.id ?? crypto.randomUUID(),
-            name: program.name ?? 'Program',
-            progress: program.progress ?? 0,
-            threshold: program.threshold ?? 10,
-          })),
-        }))
+        const updatedCustomers = transformCustomerPayload(response.data)
         setCustomers(updatedCustomers)
         // Update selectedCustomer with new data
         const updatedSelected = updatedCustomers.find(c => c.id === selectedCustomer.id)
@@ -511,6 +580,20 @@ const Customers = () => {
             programs: updatedSelected.programs,
             totalStamps: updatedSelected.totalStamps,
             lastVisit: updatedSelected.lastVisit,
+             lifetimeStamps: updatedSelected.lifetimeStamps ?? detailCacheRef.current[updatedSelected.id]?.lifetimeStamps ?? updatedSelected.totalStamps,
+             averageStampsPerProgram:
+               updatedSelected.averageStampsPerProgram ??
+               detailCacheRef.current[updatedSelected.id]?.averageStampsPerProgram ??
+               (updatedSelected.programs.length
+                 ? Number(
+                     (
+                       updatedSelected.programs.reduce(
+                         (sum, p) => sum + (p.progress ?? 0),
+                         0
+                       ) / updatedSelected.programs.length
+                     ).toFixed(2)
+                   )
+                 : 0),
             redemptionHistory: detailCacheRef.current[updatedSelected.id]?.redemptionHistory ?? [],
             recentActivity: detailCacheRef.current[updatedSelected.id]?.recentActivity ?? [],
             rewardSummary: detailCacheRef.current[updatedSelected.id]?.rewardSummary ?? {
@@ -624,9 +707,16 @@ const Customers = () => {
             </div>
             <div className="hidden flex-col text-right text-sm text-muted-foreground sm:flex">
               <span>
-                Total stamps:{' '}
+                Current stamps:{' '}
                 <strong className="text-foreground">{customer.totalStamps}</strong>
               </span>
+              <span>
+                Avg / program:{' '}
+                <strong className="text-foreground">
+                  {customer.averageStampsPerProgram.toFixed(2)}
+                </strong>
+              </span>
+              <span>Lifetime visits: {customer.lifetime_total_visits ?? 0}</span>
               <span>Last visit: {customer.lastVisit ?? 'Never'}</span>
             </div>
             <Button variant="outline" color="blue" onClick={() => setSelectedCustomer(customer)}>

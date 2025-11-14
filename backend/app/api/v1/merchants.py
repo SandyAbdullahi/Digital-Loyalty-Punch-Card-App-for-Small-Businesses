@@ -209,6 +209,7 @@ def get_merchant_customers(
 ):
     from ...services.auth import get_user_by_email
     from ...services.merchant import get_merchants_by_owner
+    from ...services.customer_stats_service import get_customer_stats
     from ...models.customer_program_membership import CustomerProgramMembership
     from ...models.user import User
     from ...models.ledger_entry import LedgerEntry
@@ -242,13 +243,39 @@ def get_merchant_customers(
             customer_memberships[customer_id] = []
         customer_memberships[customer_id].append(membership)
 
+    customer_ids = list(customer_memberships.keys())
+    if not customer_ids:
+        return []
+
+    lifetime_stamps_rows = (
+        db.query(
+            LedgerEntry.customer_id,
+            func.coalesce(func.sum(LedgerEntry.amount), 0).label("lifetime_stamps"),
+        )
+        .filter(
+            LedgerEntry.merchant_id == merchant.id,
+            LedgerEntry.customer_id.in_(customer_ids),
+            LedgerEntry.entry_type == LedgerEntryType.EARN,
+        )
+        .group_by(LedgerEntry.customer_id)
+        .all()
+    )
+    lifetime_map = {
+        str(row.customer_id): float(row.lifetime_stamps or 0) for row in lifetime_stamps_rows
+    }
+
     customers = []
     for customer_id, mems in customer_memberships.items():
         customer = db.query(User).filter(User.id == customer_id).first()
         if not customer:
             continue
 
+        # Get customer stats
+        customer_stats = get_customer_stats(db, customer_id)
+
         total_stamps = sum(m.current_balance for m in mems)
+        lifetime_stamps = lifetime_map.get(str(customer_id), float(total_stamps))
+        avg_stamps_per_program = round(lifetime_stamps / len(mems), 2) if mems else 0
 
         membership_ids = [m.id for m in mems]
         last_visit = (
@@ -286,9 +313,15 @@ def get_merchant_customers(
                 "email": customer.email,
                 "avatar": customer.avatar_url,
                 "totalStamps": total_stamps,
+                "lifetime_stamps": lifetime_stamps,
+                "avg_stamps_per_program": avg_stamps_per_program,
                 "last_visit": last_visit[0].isoformat() if last_visit else None,
                 "last_visit_display": last_visit[0].strftime('%B %d, %Y - %I:%M %p') if last_visit else None,
                 "programs": programs,
+                "lifetime_total_visits": customer_stats.total_visits if customer_stats else 0,
+                "lifetime_total_revenue": customer_stats.total_revenue if customer_stats else 0.0,
+                "lifetime_rewards_redeemed": customer_stats.rewards_redeemed if customer_stats else 0,
+                "lifetime_avg_basket_size": (customer_stats.total_revenue / customer_stats.total_visits if customer_stats and customer_stats.total_visits > 0 else 0.0) if customer_stats else 0.0,
             }
         )
 
@@ -303,6 +336,7 @@ def get_customer_detail(
 ):
     from ...services.auth import get_user_by_email
     from ...services.merchant import get_merchants_by_owner
+    from ...services.customer_stats_service import get_customer_stats
     from ...models.customer_program_membership import CustomerProgramMembership
     from ...models.user import User
 
@@ -333,6 +367,9 @@ def get_customer_detail(
     if not customer:
         raise HTTPException(status_code=404, detail="Customer profile not found")
 
+    # Get customer stats
+    customer_stats = get_customer_stats(db, customer_id)
+
     membership_ids = [membership.id for membership in memberships]
     total_stamps = sum(m.current_balance for m in memberships)
 
@@ -352,20 +389,9 @@ def get_customer_detail(
             }
         )
 
-    last_visit_entry = (
-        db.query(LedgerEntry.created_at)
-        .filter(
-            LedgerEntry.membership_id.in_(membership_ids),
-            LedgerEntry.merchant_id == merchant.id,
-        )
-        .order_by(desc(LedgerEntry.created_at))
-        .first()
-    )
-
-    last_visit_iso = last_visit_entry[0].isoformat() if last_visit_entry else None
-    last_visit_display = (
-        format_local(last_visit_entry[0]) if last_visit_entry else None
-    )
+    last_visit_at = customer_stats.last_visit_at if customer_stats else None
+    last_visit_iso = last_visit_at.isoformat() if last_visit_at else None
+    last_visit_display = format_local(last_visit_at) if last_visit_at else None
 
     valid_statuses = [
         RewardStatus.REDEEMABLE.value,
@@ -433,20 +459,18 @@ def get_customer_detail(
         .all()
     )
 
-    total_visits_query = (
-        db.query(
-            func.count(LedgerEntry.id).label("visit_count"),
-            func.coalesce(func.sum(LedgerEntry.amount), 0).label("stamp_sum"),
-        )
+    total_visits = customer_stats.total_visits if customer_stats else 0
+
+    # Get lifetime stamps from ledger for insights
+    lifetime_stamps_query = (
+        db.query(func.coalesce(func.sum(LedgerEntry.amount), 0))
         .filter(
             LedgerEntry.merchant_id == merchant.id,
             LedgerEntry.customer_id == customer_id,
             LedgerEntry.entry_type == LedgerEntryType.EARN,
         )
     )
-    total_visits_result = total_visits_query.first()
-    total_visits = total_visits_result.visit_count if total_visits_result else 0
-    lifetime_stamps = total_visits_result.stamp_sum if total_visits_result else 0
+    lifetime_stamps = lifetime_stamps_query.scalar() or 0
 
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     recent_visits = (
@@ -485,9 +509,9 @@ def get_customer_detail(
         )
 
     # Lifetime metrics
-    lifetime_total_visits = total_visits
-    lifetime_total_revenue = 0.0  # TODO: Implement actual revenue tracking
-    lifetime_rewards_redeemed = redeemed_total
+    lifetime_total_visits = customer_stats.total_visits if customer_stats else 0
+    lifetime_total_revenue = customer_stats.total_revenue if customer_stats else 0.0
+    lifetime_rewards_redeemed = customer_stats.rewards_redeemed if customer_stats else 0
     lifetime_avg_basket_size = lifetime_total_revenue / lifetime_total_visits if lifetime_total_visits > 0 else 0.0
 
     return {
@@ -496,6 +520,12 @@ def get_customer_detail(
         "email": customer.email,
         "avatar": customer.avatar_url,
         "total_stamps": total_stamps,
+        "lifetime_stamps": lifetime_stamps,
+        "avg_stamps_per_program": round(
+            lifetime_stamps / len(programs), 2
+        )
+        if programs
+        else 0,
         "last_visit": last_visit_iso,
         "last_visit_display": last_visit_display,
         "programs": programs,
@@ -524,6 +554,50 @@ def get_customer_detail(
         "lifetime_rewards_redeemed": lifetime_rewards_redeemed,
         "lifetime_avg_basket_size": lifetime_avg_basket_size,
     }
+
+
+@router.get("/{merchant_id}/analytics", response_model=dict)
+def get_merchant_analytics_endpoint(
+    merchant_id: UUID,
+    period: str = "this_month",
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants or merchants[0].id != merchant_id:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+
+    return get_merchant_analytics(db, merchant_id, period)
+
+
+@router.get("/{merchant_id}/analytics/customers")
+def get_top_customers_endpoint(
+    merchant_id: UUID,
+    period: str = "this_month",
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    from ...services.auth import get_user_by_email
+    from ...services.merchant import get_merchants_by_owner
+
+    user = get_user_by_email(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    merchants = get_merchants_by_owner(db, user.id)
+    if not merchants or merchants[0].id != merchant_id:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+
+    customers = get_top_customers(db, merchant_id, period, limit)
+    return {"customers": customers}
 
 
 # Merchant rewards

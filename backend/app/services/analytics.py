@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Dict, List, Tuple, TypedDict
 from uuid import UUID
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, desc
 from sqlalchemy.orm import Session
 
 from ..models.merchant import Merchant
@@ -14,6 +14,7 @@ from ..models.merchant_settings import MerchantSettings
 from ..models.loyalty_program import LoyaltyProgram
 from ..models.reward import Reward, RewardStatus
 from ..models.stamp import Stamp
+from ..models.user import User
 from .merchant_settings import get_merchant_settings as load_merchant_settings
 
 
@@ -130,9 +131,14 @@ def get_aggregates(
 
     redemptions = db.query(func.count(Reward.id)).filter(*reward_filters).scalar() or 0
 
-    program_names = {
-        program.id: program.name
-        for program in db.query(LoyaltyProgram.id, LoyaltyProgram.name)
+    program_details = {
+        program.id: {
+            "name": program.name,
+            "created_at": program.created_at,
+            "expires_at": program.expires_at,
+            "reward_expiry_days": program.reward_expiry_days,
+        }
+        for program in db.query(LoyaltyProgram.id, LoyaltyProgram.name, LoyaltyProgram.created_at, LoyaltyProgram.expires_at, LoyaltyProgram.reward_expiry_days)
         .filter(LoyaltyProgram.merchant_id == merchant_id)
         .all()
     }
@@ -150,9 +156,13 @@ def get_aggregates(
         .all()
     )
     for row in visit_rows:
+        details = program_details.get(row.program_id, {"name": "Programme", "created_at": None, "expires_at": None, "reward_expiry_days": None})
         program_stats[row.program_id] = {
             "programId": str(row.program_id),
-            "name": program_names.get(row.program_id, "Programme"),
+            "name": details["name"],
+            "created_at": details["created_at"].isoformat() if details["created_at"] else None,
+            "expires_at": details["expires_at"].isoformat() if details["expires_at"] else None,
+            "reward_expiry_days": details["reward_expiry_days"],
             "visits": int(row.visits or 0),
             "customersActive": int(row.customers or 0),
             "redemptions": 0,
@@ -168,11 +178,15 @@ def get_aggregates(
         .all()
     )
     for row in redemption_rows:
+        details = program_details.get(row.program_id, {"name": "Programme", "created_at": None, "expires_at": None, "reward_expiry_days": None})
         bucket = program_stats.setdefault(
             row.program_id,
             {
                 "programId": str(row.program_id),
-                "name": program_names.get(row.program_id, "Programme"),
+                "name": details["name"],
+                "created_at": details["created_at"].isoformat() if details["created_at"] else None,
+                "expires_at": details["expires_at"].isoformat() if details["expires_at"] else None,
+                "reward_expiry_days": details["reward_expiry_days"],
                 "visits": 0,
                 "customersActive": 0,
                 "redemptions": 0,
@@ -235,6 +249,7 @@ def compute_metrics(
                 "customersActive": program["customersActive"],
                 "visits": program["visits"],
                 "redemptions": program["redemptions"],
+                "expiresAt": program.get("expires_at"),
                 "baselineVisits": baseline_prog,
                 "estimatedExtraVisits": extra_prog,
                 "estimatedExtraRevenueKES": revenue_prog,
@@ -308,7 +323,60 @@ def get_top_customers(
     period: str = Period.THIS_MONTH,
     limit: int = 10,
 ) -> List[Dict[str, Any]]:
-    """
-    Placeholder implementation until detailed customer analytics are implemented.
-    """
-    return []
+    window = get_window(period)
+    start = window["start"]
+    end = window["end"]
+
+    visit_rows_subquery = (
+        db.query(
+            Stamp.customer_id.label("customer_id"),
+            func.count(Stamp.id).label("visits"),
+        )
+        .filter(
+            Stamp.merchant_id == merchant_id,
+            Stamp.issued_at >= start,
+            Stamp.issued_at < end,
+        )
+        .group_by(Stamp.customer_id)
+        .subquery()
+    )
+
+    rows = (
+        db.query(
+            visit_rows_subquery.c.customer_id,
+            visit_rows_subquery.c.visits,
+            User.name,
+            User.email,
+        )
+        .join(User, User.id == visit_rows_subquery.c.customer_id)
+        .order_by(desc(visit_rows_subquery.c.visits))
+        .limit(limit)
+        .all()
+    )
+
+    if not rows:
+        return []
+
+    settings, _ = get_settings(db, merchant_id)
+    baseline = settings.get("baseline_per_customer", 0.0) or 0.0
+    avg_spend = settings.get("avg_spend", 0.0) or 0.0
+
+    customers: List[Dict[str, Any]] = []
+    for row in rows:
+        visits = int(row.visits or 0)
+        baseline_visits = baseline
+        extra_visits = max(0.0, visits - baseline_visits)
+        estimated_revenue = extra_visits * avg_spend
+        display_name = row.name or (row.email.split("@")[0] if row.email else "Customer")
+        customers.append(
+            {
+                "email": row.email,
+                "name": display_name,
+                "visits": visits,
+                "baselineVisitsEstimate": round(baseline_visits, 2),
+                "extraVisits": round(extra_visits, 2),
+                "estimatedRevenueKES": round(estimated_revenue, 2),
+            }
+        )
+
+    return customers

@@ -20,6 +20,7 @@ from ..models import (
     RewardStatus,
     Stamp,
 )
+from .customer_stats_service import update_visit_stats, update_reward_redeemed
 
 
 def _as_utc(value: datetime | None) -> datetime | None:
@@ -331,6 +332,9 @@ def issue_stamp(
     if stamps_count >= program.stamps_required:
         transition_reward_to_redeemable(db, reward=reward, program=program)
 
+    # Update customer stats
+    update_visit_stats(db, enrollment.customer_user_id)
+
     db.commit()
     db.refresh(stamp)
     db.refresh(enrollment)
@@ -378,6 +382,9 @@ def redeem_reward(
     program = db.query(LoyaltyProgram).filter(LoyaltyProgram.id == reward.program_id).first()
     if enrollment and program:
         _start_next_cycle_if_allowed(db, enrollment=enrollment, program=program)
+
+    # Update customer stats
+    update_reward_redeemed(db, reward.customer_id)
 
     db.commit()
     db.refresh(reward)

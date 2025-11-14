@@ -44,6 +44,10 @@ type Engagement = {
 type Program = {
   programId: string
   name: string
+  created_at?: string | null
+  expires_at?: string | null
+  expiresAt?: string | null
+  reward_expiry_days?: number | null
   customersActive: number
   visits: number
   redemptions: number
@@ -64,12 +68,20 @@ type AnalyticsData = {
 }
 
 type TopCustomer = {
-  customerId: string
+  customerId?: string
+  email?: string
   name: string
   visits: number
   baselineVisitsEstimate: number
   extraVisits: number
   estimatedRevenueKES: number
+}
+
+const formatExpiry = (value?: string | null) => {
+  if (!value) return 'No expiry'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 const Analytics = () => {
@@ -256,11 +268,13 @@ const Analytics = () => {
             </thead>
             <tbody>
               {topCustomers.slice(0, 10).map((customer) => (
-                <tr key={customer.customerId}>
+                <tr key={customer.customerId ?? customer.email ?? customer.name}>
                   <td>
                     <div className="flex flex-col">
                       <Text fw={600}>{customer.name}</Text>
-                      <Text size="xs" c="dimmed">{customer.customerId}</Text>
+                      {customer.email && (
+                        <Text size="xs" c="dimmed">{customer.email}</Text>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -315,9 +329,17 @@ const Analytics = () => {
                     <div className="flex flex-col">
                       <Text fw={600}>{program.name}</Text>
                       <Text size="xs" c="dimmed">
-                        {program.programId}
+                        ID: {program.programId}
                       </Text>
+                      {program.created_at && (
+                        <Text size="xs" c="dimmed">
+                          Created: {new Date(program.created_at).toLocaleDateString()}
+                        </Text>
+                      )}
                     </div>
+                  </td>
+                  <td>
+                    <Text fw={600}>{formatExpiry(program.expires_at ?? program.expiresAt)}</Text>
                   </td>
                   <td>
                     <Text fw={600}>{program.customersActive}</Text>

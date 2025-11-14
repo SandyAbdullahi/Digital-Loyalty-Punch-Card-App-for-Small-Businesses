@@ -31,6 +31,7 @@ class LoyaltyProgram(Base):
     allow_repeat_cycles: Mapped[bool] = mapped_column(Boolean, default=True, nullable=True)
     max_redemptions_per_day: Mapped[int] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now(), nullable=True)
 

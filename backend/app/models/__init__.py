@@ -1,6 +1,7 @@
 # from .analytics_snapshot import AnalyticsSnapshot
 from .audit_log import AuditLog
 from .customer_program_membership import CustomerProgramMembership, JoinedVia
+from .customer_stats import CustomerStats
 from .ledger_entry import LedgerEntry, LedgerEntryType
 from .location import Location
 from .loyalty_program import LoyaltyProgram
