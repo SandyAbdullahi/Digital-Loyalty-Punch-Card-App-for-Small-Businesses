@@ -4,10 +4,11 @@ import shutil
 from pathlib import Path
 from typing import List
 from uuid import UUID, uuid4
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Form, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from ...db.session import get_db
 from ...api.deps import get_current_user
@@ -33,7 +34,7 @@ from ...schemas.merchant import Merchant, MerchantCreate, MerchantUpdate
 from ...schemas.location import Location, LocationCreate, LocationUpdate
 from ...schemas.reward import RedeemCodeConfirm, StampIssueRequest, RedeemRequest
 from ...schemas.merchant_settings import MerchantSettings, MerchantSettingsCreate, MerchantSettingsUpdate
-from ...models.ledger_entry import LedgerEntry
+from ...models.ledger_entry import LedgerEntry, LedgerEntryType
 from ...models.reward import Reward as RewardModel, RewardStatus
 from ...models.customer_program_membership import CustomerProgramMembership
 from ...models.loyalty_program import LoyaltyProgram
@@ -431,6 +432,30 @@ def get_customer_detail(
         .all()
     )
 
+    total_visits = (
+        db.query(func.count(LedgerEntry.id))
+        .filter(
+            LedgerEntry.merchant_id == merchant.id,
+            LedgerEntry.customer_id == customer_id,
+            LedgerEntry.entry_type == LedgerEntryType.EARN,
+        )
+        .scalar()
+        or 0
+    )
+
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    recent_visits = (
+        db.query(func.count(LedgerEntry.id))
+        .filter(
+            LedgerEntry.merchant_id == merchant.id,
+            LedgerEntry.customer_id == customer_id,
+            LedgerEntry.entry_type == LedgerEntryType.EARN,
+            LedgerEntry.created_at >= thirty_days_ago,
+        )
+        .scalar()
+        or 0
+    )
+
     recent_activity: List[dict] = []
     for entry in ledger_entries:
         entry_type = (
@@ -469,6 +494,17 @@ def get_customer_detail(
             "redeemed": redeemed_total,
             "redeemable": redeemable_total,
             "expired": expired_total,
+        },
+        "insights": {
+            "total_programs": len(programs),
+            "lifetime_visits": total_visits,
+            "visits_last_30_days": recent_visits,
+            "rewards_redeemed": redeemed_total,
+            "rewards_pending": redeemable_total,
+            "rewards_expired": expired_total,
+            "average_stamps_per_program": round(total_stamps / len(programs), 2)
+            if programs
+            else 0,
         },
     }
 

@@ -54,10 +54,21 @@ type RewardSummary = {
   expired: number
 }
 
+type CustomerInsights = {
+  totalPrograms: number
+  lifetimeVisits: number
+  visitsLast30Days: number
+  rewardsRedeemed: number
+  rewardsPending: number
+  rewardsExpired: number
+  averageStampsPerProgram: number
+}
+
 type CustomerDetail = CustomerRecord & {
   redemptionHistory: RedemptionEvent[]
   recentActivity: ActivityEvent[]
   rewardSummary: RewardSummary
+  insights?: CustomerInsights
 }
 
 const Customers = () => {
@@ -379,6 +390,31 @@ const Customers = () => {
           expired: 0,
         }
 
+      const insightsSource = payload.insights ?? payload.customer_insights ?? null
+      const insights: CustomerInsights | undefined = insightsSource
+        ? {
+            totalPrograms: Number(insightsSource.total_programs ?? insightsSource.totalPrograms ?? programs.length ?? 0),
+            lifetimeVisits: Number(insightsSource.lifetime_visits ?? insightsSource.lifetimeVisits ?? 0),
+            visitsLast30Days: Number(
+              insightsSource.visits_last_30_days ?? insightsSource.visitsLast30Days ?? 0
+            ),
+            rewardsRedeemed: Number(
+              insightsSource.rewards_redeemed ?? insightsSource.rewardsRedeemed ?? rewardSummary.redeemed ?? 0
+            ),
+            rewardsPending: Number(
+              insightsSource.rewards_pending ?? insightsSource.rewardsPending ?? rewardSummary.redeemable ?? 0
+            ),
+            rewardsExpired: Number(
+              insightsSource.rewards_expired ?? insightsSource.rewardsExpired ?? rewardSummary.expired ?? 0
+            ),
+            averageStampsPerProgram: Number(
+              insightsSource.average_stamps_per_program ??
+                insightsSource.averageStampsPerProgram ??
+                (programs.length ? (programs.reduce((sum, p) => sum + p.progress, 0) / programs.length).toFixed(2) : 0)
+            ),
+          }
+        : undefined
+
       const normalized: CustomerDetail = {
         id: payload.id ?? customerId,
         name: payload.name ?? selectedCustomer?.name ?? 'Valued Guest',
@@ -394,6 +430,7 @@ const Customers = () => {
         redemptionHistory,
         recentActivity,
         rewardSummary,
+        insights,
       }
 
       detailCacheRef.current[customerId] = normalized
@@ -616,6 +653,31 @@ const Customers = () => {
               </Button>
             </div>
           </div>
+
+          {customerDetail?.insights && (
+            <div className="grid gap-3 rounded-2xl border border-primary/15 bg-surface/60 p-4 sm:grid-cols-3">
+              <div className="rounded-2xl bg-white/80 p-3 shadow-sm">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Lifetime visits</p>
+                <p className="text-xl font-semibold text-foreground">{customerDetail.insights.lifetimeVisits}</p>
+                <p className="text-[11px] text-muted-foreground">+{customerDetail.insights.visitsLast30Days} in last 30 days</p>
+              </div>
+              <div className="rounded-2xl bg-white/80 p-3 shadow-sm">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Avg stamps / program</p>
+                <p className="text-xl font-semibold text-foreground">{customerDetail.insights.averageStampsPerProgram.toFixed(2)}</p>
+                <p className="text-[11px] text-muted-foreground">{customerDetail.insights.totalPrograms} active programs</p>
+              </div>
+              <div className="rounded-2xl bg-white/80 p-3 shadow-sm">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Rewards</p>
+                <p className="text-xl font-semibold text-foreground">
+                  {customerDetail.insights.rewardsRedeemed}
+                  <span className="text-sm text-muted-foreground"> redeemed</span>
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {customerDetail.insights.rewardsPending} pending · {customerDetail.insights.rewardsExpired} expired
+                </p>
+              </div>
+            </div>
+          )}
 
           {customerDetail?.rewardSummary && (
             <div className="grid gap-3 rounded-2xl border border-primary/15 bg-surface/80 p-4 text-sm text-muted-foreground sm:grid-cols-3">
