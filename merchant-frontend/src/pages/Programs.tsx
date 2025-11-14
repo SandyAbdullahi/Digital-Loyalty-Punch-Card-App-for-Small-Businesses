@@ -12,7 +12,7 @@ import {
   Textarea,
 } from '@rudi/ui'
 import { Container, Stack, Group, Text, Loader, Alert, SimpleGrid } from '@mantine/core'
-import { AlertTriangle, BadgeCheck, Calendar, Clock, PenSquare, Trash2 } from 'lucide-react'
+import { AlertTriangle, BadgeCheck, Calendar, Clock, PenSquare, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface Program {
@@ -259,8 +259,8 @@ const Programs = () => {
               placeholder="Search programs"
               style={{ width: 250 }}
             />
-            <Button size="md" onClick={openCreateModal}>
-              + Create Program
+            <Button size="md" variant="filled" leftSection={<Plus size={16} />} onClick={openCreateModal}>
+              Create Program
             </Button>
           </Group>
         </Group>
