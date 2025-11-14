@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Stack, SimpleGrid, Card, Text, Group, Button, Loader, Alert, Title, Paper, Progress, List, ThemeIcon, Badge, DatePicker } from '@mantine/dates';
+import { Container, Stack, SimpleGrid, Card, Text, Group, Button, Loader, Alert, Title, Paper, Progress, List, ThemeIcon, Badge } from '@mantine/core';
 import { useAuth } from '../contexts/AuthContext';
 import StatsCard from '../components/StatsCard';
 import RevenueChart from '../components/RevenueChart';
@@ -57,7 +57,6 @@ const Dashboard = () => {
   const [revenueData, setRevenueData] = useState<RevenueEstimation | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const barPalette = ['#009688', '#FFB300', '#FF6F61', '#3B1F1E', '#7C3AED', '#0EA5E9', '#F97316'];
 
   // Mock data for Neura theme
@@ -254,12 +253,6 @@ const Dashboard = () => {
             <Text size="sm" c="dimmed">Monitor your loyalty programs and customer engagement</Text>
           </div>
           <Group>
-            <DatePicker
-              value={selectedDate}
-              onChange={setSelectedDate}
-              placeholder="Pick a date"
-              size="sm"
-            />
             <Button onClick={() => navigate('/programs')} size="md">
               Create Program
             </Button>
