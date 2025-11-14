@@ -11,7 +11,7 @@ import {
   Textarea,
 } from '@rudi/ui'
 import { Button } from '@mantine/core'
-import { Container, Stack, Group, Text, Loader, Alert, SimpleGrid } from '@mantine/core'
+import { Container, Stack, Group, Text, Loader, SimpleGrid } from '@mantine/core'
 import { AlertTriangle, BadgeCheck, Calendar, Clock, PenSquare, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -27,6 +27,7 @@ interface Program {
   is_active: boolean
   expires_at?: string | null
   stamps_required?: number
+  max_redemptions_per_day?: number
 }
 
 type ProgramFormState = {
@@ -259,9 +260,9 @@ const Programs = () => {
               placeholder="Search programs"
               style={{ width: 250 }}
             />
-            <MantineButton size="md" variant="filled" leftSection={<Plus size={16} />} onClick={openCreateModal}>
+            <Button size="md" variant="filled" leftSection={<Plus size={16} />} onClick={openCreateModal}>
               Create Program
-            </MantineButton>
+            </Button>
           </Group>
         </Group>
 

@@ -120,6 +120,23 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
             }
         )
 
+    for reward, customer_name, customer_email, program_name in reward_entries:
+        stamped_at = reward.redeemed_at or reward.redeem_expires_at or reward.reached_at or datetime.utcnow()
+        items.append(
+            {
+                "id": str(reward.id),
+                "type": "reward",
+                "amount": 1,
+                "customer_name": customer_name,
+                "customer_email": customer_email,
+                "program_name": program_name,
+                "timestamp": stamped_at.isoformat(),
+                "message": "Reward redeemed",
+            }
+        )
+
+    items.sort(key=lambda row: row["timestamp"], reverse=True)
+
     return {
         "items": items,
         "unique_customers": unique_customers,
@@ -145,23 +162,6 @@ def get_scans_last_7_days(db: Session = Depends(get_db), current_user: str = Dep
         )
         .all()
     )
-
-    for reward, customer_name, customer_email, program_name in reward_entries:
-        stamped_at = reward.redeemed_at or reward.redeem_expires_at or reward.reached_at or datetime.utcnow()
-        items.append(
-            {
-                "id": str(reward.id),
-                "type": "reward",
-                "amount": 1,
-                "customer_name": customer_name,
-                "customer_email": customer_email,
-                "program_name": program_name,
-                "timestamp": stamped_at.isoformat(),
-                "message": "Reward redeemed",
-            }
-        )
-
-    items.sort(key=lambda row: row["timestamp"], reverse=True)
 
     for (issued_at,) in entries:
         if issued_at is None:

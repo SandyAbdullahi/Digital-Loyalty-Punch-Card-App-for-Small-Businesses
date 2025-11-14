@@ -187,8 +187,8 @@ const Dashboard = () => {
                   computedMessage = `${amount} ${stampWord} were manually revoked for ${displayName} in ${resolvedProgram}.`;
                 }
               } else if (type === 'reward') {
-                const stampWord = amount === 1 ? 'stamp' : 'stamps';
-                computedMessage = `${amount} ${stampWord} redeemed by ${displayName}.`;
+                const rewardWord = amount === 1 ? 'reward' : 'rewards';
+                computedMessage = `${amount} ${rewardWord} redeemed by ${displayName}.`;
               } else if (type === 'stamp') {
                 const stampWord = amount === 1 ? 'stamp' : 'stamps';
                 computedMessage = `${resolvedProgram} added ${amount} ${stampWord} for ${displayName}.`;
