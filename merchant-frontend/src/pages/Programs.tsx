@@ -11,6 +11,7 @@ import {
   SelectValue,
   Textarea,
 } from '@rudi/ui'
+import { Container, Stack, Group, Text, Loader, Alert, SimpleGrid } from '@mantine/core'
 import { AlertTriangle, BadgeCheck, Calendar, Clock, PenSquare, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -233,40 +234,38 @@ const Programs = () => {
   }
 
   if (loading) {
-    return <div className="py-10 text-sm text-muted-foreground">Loading programs…</div>
+    return (
+      <Container fluid>
+        <Stack align="center" justify="center" style={{ minHeight: '50vh' }}>
+          <Loader size="lg" />
+          <Text size="sm" c="dimmed">Loading programs…</Text>
+        </Stack>
+      </Container>
+    )
   }
 
   return (
-    <div>
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-heading text-3xl font-semibold text-foreground">
-            Loyalty Programs
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Tune your rewards and keep guests coming back for more.
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative">
+    <Container fluid>
+      <Stack gap="lg">
+        <Group justify="space-between" align="flex-start">
+          <div>
+            <Text size="xl" fw={700}>Loyalty Programs</Text>
+            <Text size="sm" c="dimmed">Tune your rewards and keep guests coming back for more.</Text>
+          </div>
+          <Group>
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search programs"
-              className="h-11 rounded-full border-primary/15 bg-card px-4"
+              style={{ width: 250 }}
             />
-          </div>
-          <Button
-            className="btn-primary h-11 rounded-2xl px-5 mb-4"
-            type="button"
-            onClick={openCreateModal}
-          >
-            + Create Program
-          </Button>
-        </div>
-      </header>
+            <Button size="md" onClick={openCreateModal}>
+              + Create Program
+            </Button>
+          </Group>
+        </Group>
 
-      <section className="grid gap-5 lg:grid-cols-2">
+        <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
         {filteredPrograms.map((program, index) => {
           const rewardThreshold =
             program.redeem_rule?.reward_threshold ??
@@ -358,7 +357,7 @@ const Programs = () => {
             </Button>
           </div>
         )}
-      </section>
+        </SimpleGrid>
 
       <style>{`span[data-radix-select-item-indicator]{display:none!important;}`}</style>
       {isModalOpen && (
@@ -617,7 +616,8 @@ const Programs = () => {
           </div>
         </div>
       )}
-    </div>
+      </Stack>
+    </Container>
   )
 }
 

@@ -7,6 +7,9 @@ import {
   Modal,
   TextInput,
   Text,
+  Container,
+  Stack,
+  Group,
 } from '@mantine/core'
 import { useWebSocket } from '../contexts/WebSocketContext'
 
@@ -522,32 +525,32 @@ const Customers = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="font-heading text-3xl font-semibold text-foreground">Customers</h1>
-        <p className="text-sm text-muted-foreground">
-          Search your community of explorers and celebrate their loyalty.
-        </p>
-      </div>
+    <Container fluid>
+      <Stack gap="lg">
+        <div className="text-center">
+          <Text size="xl" fw={700}>Customers</Text>
+          <Text size="sm" c="dimmed">
+            Search your community of explorers and celebrate their loyalty.
+          </Text>
+        </div>
 
-       <div className="flex justify-center gap-4">
+        <Group justify="center" gap="md">
           <TextInput
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search by name or email"
-            className="h-12 w-full max-w-lg rounded-full border-primary/20 bg-card px-5 pt-1 shadow-md"
+            style={{ width: 300 }}
           />
           <Button
             onClick={fetchCustomers}
-            className="btn-secondary"
             disabled={loading}
           >
             {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
-       </div>
+        </Group>
 
-      <div className="space-y-4">
-        {filteredCustomers.map((customer, index) => (
+        <Stack gap="md">
+          {filteredCustomers.map((customer, index) => (
           <div
             key={customer.id}
             className="card-hover flex items-center justify-between gap-4 rounded-3xl bg-card px-5 py-4 shadow-lg animate-slide-up"
@@ -592,9 +595,9 @@ const Customers = () => {
             </p>
           </div>
         )}
-      </div>
+        </Stack>
 
-      <Modal opened={Boolean(selectedCustomer)} onClose={() => setSelectedCustomer(null)} title={detailSource?.name} size="xl">
+        <Modal opened={Boolean(selectedCustomer)} onClose={() => setSelectedCustomer(null)} title={detailSource?.name} size="xl">
         <div className="space-y-5">
           <div className="flex items-center gap-4">
             {detailSource?.avatar ? (
@@ -812,8 +815,8 @@ const Customers = () => {
         >
           {toast.message}
         </div>
-      )}
-    </div>
+        )}
+      </Container>
   )
 }
 
