@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime
 from uuid import UUID
+from decimal import Decimal
 
 from ..models.customer_stats import CustomerStats
 from ..models.user import User
@@ -19,7 +20,7 @@ def get_or_create_customer_stats(db: Session, customer_id: UUID) -> CustomerStat
 def update_visit_stats(db: Session, customer_id: UUID, revenue: float = 0.0):
     stats = get_or_create_customer_stats(db, customer_id)
     stats.total_visits += 1
-    stats.total_revenue += revenue
+    stats.total_revenue += Decimal(str(revenue))
     stats.last_visit_at = datetime.utcnow()
     stats.updated_at = datetime.utcnow()
     db.commit()

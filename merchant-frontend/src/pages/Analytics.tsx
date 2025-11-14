@@ -78,7 +78,7 @@ type TopCustomer = {
 }
 
 const formatExpiry = (value?: string | null) => {
-  if (!value) return 'No expiry'
+  if (!value) return 'Never'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
@@ -313,6 +313,7 @@ const Analytics = () => {
             <thead>
               <tr>
                 <th>Program</th>
+                <th>Expires</th>
                 <th>Customers Active</th>
                 <th>Visits</th>
                 <th>Redemptions</th>

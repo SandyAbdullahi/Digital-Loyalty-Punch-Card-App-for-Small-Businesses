@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Stack, SimpleGrid, Card, Text, Group, Button, Loader, Alert } from '@mantine/core';
 import { useAuth } from '../contexts/AuthContext';
+import { useWebSocket } from '../contexts/WebSocketContext';
 import StatsCard from '../components/StatsCard';
 import RevenueChart from '../components/RevenueChart';
 
@@ -49,6 +50,7 @@ type RevenueEstimation = {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { merchant } = useAuth();
+  const { lastMessage } = useWebSocket();
   const [summary, setSummary] = useState<SummaryMetric[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [chartData, setChartData] = useState<number[]>([]);
@@ -222,6 +224,82 @@ const Dashboard = () => {
 
     fetchSnapshot();
   }, []);
+
+  // Handle WebSocket messages for real-time activity updates
+  useEffect(() => {
+    if (lastMessage && (lastMessage.type === 'customer_stamp_update' || lastMessage.type === 'reward_redeemed')) {
+      // Refetch recent activity when stamp or reward updates occur
+      const fetchActivity = async () => {
+        try {
+          const activityResponse = await axios.get('/api/v1/analytics/recent-activity');
+          const records = activityResponse.data.items ?? [];
+          setActivity(
+            records.slice(0, 5).map((item: any, index: number) => {
+              const type = (item.type as ActivityItem['type']) ?? 'stamp';
+              const customerName: string | undefined =
+                typeof item.customer_name === 'string' && item.customer_name.trim().length > 0
+                  ? item.customer_name.trim()
+                  : undefined;
+              const customerEmail: string | undefined =
+                typeof item.customer_email === 'string' && item.customer_email.trim().length > 0
+                  ? item.customer_email.trim()
+                  : undefined;
+              const programName: string | undefined =
+                typeof item.program_name === 'string' && item.program_name.trim().length > 0
+                  ? item.program_name.trim()
+                  : undefined;
+              const rawAmount = Number(item.amount ?? 0);
+              const amount = type === 'manual_revoke' ? Math.abs(rawAmount) : rawAmount;
+              const displayName = customerName ?? customerEmail ?? 'Customer';
+              const resolvedProgram = programName ?? 'Programme';
+              let computedMessage = 'Activity recorded';
+
+              if (type === 'manual_issue') {
+                if (typeof item.message === 'string' && item.message.trim().length > 0) {
+                  computedMessage = item.message;
+                } else {
+                  const stampWord = amount === 1 ? 'stamp' : 'stamps';
+                  computedMessage = `${resolvedProgram} manually added ${amount} ${stampWord} for ${displayName}.`;
+                }
+              } else if (type === 'manual_revoke') {
+                if (typeof item.message === 'string' && item.message.trim().length > 0) {
+                  computedMessage = item.message;
+                } else {
+                  const stampWord = amount === 1 ? 'stamp' : 'stamps';
+                  computedMessage = `${amount} ${stampWord} were manually revoked for ${displayName} in ${resolvedProgram}.`;
+                }
+              } else if (type === 'reward') {
+                const rewardWord = amount === 1 ? 'reward' : 'rewards';
+                computedMessage = `${amount} ${rewardWord} redeemed by ${displayName}.`;
+              } else if (type === 'stamp') {
+                const stampWord = amount === 1 ? 'stamp' : 'stamps';
+                computedMessage = `${resolvedProgram} added ${amount} ${stampWord} for ${displayName}.`;
+              } else if (typeof item.message === 'string') {
+                computedMessage = item.message;
+              }
+
+              return {
+                id: item.id ?? `activity-${index}`,
+                type,
+                message: computedMessage,
+                timestamp: item.timestamp
+                  ? new Date(item.timestamp).toLocaleString()
+                  : new Date().toLocaleString(),
+                customer_name: customerName,
+                customer_email: customerEmail,
+                program_name: programName,
+                amount: amount,
+              };
+            })
+          );
+        } catch (error) {
+          console.error('Failed to refetch activity:', error);
+        }
+      };
+
+      fetchActivity();
+    }
+  }, [lastMessage]);
 
   return (
     <Container fluid>
