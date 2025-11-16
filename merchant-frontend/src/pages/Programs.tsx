@@ -11,7 +11,7 @@ import {
   Textarea,
 } from '@rudi/ui'
 import { Button } from '@mantine/core'
-import { Container, Stack, Group, Text, Loader, SimpleGrid } from '@mantine/core'
+import { Container, Stack, Group, Text, Loader, SimpleGrid, Alert } from '@mantine/core'
 import { AlertTriangle, BadgeCheck, Calendar, Clock, PenSquare, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -64,6 +64,7 @@ const statusBadge = (isActive: boolean) =>
 const Programs = () => {
   const [programs, setPrograms] = useState<Program[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [editingProgram, setEditingProgram] = useState<Program | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -90,11 +91,14 @@ const Programs = () => {
   }, [isModalOpen])
 
   const fetchPrograms = async () => {
+    setError(null)
     try {
       const response = await axios.get<Program[]>('/api/v1/programs/')
       setPrograms(response.data)
     } catch (error) {
       console.error('Failed to fetch programs', error)
+      setError('Failed to load programs. Please check your connection and try again.')
+      setPrograms([])
     } finally {
       setLoading(false)
     }
@@ -265,6 +269,12 @@ const Programs = () => {
             </Button>
           </Group>
         </Group>
+
+        {error && (
+          <Alert color="red" variant="light">
+            {error}
+          </Alert>
+        )}
 
         <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
         {filteredPrograms.map((program, index) => {

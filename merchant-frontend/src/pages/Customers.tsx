@@ -91,6 +91,7 @@ const Customers = () => {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'info'; message: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [customerDetail, setCustomerDetail] = useState<CustomerDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const { lastMessage } = useWebSocket()
@@ -204,6 +205,7 @@ const Customers = () => {
 
   const fetchCustomers = async () => {
     setLoading(true)
+    setError(null)
     try {
       const response = await axios.get('/api/v1/merchants/customers')
       if (Array.isArray(response.data)) {
@@ -211,6 +213,7 @@ const Customers = () => {
       }
      } catch (error) {
        console.error('Failed to fetch customers', error)
+       setError('Failed to load customers. Please check your connection and try again.')
        setCustomers([])
      } finally {
        setLoading(false)
@@ -679,6 +682,12 @@ const Customers = () => {
             {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
         </Group>
+
+        {error && (
+          <Alert color="red" variant="light">
+            {error}
+          </Alert>
+        )}
 
         <Stack gap="md">
           {filteredCustomers.map((customer, index) => (

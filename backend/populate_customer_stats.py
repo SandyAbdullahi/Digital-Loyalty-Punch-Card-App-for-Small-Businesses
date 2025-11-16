@@ -5,6 +5,7 @@ Script to populate CustomerStats for existing customers based on ledger entries.
 
 import sys
 import os
+from decimal import Decimal
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from sqlalchemy.orm import Session
@@ -38,7 +39,7 @@ def populate_customer_stats():
             ).scalar() or 0
 
             # Sum revenue (currently 0.0 as placeholder)
-            total_revenue = 0.0
+            total_revenue = Decimal('0.0')
 
             # Count redeemed rewards
             total_rewards_redeemed = db.query(func.count(Reward.id)).filter(

@@ -281,20 +281,20 @@ export const applyTheme = (theme?: Partial<ThemeSettingsPayload>) => {
   const root = document.documentElement
 
   const isDark = normalized.theme_mode === 'dark'
-  const background = isDark ? '#050505' : normalized.theme_background_color
-  const foreground = isDark ? '#F8FAFC' : '#1A1A1A'
-  const card = isDark ? '#0F0F12' : '#FFFFFF'
-  const cardForeground = isDark ? '#FFFFFF' : '#1A1A1A'
-  const surface = isDark ? '#0B0B10' : '#FFFFFF'
-  const surfaceMuted = isDark ? '#13131A' : '#F5F6FA'
-  const surfaceContrast = isDark ? '#050505' : '#FDFDFD'
+  const background = isDark ? '#05060A' : normalized.theme_background_color
+  const foreground = isDark ? '#F7F9FC' : '#1A1A1A'
+  const card = isDark ? '#101322' : '#FFFFFF'
+  const cardForeground = isDark ? '#F7F9FC' : '#1A1A1A'
+  const surface = isDark ? '#0B0E19' : '#FFFFFF'
+  const surfaceMuted = isDark ? '#161A2C' : '#F5F6FA'
+  const surfaceContrast = isDark ? '#05060A' : '#FDFDFD'
   const popover = card
   const popoverForeground = cardForeground
-  const muted = isDark ? '#1A1B1F' : '#EDEDED'
-  const mutedForeground = isDark ? '#D5D5D5' : '#5A5A5A'
-  const border = isDark ? '#27282E' : '#E6E6E6'
-  const input = isDark ? '#141419' : '#E6E6E6'
-  const inputForeground = isDark ? '#F8FAFC' : '#1A1A1A'
+  const muted = isDark ? '#1F2334' : '#EDEDED'
+  const mutedForeground = isDark ? '#D7DBE7' : '#5A5A5A'
+  const border = isDark ? '#2B3044' : '#E6E6E6'
+  const input = isDark ? '#15192A' : '#E6E6E6'
+  const inputForeground = isDark ? '#F7F9FC' : '#1A1A1A'
   const sidebarBlend = isDark ? 0.35 : 0.65
   let sidebar = blendColors(normalized.theme_primary_color, background, sidebarBlend)
   sidebar = ensureSidebarShade(sidebar, isDark)

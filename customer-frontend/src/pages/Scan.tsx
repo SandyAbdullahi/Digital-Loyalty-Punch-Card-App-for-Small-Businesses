@@ -16,6 +16,7 @@ const Scan = () => {
   const [showNotification, setShowNotification] = useState(false);
   const prefersReducedMotionRef = useRef(false);
   const confettiIntervalRef = useRef<number | null>(null);
+  const [cameraHint, setCameraHint] = useState<string | null>(null);
 
   const handleCloseNotification = () => {
     setShowNotification(false);
@@ -137,6 +138,27 @@ const Scan = () => {
   useEffect(() => {
     if (!videoRef.current) return;
 
+    if (typeof window !== 'undefined') {
+      if (!window.isSecureContext) {
+        setCameraHint(
+          'Camera access is blocked on this connection. Most mobile browsers only allow scanning over HTTPS or localhost.'
+        );
+      } else if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraHint('This browser does not support camera access for QR scanning.');
+      } else {
+        setCameraHint(null);
+      }
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
+      setStatus('error');
+      setMessage(
+        'We could not access your camera. Please use a secure (https) connection or the Rudi app on this device.'
+      );
+      setShowNotification(true);
+      return;
+    }
+
     const qrScanner = new QrScanner(
       videoRef.current,
       (result) => {
@@ -153,6 +175,7 @@ const Scan = () => {
     qrScanner.start().catch((err) => {
       setStatus('error');
       setMessage(err?.message ?? 'Unable to access camera.');
+      setShowNotification(true);
     });
 
     return () => {
@@ -204,7 +227,12 @@ const Scan = () => {
       </header>
       <section className="flex-1 px-4 pb-16 flex flex-col items-center justify-center gap-6 max-w-md mx-auto">
         <div className="relative w-full max-w-[286px] aspect-[3/4] rounded-[32px] bg-black overflow-hidden">
-          <video ref={videoRef} className="h-full w-full object-cover opacity-80" />
+          <video
+            ref={videoRef}
+            className="h-full w-full object-cover opacity-80"
+            playsInline
+            muted
+          />
           <div className="absolute inset-0 border-4 border-transparent">
             <div className="absolute top-6 left-6 w-14 h-14 border-4 border-rudi-coolblue rounded-tl-[32px]" />
             <div className="absolute top-6 right-6 w-14 h-14 border-4 border-rudi-coolblue rounded-tr-[32px]" />
@@ -217,6 +245,11 @@ const Scan = () => {
           <p className="text-sm text-[var(--rudi-text)]/70">
             We&apos;ll confirm your visit with the merchant automatically.
           </p>
+          {cameraHint && (
+            <p className="text-xs text-red-500 mt-1 px-4">
+              {cameraHint}
+            </p>
+          )}
         </div>
         {showNotification && status !== 'idle' && (
           <Notification

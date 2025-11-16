@@ -1161,6 +1161,8 @@ def delete_customer(
     from ...services.auth import get_user_by_email
     from ...services.merchant import get_merchants_by_owner
     from ...models.customer_program_membership import CustomerProgramMembership
+    from ...models.redeem_code import RedeemCode
+    from ...models.ledger_entry import LedgerEntry
 
     # Verify merchant
     user = get_user_by_email(db, current_user)
@@ -1181,10 +1183,14 @@ def delete_customer(
     # Delete related records first to avoid foreign key constraint violations
     membership_ids = [m.id for m in memberships]
     if membership_ids:
-        # Delete redeem codes
-        db.query(RedeemCode).filter(RedeemCode.membership_id.in_(membership_ids)).delete()
+        # Delete rewards for these enrollments
+        db.query(RedeemCode).filter(RedeemCode.enrollment_id.in_(membership_ids)).delete(
+            synchronize_session=False
+        )
         # Delete ledger entries
-        db.query(LedgerEntry).filter(LedgerEntry.membership_id.in_(membership_ids)).delete()
+        db.query(LedgerEntry).filter(LedgerEntry.membership_id.in_(membership_ids)).delete(
+            synchronize_session=False
+        )
 
     # Now delete the memberships
     for membership in memberships:

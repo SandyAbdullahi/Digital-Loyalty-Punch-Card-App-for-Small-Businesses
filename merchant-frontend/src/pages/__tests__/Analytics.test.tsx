@@ -3,6 +3,7 @@ import { MantineProvider } from '@mantine/core'
 import axios from 'axios'
 import Analytics from '../Analytics'
 import { describe, it, beforeEach, vi, expect } from 'vitest'
+import { mantineTheme } from '../../theme/mantineTheme'
 
 vi.mock('axios')
 
@@ -29,7 +30,7 @@ const mockedAxios = axios as vi.Mocked<typeof axios>
 
 const renderWithProviders = () =>
   render(
-    <MantineProvider>
+    <MantineProvider theme={mantineTheme} defaultColorScheme="light" forceColorScheme="light">
       <Analytics />
     </MantineProvider>
   )

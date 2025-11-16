@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -91,7 +92,7 @@ def test_get_customer_detail_returns_lifetime_metrics(client: TestClient, db: Se
     customer_stats = CustomerStats(
         customer_id=customer.id,
         total_visits=3,
-        total_revenue=0.0,
+        total_revenue=Decimal('0.0'),
         rewards_redeemed=1,
     )
     db.add(customer_stats)

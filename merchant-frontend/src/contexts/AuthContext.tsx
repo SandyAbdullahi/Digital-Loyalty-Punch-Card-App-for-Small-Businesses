@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import axios from 'axios'
 import { applyTheme, extractThemeFromSettings } from '../utils/theme'
 
@@ -54,28 +54,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token')
-    const storedUser = localStorage.getItem('user')
-    const storedMerchant = localStorage.getItem('merchant')
-    const storedTheme = localStorage.getItem('merchantTheme')
-    if (storedToken) {
-      setToken(storedToken)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
-      if (storedUser) {
-        setUser(JSON.parse(storedUser))
+    try {
+      const storedToken = localStorage.getItem('token')
+      const storedUser = localStorage.getItem('user')
+      const storedMerchant = localStorage.getItem('merchant')
+      const storedTheme = localStorage.getItem('merchantTheme')
+
+      if (storedToken) {
+        setToken(storedToken)
+        axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
+        if (storedUser) {
+          try {
+            setUser(JSON.parse(storedUser))
+          } catch {
+            // ignore bad user JSON
+          }
+        }
+        if (storedMerchant) {
+          try {
+            setMerchant(JSON.parse(storedMerchant))
+          } catch {
+            // ignore bad merchant JSON
+          }
+        }
       }
-      if (storedMerchant) {
-        setMerchant(JSON.parse(storedMerchant))
+
+      if (storedTheme) {
+        try {
+          applyTheme(JSON.parse(storedTheme))
+        } catch {
+          // ignore invalid theme
+        }
       }
+    } finally {
+      setLoading(false)
     }
-    if (storedTheme) {
-      try {
-        applyTheme(JSON.parse(storedTheme))
-      } catch {
-        // ignore invalid theme
-      }
-    }
-    setLoading(false)
   }, [])
 
   const loadAndApplyTheme = async (merchantId: string) => {
@@ -169,17 +182,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }
 
-  const updateUser = (newUser: User) => {
+  const updateUser = useCallback((newUser: User) => {
     setUser(newUser)
     localStorage.setItem('user', JSON.stringify(newUser))
-  }
+  }, [])
 
-  const updateMerchant = (newMerchant: Merchant) => {
+  const updateMerchant = useCallback((newMerchant: Merchant) => {
     setMerchant(newMerchant)
     localStorage.setItem('merchant', JSON.stringify(newMerchant))
-  }
+  }, [])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null)
     setMerchant(null)
     setToken(null)
@@ -187,7 +200,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem('user')
     localStorage.removeItem('merchant')
     delete axios.defaults.headers.common['Authorization']
-  }
+  }, [])
 
   return (
     <AuthContext.Provider value={{ user, merchant, token, login, register, logout, updateUser, updateMerchant, loading }}>

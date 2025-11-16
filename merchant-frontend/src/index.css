@@ -106,8 +106,16 @@
     background-color: var(--card) !important;
     color: var(--card-foreground) !important;
   }
+  [data-theme-mode='dark'] [class*="bg-white/"] {
+    background-color: var(--card) !important;
+    color: var(--card-foreground) !important;
+  }
 
   [data-theme-mode='dark'] [class*="text-black"] {
+    color: var(--foreground) !important;
+  }
+  [data-theme-mode='dark'] [class*="text-gray-800"],
+  [data-theme-mode='dark'] [class*="text-gray-900"] {
     color: var(--foreground) !important;
   }
 
