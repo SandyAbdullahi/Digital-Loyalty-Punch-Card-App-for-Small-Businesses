@@ -67,7 +67,7 @@ const TopBar = ({ onToggleSidebar }: TopBarProps) => {
           </DropdownMenuLabel>
           <DropdownMenuItem
             className="rounded-lg text-sm font-medium text-white hover:bg-primary/80 hover:text-black cursor-pointer"
-            onSelect={(event) => {
+            onSelect={(event: Event) => {
               event.preventDefault()
               navigate('/settings')
             }}
@@ -77,7 +77,7 @@ const TopBar = ({ onToggleSidebar }: TopBarProps) => {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="rounded-lg text-sm font-medium text-white hover:bg-primary/80 hover:text-black cursor-pointer"
-            onSelect={(event) => {
+            onSelect={(event: Event) => {
               event.preventDefault()
               logout()
             }}

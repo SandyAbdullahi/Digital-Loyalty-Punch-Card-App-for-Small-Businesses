@@ -5,7 +5,7 @@ const About = () => {
     <div className="min-h-screen bg-rudi-sand py-xl">
       <Container size="lg">
         <Stack gap="xl">
-          <Title order={1} size="3rem" align="center" className="font-heading text-rudi-maroon">
+          <Title order={1} className="font-heading text-rudi-maroon text-4xl sm:text-5xl text-center">
             About Rudi
           </Title>
           <Grid gutter="xl" align="center">
@@ -22,13 +22,13 @@ const About = () => {
               />
             </Grid.Col>
           </Grid>
-          <Title order={2} size="2rem" className="font-heading text-rudi-maroon">
+          <Title order={2} className="font-heading text-rudi-maroon text-3xl">
             Our Story
           </Title>
           <Text size="md" className="text-rudi-maroon/80">
             Founded in 2023, Rudi was born from the idea that every business deserves powerful tools to build lasting customer relationships. We saw how complex and expensive loyalty systems were holding back small and medium businesses, so we created a simple, affordable solution.
           </Text>
-          <Title order={2} size="2rem" className="font-heading text-rudi-maroon">
+          <Title order={2} className="font-heading text-rudi-maroon text-3xl">
             Our Values
           </Title>
           <Grid gutter="lg">

@@ -8,8 +8,8 @@ const Contact = () => {
     message: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     // Handle form submission
     alert('Thank you for your message! We\'ll get back to you soon.');
     setFormData({ name: '', email: '', message: '' });
@@ -19,10 +19,10 @@ const Contact = () => {
     <div className="min-h-screen bg-rudi-sand py-xl">
       <Container size="md">
         <Stack gap="xl">
-          <Title order={1} size="3rem" align="center" className="font-heading text-rudi-maroon">
+          <Title order={1} className="font-heading text-rudi-maroon text-4xl sm:text-5xl text-center">
             Contact Us
           </Title>
-          <Text size="lg" align="center" className="text-rudi-maroon/80">
+          <Text size="lg" className="text-rudi-maroon/80 text-center">
             Have questions? We'd love to hear from you.
           </Text>
           <Card shadow="sm" padding="lg" radius="md" className="bg-white">

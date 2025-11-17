@@ -372,7 +372,7 @@ const ProgramDetail = () => {
   const redeemAmount = isPointsProgram ? customRedeemAmount : maxRedeemAmount;
   const canRedeem = isPointsProgram
     ? membership.current_balance >= redeemAmount && redeemAmount > 0
-    : rewardState?.reward.status === 'redeemable';
+    : rewardState?.reward?.status === 'redeemable';
   const merchant = membership.program?.merchant;
   const merchantDisplayName =
     merchant?.display_name ?? merchant?.legal_name ?? merchant?.id ?? 'Unknown Merchant';

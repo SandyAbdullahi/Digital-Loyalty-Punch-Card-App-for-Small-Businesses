@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { ColorScheme } from '@mantine/core'
+
+type ColorScheme = 'light' | 'dark'
 
 const getDocumentColorScheme = (): ColorScheme => {
   if (typeof document === 'undefined') {
@@ -18,7 +19,7 @@ export const useDocumentColorScheme = () => {
     }
     const observer = new MutationObserver(() => {
       const next = getDocumentColorScheme()
-      setColorScheme((prev) => (prev === next ? prev : next))
+      setColorScheme((prev: ColorScheme) => (prev === next ? prev : next))
     })
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme-mode'] })
     return () => observer.disconnect()

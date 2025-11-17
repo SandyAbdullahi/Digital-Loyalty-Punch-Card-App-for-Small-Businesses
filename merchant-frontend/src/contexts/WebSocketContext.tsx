@@ -80,7 +80,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
               timestamp: new Date().toISOString(),
               read: false
             }
-            setRedeemNotifications(prev => [notification, ...prev])
+            setRedeemNotifications((prev: RedeemNotification[]) => [notification, ...prev])
           }
         } catch (error) {
           console.error('Failed to parse merchant WebSocket message:', error)
@@ -125,8 +125,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   }
 
   const markRedeemNotificationAsRead = (notificationId: string) => {
-    setRedeemNotifications(prev =>
-      prev.map(notification =>
+    setRedeemNotifications((prev: RedeemNotification[]) =>
+      prev.map((notification: RedeemNotification) =>
         notification.id === notificationId
           ? { ...notification, read: true }
           : notification

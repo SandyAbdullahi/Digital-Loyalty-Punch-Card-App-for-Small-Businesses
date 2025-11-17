@@ -106,7 +106,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => (
     <div className="fixed inset-y-0 z-40 hidden w-60 lg:block">
       <SidebarContent />
     </div>
-    <Dialog open={isOpen} onOpenChange={(open) => (!open ? onClose() : undefined)}>
+    <Dialog open={isOpen} onOpenChange={(open: boolean) => (!open ? onClose() : undefined)}>
       <DialogContent className="border-none bg-transparent p-0 shadow-none sm:max-w-none">
         <DialogTitle className="sr-only">Navigation</DialogTitle>
         <DialogDescription className="sr-only">Merchant navigation menu</DialogDescription>
