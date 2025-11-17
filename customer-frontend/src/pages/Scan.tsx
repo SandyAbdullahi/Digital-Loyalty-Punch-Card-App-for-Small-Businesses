@@ -138,8 +138,10 @@ const Scan = () => {
   useEffect(() => {
     if (!videoRef.current) return;
 
+    const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+
     if (typeof window !== 'undefined') {
-      if (!window.isSecureContext) {
+      if (!window.isSecureContext && !isCapacitor) {
         setCameraHint(
           'Camera access is blocked on this connection. Most mobile browsers only allow scanning over HTTPS or localhost.'
         );
@@ -150,10 +152,14 @@ const Scan = () => {
       }
     }
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia ||
+      (!window.isSecureContext && !isCapacitor)
+    ) {
       setStatus('error');
       setMessage(
-        'We could not access your camera. Please use a secure (https) connection or the Rudi app on this device.'
+        'We could not access your camera. On the web, use a secure (https) connection. In the Rudi app, please ensure camera permission is granted.'
       );
       setShowNotification(true);
       return;

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: rudi-backend
+    runtime: python
+    rootDir: backend
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      # Set this in the Render dashboard to your production database URL
+      - key: DATABASE_URL
+        sync: false
+      # Optional: set your public frontend origin(s) for CORS
+      - key: BACKEND_CORS_ORIGINS
+        sync: false
+
