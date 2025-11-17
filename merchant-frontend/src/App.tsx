@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import Landing from './pages/Landing'
 import About from './pages/About'
@@ -45,7 +45,7 @@ function App() {
   if (loading) return <div>Loading...</div>
 
   return (
-    <BrowserRouter future={{ v7_startTransition: true }}>
+    <HashRouter future={{ v7_startTransition: true }}>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
@@ -75,7 +75,7 @@ function App() {
           <Route path="/locations" element={<Locations />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 

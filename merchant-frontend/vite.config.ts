@@ -4,6 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Use relative asset paths so the app can be served from a subpath (e.g. GitHub Pages project site)
+  base: './',
   plugins: [
     react(),
     VitePWA({
