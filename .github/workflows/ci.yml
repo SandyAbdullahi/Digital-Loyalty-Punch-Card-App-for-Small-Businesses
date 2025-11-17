@@ -32,6 +32,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build shared UI package
+        working-directory: packages/ui
+        run: |
+          npm ci
+          npm run build
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -67,4 +73,3 @@ jobs:
       - name: Build customer frontend
         working-directory: customer-frontend
         run: npm run build
-
