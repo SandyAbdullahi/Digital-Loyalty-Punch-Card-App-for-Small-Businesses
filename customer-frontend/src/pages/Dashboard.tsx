@@ -8,6 +8,7 @@ import { BottomNav } from '../components/BottomNav';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import ConfettiOverlay from '../components/ConfettiOverlay';
+import { resolveMediaUrl } from '../utils/media';
 
 type Membership = {
   id: string;
@@ -23,6 +24,8 @@ type Membership = {
     logic_type: string;
     earn_rule: any;
     redeem_rule: any;
+     stamps_required?: number;
+     reward_threshold?: number;
     terms?: string;
     merchant_id: string;
     is_active: boolean;
@@ -424,8 +427,8 @@ const Dashboard = () => {
           </div>
           <img
             src={
-              user?.avatar_url
-                ? `${user.avatar_url}?t=${Date.now()}`
+              resolveMediaUrl(user?.avatar_url)
+                ? `${resolveMediaUrl(user?.avatar_url)}?t=${Date.now()}`
                 : `https://ui-avatars.com/api/?name=${firstName}&background=009688&color=fff&size=40`
             }
             alt="Avatar"

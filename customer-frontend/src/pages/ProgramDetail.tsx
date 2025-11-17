@@ -40,6 +40,8 @@ type Membership = {
       address?: string;
       last_visit?: string;
       display_name?: string;
+      legal_name?: string;
+      id?: string;
       logo_url?: string;
     };
   };
@@ -52,6 +54,10 @@ type RedeemResponse = {
   status?: string;
   reward_description?: string;
   stamps_redeemed?: number;
+  id?: string;
+  program_name?: string;
+  merchant_name?: string;
+  created_at?: string;
 };
 
 type RedemptionHistoryItem = {
@@ -72,6 +78,7 @@ type RewardState = {
     status: CustomerRewardStatus;
     voucher_code?: string | null;
     redeem_expires_at?: string | null;
+    reached_at?: string | null;
   };
   stamps_in_cycle: number;
   stamps_required: number;

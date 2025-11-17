@@ -3,6 +3,7 @@ import axios from 'axios';
 import FormField from '../components/FormField';
 import { BottomNav } from '../components/BottomNav';
 import { useAuth } from '../contexts/AuthContext';
+import { resolveMediaUrl } from '../utils/media';
 
 const Profile = () => {
   const { user, logout, updateUser } = useAuth();
@@ -54,7 +55,11 @@ const Profile = () => {
                  Avatar
                </label>
                 <img
-                  src={user?.avatar_url ? `${user.avatar_url}?t=${Date.now()}` : `https://ui-avatars.com/api/?name=${user?.name || user?.email}`}
+                  src={
+                    resolveMediaUrl(user?.avatar_url)
+                      ? `${resolveMediaUrl(user?.avatar_url)}?t=${Date.now()}`
+                      : `https://ui-avatars.com/api/?name=${user?.name || user?.email}`
+                  }
                   alt="Current avatar"
                   className="w-16 h-16 rounded-full mb-2 object-cover"
                 />
