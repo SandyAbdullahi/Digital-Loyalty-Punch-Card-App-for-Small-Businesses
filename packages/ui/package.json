@@ -4,15 +4,16 @@
   "description": "Shared UI components for Rudi Loyalty App",
   "main": "dist/index.mjs",
   "types": "dist/index.d.mts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
+    "prepare": "npm run build",
     "build": "tsup src/index.ts --format esm --dts",
     "dev": "tsup src/index.ts --watch --format esm --dts",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"
   },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
