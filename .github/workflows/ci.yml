@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, version1.8-deploy]
   pull_request:
-    branches: [main]
+    branches: [main, version1.8-deploy]
+  workflow_dispatch:
 
 jobs:
   backend:
