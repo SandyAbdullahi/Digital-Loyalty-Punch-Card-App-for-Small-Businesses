@@ -42,6 +42,13 @@ const ProgramCard = ({
           src={logoUrl}
           alt={merchantName}
           className="w-full h-full object-cover"
+          onError={(event) => {
+            const target = event.currentTarget;
+            target.onerror = null;
+            target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              merchantName || 'Merchant'
+            )}`;
+          }}
         />
       ) : (
         <span className="uppercase">{merchantName.slice(0, 2)}</span>

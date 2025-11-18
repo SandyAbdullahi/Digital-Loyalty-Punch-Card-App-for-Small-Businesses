@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { resolveMediaUrl } from '../utils/media';
 
 type Merchant = {
   id: string;
@@ -75,20 +76,10 @@ const MerchantModal = ({ merchant, program, programId, isOpen, onClose, onExitPr
 
   if (!isOpen || !merchant) return null;
 
-  const resolveLogoUrl = (rawValue: unknown): string | null => {
-    if (!rawValue || typeof rawValue !== 'string') return null;
-    const trimmed = rawValue.trim();
-    if (!trimmed) return null;
-    if (/^https?:\/\//i.test(trimmed)) {
-      return trimmed;
-    }
-    if (trimmed.startsWith('/')) {
-      return `${window.location.origin}${trimmed}`;
-    }
-    return trimmed;
-  };
-
-  const logoUrl = resolveLogoUrl(merchant.logo_url);
+  const displayName = merchant.display_name || merchant.legal_name || 'Merchant';
+  const logoUrl =
+    resolveMediaUrl(merchant.logo_url ?? null) ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}`;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -106,15 +97,13 @@ const MerchantModal = ({ merchant, program, programId, isOpen, onClose, onExitPr
           </div>
 
           {/* Logo */}
-          {logoUrl && (
-            <div className="flex justify-center">
-              <img
-                src={logoUrl}
-                alt={`${merchant.display_name || merchant.legal_name} logo`}
-                className="w-24 h-24 rounded-full object-cover"
-              />
-            </div>
-          )}
+          <div className="flex justify-center">
+            <img
+              src={logoUrl}
+              alt={`${displayName} logo`}
+              className="w-24 h-24 rounded-full object-cover"
+            />
+          </div>
 
           {/* Merchant Info */}
           <div className="space-y-3">

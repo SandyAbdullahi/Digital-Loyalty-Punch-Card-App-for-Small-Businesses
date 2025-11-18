@@ -77,7 +77,7 @@ const Dashboard = () => {
   const [redeemSuccessMessage, setRedeemSuccessMessage] = useState<string | null>(null);
   const [redeemConfetti, setRedeemConfetti] = useState(false);
 
-  const unreadCount = notifications.filter(note => !readNotifications.has(note.id)).length;
+  const unreadCount = notifications.filter((note) => !readNotifications.has(note.id)).length;
 
   const dismissRedeemSuccess = () => setRedeemSuccessMessage(null);
   const handleConfettiComplete = () => setRedeemConfetti(false);
@@ -306,15 +306,8 @@ const Dashboard = () => {
 
   const resolveLogoUrl = (rawValue: unknown): string | undefined => {
     if (!rawValue || typeof rawValue !== 'string') return undefined;
-    const trimmed = rawValue.trim();
-    if (!trimmed) return undefined;
-    if (/^https?:\/\//i.test(trimmed)) {
-      return trimmed;
-    }
-    if (trimmed.startsWith('/')) {
-      return `${window.location.origin}${trimmed}`;
-    }
-    return trimmed;
+    const resolved = resolveMediaUrl(rawValue);
+    return resolved ?? undefined;
   };
 
   const thresholdFor = (membership: Membership) => {

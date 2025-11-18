@@ -14,6 +14,7 @@ import {
 } from '@untitled-ui/icons-react';
 import { formatApiDate, parseApiDate } from '../utils/date';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import { resolveMediaUrl } from '../utils/media';
 
 type Membership = {
   id: string;
@@ -377,7 +378,9 @@ const ProgramDetail = () => {
   const merchantDisplayName =
     merchant?.display_name ?? merchant?.legal_name ?? merchant?.id ?? 'Unknown Merchant';
   const merchantAddress = merchant?.address;
-  const merchantLogo = merchant?.logo_url;
+  const merchantLogo =
+    resolveMediaUrl(merchant?.logo_url ?? null) ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(merchantDisplayName)}`;
 
   const handleRedeem = async () => {
     if (isPunchCardProgram) {
