@@ -1,13 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap');
 
 :root {
-  --rudi-primary: #00C896;
-  --rudi-secondary: #2196F3;
-  --rudi-accent: #FF5252;
-  --rudi-background: #F5F5F5;
-  --rudi-text: #1A1A1A;
+  --rudi-primary: #009688;
+  --rudi-secondary: #3B1F1E;
+  --rudi-accent: #FFB300;
+  --rudi-background: #FDF6EC;
+  --rudi-text: #2B1A19;
   --rudi-input-bg: #FFFFFF;
-  --rudi-input-border: #E0E0E0;
+  --rudi-input-border: #E5D8C8;
   --rudi-radius: 12px;
 }
 

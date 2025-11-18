@@ -76,11 +76,29 @@ const Dashboard = () => {
   const [query, setQuery] = useState('');
   const [redeemSuccessMessage, setRedeemSuccessMessage] = useState<string | null>(null);
   const [redeemConfetti, setRedeemConfetti] = useState(false);
+  const bannerImages = useMemo(
+    () => [
+      'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/3184174/pexels-photo-3184174.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      'https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    ],
+    []
+  );
+  const [bannerIndex, setBannerIndex] = useState(0);
 
   const unreadCount = notifications.filter((note) => !readNotifications.has(note.id)).length;
 
   const dismissRedeemSuccess = () => setRedeemSuccessMessage(null);
   const handleConfettiComplete = () => setRedeemConfetti(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBannerIndex((prev) => (prev + 1) % bannerImages.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [bannerImages.length]);
 
   useEffect(() => {
     const state = location.state as { rewardRedeemed?: boolean; rewardProgramName?: string } | null;
@@ -428,6 +446,48 @@ const Dashboard = () => {
             className="h-10 w-10 rounded-full object-cover"
           />
         </div>
+        <div className="mx-4 mb-4">
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--rudi-input-border)] bg-white shadow-md">
+            {bannerImages.map((src, idx) => (
+              <div
+                key={src}
+                className="absolute inset-0 transition-opacity duration-700"
+                style={{
+                  opacity: idx === bannerIndex ? 1 : 0,
+                  backgroundImage: `linear-gradient(180deg, rgba(0,150,136,0.1), rgba(59,31,30,0.25)), url(${src})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+            ))}
+            <div className="relative z-10 flex flex-col gap-2 p-4 sm:p-5 text-white drop-shadow">
+              <span className="inline-flex w-fit items-center rounded-full bg-black/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide">
+                Featured offers
+              </span>
+              <p className="text-lg font-heading font-semibold leading-tight sm:text-xl">
+                Swipe-worthy deals from nearby merchants
+              </p>
+              <p className="text-sm max-w-md text-white/90">
+                Discover new rewards, seasonal offers, and loyalty perks curated for you.
+              </p>
+            </div>
+            <div className="relative z-10 flex items-center justify-center gap-2 p-3">
+              {bannerImages.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setBannerIndex(idx)}
+                  className="h-2.5 w-2.5 rounded-full transition-all"
+                  style={{
+                    backgroundColor: idx === bannerIndex ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)',
+                    transform: idx === bannerIndex ? 'scale(1.15)' : 'scale(1)',
+                  }}
+                  aria-label={`Go to banner ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
         <div className="mx-4 mb-3 space-y-3">
           {notifications.length > 0 && (
             <div className="rounded-2xl bg-white/95 p-4 shadow-md">
@@ -539,7 +599,7 @@ const Dashboard = () => {
                   <button
                     type="button"
                     onClick={() => navigate('/scan')}
-                    className="w-full h-12 mt-4 rounded-xl bg-[var(--rudi-secondary)] text-[var(--rudi-text)] font-semibold hover:bg-[var(--rudi-secondary)]/90 transition-colors"
+                    className="w-full h-12 mt-4 rounded-xl bg-[var(--rudi-secondary)] text-white font-semibold hover:bg-[var(--rudi-secondary)]/90 transition-colors"
                   >
                     Scan now
                   </button>

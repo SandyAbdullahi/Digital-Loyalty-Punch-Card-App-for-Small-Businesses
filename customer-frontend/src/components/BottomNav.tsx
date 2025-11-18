@@ -30,32 +30,37 @@ export const BottomNav = () => {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-4 z-50">
-      <div className="flex items-center justify-between max-w-md mx-auto">
+    <nav className="pointer-events-none fixed inset-x-0 bottom-4 z-50 px-4">
+      <div
+        className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-3xl border bg-white/90 px-4 py-2 shadow-[0_15px_45px_-25px_rgba(0,0,0,0.45)] backdrop-blur"
+        style={{
+          borderColor: 'var(--rudi-input-border)',
+          background: 'linear-gradient(135deg, rgba(0,150,136,0.12), rgba(255,179,0,0.08))',
+        }}
+      >
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (
             <Link
               key={item.to}
               to={item.to}
+              className="flex flex-col items-center gap-1 rounded-2xl px-3 py-1 text-xs font-semibold transition"
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '0.5rem',
-                color: isActive ? 'var(--rudi-primary)' : 'var(--rudi-text)',
+                color: isActive ? 'var(--rudi-secondary)' : 'var(--rudi-text)',
+                backgroundColor: isActive ? 'rgba(0,150,136,0.12)' : 'transparent',
+                boxShadow: isActive ? '0 10px 24px -16px rgba(0,0,0,0.35)' : 'none',
               }}
             >
               <span
-                className="flex h-9 w-9 items-center justify-center rounded-full"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/80 shadow-sm"
                 style={{
-                  backgroundColor: isActive ? 'rgba(0, 200, 150, 0.12)' : 'transparent',
+                  border: `1px solid var(--rudi-input-border)`,
+                  color: isActive ? 'var(--rudi-primary)' : 'var(--rudi-secondary)',
                 }}
               >
                 {item.icon}
               </span>
-              <span className="text-xs mt-1">{item.label}</span>
+              <span>{item.label}</span>
             </Link>
           );
         })}
