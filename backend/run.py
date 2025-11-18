@@ -1,9 +1,11 @@
 import os
 import time
 
-# Set timezone to East Africa Time (UTC+3)
+# Set timezone to East Africa Time (UTC+3). tzset is not available on Windows,
+# so guard the call to avoid AttributeError when running locally there.
 os.environ['TZ'] = 'Africa/Nairobi'
-time.tzset()
+if hasattr(time, "tzset"):  # Unix/macOS
+    time.tzset()
 
 import uvicorn
 
