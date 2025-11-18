@@ -101,13 +101,13 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           </div>
         )}
       </nav>
-      <div
-        className="rounded-xl border border-[var(--sidebar-border)] bg-white/70 px-4 py-3 text-xs shadow-sm backdrop-blur"
-        style={{ color: 'var(--sidebar-foreground)' }}
-      >
-        <p className="font-semibold">Bring the landing look to every screen.</p>
-        <p className="opacity-75">Colors and typography now mirror the public site.</p>
-      </div>
+       <div
+         className="rounded-xl border border-[var(--sidebar-border)] bg-white/70 px-4 py-3 text-xs shadow-sm backdrop-blur"
+         style={{ color: 'var(--sidebar-foreground)' }}
+       >
+         <p className="font-semibold">Happy customers are loyal customers!</p>
+         <p className="opacity-75">Keep them coming back with amazing rewards and programs.</p>
+       </div>
     </div>
   )
 }
