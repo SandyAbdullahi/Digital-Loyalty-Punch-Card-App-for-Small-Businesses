@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
 from datetime import datetime, timedelta, timezone
 
+from ...core.timezone import format_local, now_local_iso
+
 from ...db.session import get_db
 from ...api.deps import get_current_user
 from ...services.auth import get_user_by_email
@@ -115,7 +117,7 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
                 "customer_name": customer_name,
                 "customer_email": customer_email,
                 "program_name": program_name,
-                "timestamp": (entry.issued_at or entry.created_at or datetime.utcnow()).isoformat(),
+                "timestamp": format_local(entry.issued_at or entry.created_at) or now_local_iso(),
                 "message": entry.notes,
             }
         )
@@ -130,7 +132,7 @@ def get_recent_activity(db: Session = Depends(get_db), current_user: str = Depen
                 "customer_name": customer_name,
                 "customer_email": customer_email,
                 "program_name": program_name,
-                "timestamp": stamped_at.isoformat(),
+                "timestamp": format_local(stamped_at) or now_local_iso(),
                 "message": "Reward redeemed",
             }
         )

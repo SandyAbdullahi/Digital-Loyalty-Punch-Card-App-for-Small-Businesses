@@ -27,8 +27,9 @@ UTC = timezone.utc
 
 
 def _attach_timezone(dt: datetime) -> datetime:
+    # Treat naive datetimes as UTC, then convert downstream.
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=LOCAL_TIMEZONE)
+        return dt.replace(tzinfo=UTC)
     return dt
 
 
@@ -49,11 +50,10 @@ def to_utc(dt: Optional[datetime]) -> Optional[datetime]:
 
 
 def format_local(dt: Optional[datetime]) -> Optional[str]:
-    utc_dt = to_utc(dt)
-    if not utc_dt:
+    local_dt = to_local(dt)
+    if not local_dt:
         return None
-    iso = utc_dt.isoformat()
-    return iso.replace("+00:00", "Z")
+    return local_dt.isoformat()
 
 
 def now_local() -> datetime:
@@ -61,4 +61,4 @@ def now_local() -> datetime:
 
 
 def now_local_iso() -> str:
-    return format_local(datetime.now())
+    return now_local().isoformat()
