@@ -209,14 +209,23 @@ const relativeLuminance = (hex: string) => {
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
 }
 
+const contrastRatio = (backgroundHex: string, foregroundHex: string) => {
+  const L1 = relativeLuminance(backgroundHex)
+  const L2 = relativeLuminance(foregroundHex)
+  const [Lmax, Lmin] = L1 >= L2 ? [L1, L2] : [L2, L1]
+  return (Lmax + 0.05) / (Lmin + 0.05)
+}
+
 const getContrastColor = (hex: string) => {
-  const value = hex.replace('#', '')
-  const bigint = parseInt(value.length === 3 ? value.repeat(2) : value, 16)
-  const r = (bigint >> 16) & 255
-  const g = (bigint >> 8) & 255
-  const b = bigint & 255
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return luminance > 0.6 ? '#1A1A1A' : '#FFFFFF'
+  const bg = normalizeHex(hex, '#000000')
+  const darkText = '#0B1120' // near slate-900
+  const lightText = '#F9FAFB' // near slate-50
+
+  const ratioDark = contrastRatio(bg, darkText)
+  const ratioLight = contrastRatio(bg, lightText)
+
+  // Prefer the color with better contrast; both exceed 4.5:1 in typical cases
+  return ratioDark >= ratioLight ? darkText : lightText
 }
 
 const adjustColor = (hex: string, amount: number) => {

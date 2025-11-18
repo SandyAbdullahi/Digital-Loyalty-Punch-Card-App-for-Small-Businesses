@@ -1,6 +1,7 @@
 import { FormEvent, useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button, Input, Label, Textarea } from '@rudi/ui';
+import { resolveMediaUrl } from '../utils/media';
 
 type Merchant = {
   id: string;
@@ -107,7 +108,10 @@ const Profile = () => {
           <div className="space-y-2">
             <Label htmlFor="logo">Logo</Label>
             <img
-              src={merchant.logo_url || `https://ui-avatars.com/api/?name=${merchant.name}`}
+              src={
+                resolveMediaUrl(merchant.logo_url ?? null) ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(merchant.name)}`
+              }
               alt="Logo"
               className="w-16 h-16 rounded-full mb-2 object-cover"
             />

@@ -42,6 +42,23 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
 
+  const buildWebSocketUrl = (userId: string): string | null => {
+    let base =
+      (typeof import.meta !== 'undefined' &&
+        (import.meta as any).env?.VITE_API_URL) ||
+      (typeof window !== 'undefined' ? window.location.origin : '')
+
+    if (!base) return null
+
+    try {
+      const url = new URL(base)
+      const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+      return `${wsProtocol}//${url.host}/api/v1/ws/merchant/${userId}`
+    } catch {
+      return null
+    }
+  }
+
   const connect = useCallback(() => {
     if (!user || !token) return
 
@@ -50,7 +67,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       wsRef.current.close()
     }
 
-    const wsUrl = `ws://localhost:8000/api/v1/ws/merchant/${user.id}`
+    const wsUrl = buildWebSocketUrl(user.id)
+    if (!wsUrl) {
+      console.warn('Unable to determine WebSocket URL for merchant')
+      return
+    }
     console.log('Connecting to merchant WebSocket:', wsUrl)
 
     try {
