@@ -322,7 +322,7 @@ const Dashboard = () => {
             key={metric.label}
             title={metric.label}
             value={metric.value}
-            icon={<div className="w-6 h-6 bg-blue-500 rounded"></div>} // Placeholder icon
+            accent={metric.accent}
           />
         ))}
 

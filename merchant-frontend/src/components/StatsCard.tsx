@@ -6,17 +6,32 @@ type StatsCardProps = {
   value: string | number;
   diff?: number;
   icon?: React.ReactNode;
+  accent?: 'primary' | 'secondary' | 'accent';
 };
 
-const StatsCard = ({ title, value, diff, icon }: StatsCardProps) => {
+const accentStyles: Record<NonNullable<StatsCardProps['accent']>, { bg: string; text: string }> = {
+  primary: { bg: 'bg-primary/10', text: 'text-primary' },
+  secondary: { bg: 'bg-secondary/10', text: 'text-secondary' },
+  accent: { bg: 'bg-accent/10', text: 'text-accent' },
+};
+
+const StatsCard = ({ title, value, diff, icon, accent }: StatsCardProps) => {
+  const accentStyle = accent ? accentStyles[accent] : null;
+
   return (
-    <Card withBorder padding="lg" radius="md">
+    <Card
+      withBorder
+      padding="lg"
+      radius="md"
+      className={accentStyle ? `${accentStyle.bg} border-l-4 border-l-current` : ''}
+      style={accentStyle ? { borderLeftColor: `var(--${accent})` } : undefined}
+    >
       <Group justify="space-between">
         <div>
           <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
             {title}
           </Text>
-          <Text size="xl" fw={700} mt="xs">
+          <Text size="xl" fw={700} mt="xs" className={accentStyle ? accentStyle.text : ''}>
             {value}
           </Text>
           {diff !== undefined && (
