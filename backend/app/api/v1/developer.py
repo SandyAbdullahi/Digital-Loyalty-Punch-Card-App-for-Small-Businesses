@@ -1,11 +1,13 @@
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from ...api.deps import get_current_user, get_db
-from ...models.user import UserRole
+from ...models.user import UserRole, User
+from ...models.merchant import Merchant
+from ...models.customer_program_membership import CustomerProgramMembership
 from ...services.auth import get_user_by_email
 
 router = APIRouter()
@@ -56,66 +58,39 @@ def _require_developer(db: Session, current_user_email: str):
     return user
 
 
-MOCK_MERCHANTS: List[MerchantOut] = [
-    MerchantOut(
-        id="m-1",
-        name="Amber & Oak Café",
-        owner_email="lena@amberoak.com",
-        plan="growth",
-        mrr=12900,
-        status="active",
-    ),
-    MerchantOut(
-        id="m-2",
-        name="Atelier Beauty",
-        owner_email="coo@atelier.com",
-        plan="enterprise",
-        mrr=28900,
-        status="active",
-    ),
-    MerchantOut(
-        id="m-3",
-        name="Farm & Pantry",
-        owner_email="hello@farmandpantry.com",
-        plan="free",
-        mrr=0,
-        status="suspended",
-    ),
-]
-
-MOCK_CUSTOMERS: List[CustomerOut] = [
-    CustomerOut(id="c-1", name="Yazmin Obiero", email="yazmin@example.com", merchants=4, rewards=8),
-    CustomerOut(id="c-2", name="Ken Mwangi", email="ken@example.com", merchants=2, rewards=3),
-    CustomerOut(id="c-3", name="Fatma Abdalla", email="fatma@example.com", merchants=3, rewards=6),
-]
-
-MOCK_LEADS: List[LeadOut] = [
-    LeadOut(id="l-1", company="Beanline Roasters", contact="hello@beanline.com", status="contacted", source="Landing"),
-    LeadOut(id="l-2", company="Glow & Co. Spa", contact="ops@glowco.com", status="new", source="Sales form"),
-    LeadOut(id="l-3", company="Crust Bakery", contact="hi@crust.bakery", status="qualified", source="Referral"),
-]
-
-
 @router.get("/overview", response_model=OverviewOut)
 def get_overview(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     _require_developer(db, current_user)
-    active_merchants = len([m for m in MOCK_MERCHANTS if m.status == "active"])
-    suspended_merchants = len(MOCK_MERCHANTS) - active_merchants
-    mrr = sum(m.mrr for m in MOCK_MERCHANTS)
+    merchant_rows: List[Merchant] = db.query(Merchant).all()
+    customer_rows: List[User] = db.query(User).filter_by(role=UserRole.CUSTOMER).all()
+    active_merchants = len([m for m in merchant_rows if m.is_active])
+    suspended_merchants = len(merchant_rows) - active_merchants
+    mrr = 0  # TODO: replace with real subscription MRR once billing is wired
     return OverviewOut(
         mrr=mrr,
-        merchants=len(MOCK_MERCHANTS),
+        merchants=len(merchant_rows),
         active_merchants=active_merchants,
         suspended_merchants=suspended_merchants,
-        customers=len(MOCK_CUSTOMERS),
-        lead_pipeline=len(MOCK_LEADS),
+        customers=len(customer_rows),
+        lead_pipeline=0,
     )
 
 
 @router.get("/merchants", response_model=List[MerchantOut])
 def list_merchants(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     _require_developer(db, current_user)
-    return MOCK_MERCHANTS
+    rows: List[Merchant] = db.query(Merchant).all()
+    return [
+        MerchantOut(
+            id=str(row.id),
+            name=row.display_name,
+            owner_email=row.owner.email if row.owner else "",
+            plan="",  # TODO: replace with real plan once billing is wired
+            mrr=0,
+            status="active" if row.is_active else "suspended",
+        )
+        for row in rows
+    ]
 
 
 @router.patch("/merchants/{merchant_id}/status", response_model=MerchantOut)
@@ -124,38 +99,56 @@ def update_merchant_status(merchant_id: str, status: str, db: Session = Depends(
     normalized = status.lower()
     if normalized not in {"active", "suspended"}:
         raise HTTPException(status_code=400, detail="Status must be 'active' or 'suspended'")
-    for idx, merchant in enumerate(MOCK_MERCHANTS):
-        if merchant.id == merchant_id:
-            merchant.status = normalized
-            MOCK_MERCHANTS[idx] = merchant
-            return merchant
-    raise HTTPException(status_code=404, detail="Merchant not found")
+    merchant = db.query(Merchant).filter_by(id=merchant_id).first()
+    if not merchant:
+        raise HTTPException(status_code=404, detail="Merchant not found")
+    merchant.is_active = normalized == "active"
+    db.commit()
+    db.refresh(merchant)
+    return MerchantOut(
+        id=str(merchant.id),
+        name=merchant.display_name,
+        owner_email=merchant.owner.email if merchant.owner else "",
+        plan="",
+        mrr=0,
+        status="active" if merchant.is_active else "suspended",
+    )
 
 
 @router.get("/customers", response_model=List[CustomerOut])
 def list_customers(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     _require_developer(db, current_user)
-    return MOCK_CUSTOMERS
+    rows: List[User] = db.query(User).filter_by(role=UserRole.CUSTOMER).all()
+    counts = (
+        db.query(CustomerProgramMembership.customer_user_id, CustomerProgramMembership.merchant_id)
+        .distinct()
+        .all()
+    )
+    merchant_counts = {}
+    for customer_id, merchant_id in counts:
+        merchant_counts.setdefault(customer_id, set()).add(merchant_id)
+    return [
+        CustomerOut(
+            id=str(row.id),
+            name=row.name or row.email.split("@")[0],
+            email=row.email,
+            merchants=len(merchant_counts.get(row.id, set())),
+            rewards=0,  # TODO: replace with real rewards once available
+        )
+        for row in rows
+    ]
 
 
 @router.get("/leads", response_model=List[LeadOut])
 def list_leads(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     _require_developer(db, current_user)
-    return MOCK_LEADS
+    return []
 
 
 @router.patch("/leads/{lead_id}", response_model=LeadOut)
 def update_lead_status(lead_id: str, status: str, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     _require_developer(db, current_user)
-    normalized = status.lower()
-    if normalized not in {"new", "contacted", "qualified"}:
-        raise HTTPException(status_code=400, detail="Status must be new/contacted/qualified")
-    for idx, lead in enumerate(MOCK_LEADS):
-        if lead.id == lead_id:
-            lead.status = normalized
-            MOCK_LEADS[idx] = lead
-            return lead
-    raise HTTPException(status_code=404, detail="Lead not found")
+    raise HTTPException(status_code=400, detail="Lead management not yet implemented")
 
 
 class ImpersonationOut(BaseModel):
@@ -167,7 +160,7 @@ class ImpersonationOut(BaseModel):
 @router.post("/merchants/{merchant_id}/impersonate", response_model=ImpersonationOut)
 def impersonate_merchant(merchant_id: str, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     _require_developer(db, current_user)
-    exists = any(m.id == merchant_id for m in MOCK_MERCHANTS)
+    exists = db.query(Merchant).filter_by(id=merchant_id).first()
     if not exists:
         raise HTTPException(status_code=404, detail="Merchant not found")
     return ImpersonationOut(
