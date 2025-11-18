@@ -13,9 +13,28 @@ type RevenueChartProps = {
 
 const RevenueChart = ({ data }: RevenueChartProps) => {
   const visitChartOptions = {
-    chart: { type: 'bar' as const, height: 250 },
-    plotOptions: { bar: { columnWidth: '45%', borderRadius: 6 } },
+    chart: { type: 'bar' as const, height: 250, toolbar: { show: false } },
+    plotOptions: {
+      bar: {
+        columnWidth: '40%',
+        borderRadius: 8,
+        distributed: false,
+      },
+    },
     dataLabels: { enabled: false },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'light',
+        type: 'vertical',
+        shadeIntensity: 0.4,
+        gradientToColors: ['#0EA5E9'],
+        inverseColors: false,
+        opacityFrom: 0.8,
+        opacityTo: 0.4,
+        stops: [0, 100],
+      },
+    },
     xaxis: { categories: ['Baseline Visits', 'Extra Visits'] },
     yaxis: { title: { text: 'Visits' } },
     tooltip: {
@@ -25,9 +44,28 @@ const RevenueChart = ({ data }: RevenueChartProps) => {
   };
 
   const revenueChartOptions = {
-    chart: { type: 'bar' as const, height: 250 },
-    plotOptions: { bar: { columnWidth: '45%', borderRadius: 6 } },
+    chart: { type: 'bar' as const, height: 250, toolbar: { show: false } },
+    plotOptions: {
+      bar: {
+        columnWidth: '40%',
+        borderRadius: 8,
+        distributed: true,
+      },
+    },
     dataLabels: { enabled: false },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'light',
+        type: 'vertical',
+        shadeIntensity: 0.4,
+        gradientToColors: ['#16A34A', '#EF4444', '#0EA5E9'],
+        inverseColors: false,
+        opacityFrom: 0.8,
+        opacityTo: 0.4,
+        stops: [0, 100],
+      },
+    },
     xaxis: { categories: ['Estimated Revenue', 'Cost', 'Net Revenue'] },
     yaxis: { title: { text: 'Amount (KES)' } },
     tooltip: {

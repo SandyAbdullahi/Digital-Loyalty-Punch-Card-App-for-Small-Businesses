@@ -1,9 +1,47 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
 import { BarChart3, Gift, LayoutDashboard, QrCode, Settings2, Stamp, Users } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@rudi/ui'
 import { useWebSocket } from '../contexts/WebSocketContext'
+
+const merchantTips = [
+  "Building customer loyalty starts with consistent quality service.",
+  "Personalize your offers to make customers feel valued.",
+  "Reward repeat visits to encourage loyalty.",
+  "Use data to understand customer preferences.",
+  "Communicate regularly with your customers.",
+  "Offer exclusive deals to loyal customers.",
+  "Train staff to provide excellent customer service.",
+  "Collect feedback to improve your business.",
+  "Create a sense of community among your customers.",
+  "Be transparent about your business practices.",
+  "Loyalty programs can increase customer retention by up to 20%.",
+  "Engage customers on social media to build relationships.",
+  "Surprise customers with unexpected perks.",
+  "Segment your customer base for targeted marketing.",
+  "Focus on customer lifetime value, not just one-time sales.",
+  "Respond quickly to customer inquiries and complaints.",
+  "Use email marketing to nurture customer relationships.",
+  "Offer referral programs to leverage word-of-mouth.",
+  "Consistency in branding builds trust.",
+  "Monitor customer satisfaction scores regularly.",
+  "Invest in customer education about your products.",
+  "Create emotional connections with your customers.",
+  "Loyalty is built through trust and reliability.",
+  "Use storytelling in your marketing to engage customers.",
+  "Offer value-added services to differentiate your business.",
+  "Track and reward customer milestones.",
+  "Collaborate with influencers to reach new audiences.",
+  "Implement a CRM system to manage customer interactions.",
+  "Focus on customer experience at every touchpoint.",
+  "Celebrate customer anniversaries or special occasions.",
+  "Use loyalty apps to make engagement easier.",
+  "Analyze churn reasons to prevent customer loss.",
+  "Provide exceptional after-sales support.",
+  "Customize communications based on customer behavior.",
+  "Build partnerships for cross-promotions.",
+]
 
 type SidebarProps = {
   isOpen: boolean
@@ -61,6 +99,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { unreadRedeemCount } = useWebSocket()
   const location = useLocation()
   const isDemo = location.pathname.startsWith('/demo')
+  const [currentTip] = useState(() => merchantTips[Math.floor(Math.random() * merchantTips.length)])
 
   return (
     <div
@@ -101,13 +140,13 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           </div>
         )}
       </nav>
-       <div
-         className="rounded-xl border border-[var(--sidebar-border)] bg-white/70 px-4 py-3 text-xs shadow-sm backdrop-blur"
-         style={{ color: 'var(--sidebar-foreground)' }}
-       >
-         <p className="font-semibold">Happy customers are loyal customers!</p>
-         <p className="opacity-75">Keep them coming back with amazing rewards and programs.</p>
-       </div>
+        <div
+          className="rounded-xl border border-[var(--sidebar-border)] bg-white/70 px-4 py-3 text-xs shadow-sm backdrop-blur"
+          style={{ color: 'var(--sidebar-foreground)' }}
+        >
+          <p className="font-semibold">Merchant Tip</p>
+          <p className="opacity-75">{currentTip}</p>
+        </div>
     </div>
   )
 }
