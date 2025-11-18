@@ -1,4 +1,4 @@
-﻿import { Fragment } from 'react'
+import { Fragment } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
 import { BarChart3, Gift, LayoutDashboard, QrCode, Settings2, Stamp, Users } from 'lucide-react'
@@ -63,15 +63,22 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const isDemo = location.pathname.startsWith('/demo')
 
   return (
-    <div className="sidebar-panel flex h-full flex-col gap-6 rounded-r-3xl px-5 py-6 shadow-2xl lg:px-6">
+    <div
+      className="sidebar-panel flex h-full flex-col gap-6 rounded-r-3xl px-5 py-6 shadow-2xl lg:px-6"
+      style={{ background: 'linear-gradient(180deg, var(--sidebar) 0%, var(--surface-muted) 100%)' }}
+    >
       <div
-        className="flex flex-col items-center gap-2 rounded-xl px-3 py-2 text-center"
-        style={{ backgroundColor: 'var(--sidebar-hover)' }}
+        className="flex flex-col gap-3 rounded-2xl border border-[var(--sidebar-border)] px-4 py-3 text-center shadow-sm backdrop-blur"
+        style={{
+          background: 'linear-gradient(135deg, rgba(0,150,136,0.08), rgba(255,179,0,0.08))',
+        }}
       >
-        <img src="/logo-1.png" alt="Rudi Logo" className="h-10 w-10 rounded-xl object-cover" />
-        <div className="text-center" style={{ color: 'var(--sidebar-foreground)' }}>
-          <p className="text-sm uppercase tracking-wide opacity-70">Rudi Merchant</p>
-          <p className="text-lg font-heading font-semibold">Mission Control</p>
+        <div className="flex flex-col items-center gap-3">
+          <img src="/logo-1.png" alt="Rudi Logo" className="h-10 w-10 rounded-xl border border-[var(--sidebar-border)] bg-white object-cover" />
+          <div className="text-center" style={{ color: 'var(--sidebar-foreground)' }}>
+            <p className="text-[11px] uppercase tracking-wide opacity-70">Rudi Merchant</p>
+            <p className="text-lg font-heading font-semibold">Mission Control</p>
+          </div>
         </div>
       </div>
       <nav className="flex-1">
@@ -94,9 +101,13 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           </div>
         )}
       </nav>
-      <p className="text-xs" style={{ color: 'var(--sidebar-foreground)', opacity: 0.75 }}>
-        Nice work -- another happy customer is just one scan away.
-      </p>
+      <div
+        className="rounded-xl border border-[var(--sidebar-border)] bg-white/70 px-4 py-3 text-xs shadow-sm backdrop-blur"
+        style={{ color: 'var(--sidebar-foreground)' }}
+      >
+        <p className="font-semibold">Bring the landing look to every screen.</p>
+        <p className="opacity-75">Colors and typography now mirror the public site.</p>
+      </div>
     </div>
   )
 }
@@ -119,4 +130,3 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => (
 )
 
 export default Sidebar
-

@@ -6,35 +6,35 @@
 
 @layer base {
   :root {
-    --background: #F5F5F5;
-    --foreground: #1A1A1A;
+    --background: #FDF6EC;
+    --foreground: #2B1A19;
     --card: #FFFFFF;
-    --card-foreground: #1A1A1A;
+    --card-foreground: #2B1A19;
     --popover: #FFFFFF;
-    --popover-foreground: #1A1A1A;
-    --primary: #00C896;
+    --popover-foreground: #2B1A19;
+    --primary: #009688;
     --primary-foreground: #FFFFFF;
-    --secondary: #2196F3;
-    --secondary-foreground: #FFFFFF;
-    --muted: #EDEDED;
-    --muted-foreground: #5A5A5A;
-    --accent: #FF5252;
-    --accent-foreground: #FFFFFF;
-    --destructive: #FF5252;
-    --destructive-foreground: #FFFFFF;
-    --border: #E6E6E6;
-    --input: #E6E6E6;
-    --ring: #00C896;
-    --input-foreground: #1A1A1A;
+    --secondary: #3B1F1E;
+    --secondary-foreground: #FDF6EC;
+    --muted: #F0E6D9;
+    --muted-foreground: #4F3A37;
+    --accent: #FFB300;
+    --accent-foreground: #2B1A19;
+    --destructive: #C62828;
+    --destructive-foreground: #FDFDFD;
+    --border: #E5D8C8;
+    --input: #EADFCC;
+    --ring: #009688;
+    --input-foreground: #2B1A19;
     --surface: #FFFFFF;
-    --surface-muted: #F5F5F5;
-    --surface-contrast: #FDFDFD;
-    --sidebar: #FFFFFF;
-    --sidebar-foreground: #1A1A1A;
-    --sidebar-hover: #E9FBF5;
-    --sidebar-active: #00C896;
+    --surface-muted: #F7EFE2;
+    --surface-contrast: #F1E5D7;
+    --sidebar: #F7EFE2;
+    --sidebar-foreground: #2B1A19;
+    --sidebar-hover: #E5D8C8;
+    --sidebar-active: #009688;
     --sidebar-active-foreground: #FFFFFF;
-    --sidebar-border: #BFEDE2;
+    --sidebar-border: #DACBB8;
   }
 
 
@@ -183,13 +183,13 @@
   }
 
   .sidebar-link:hover {
-    background-color: var(--sidebar-hover);
-    color: var(--sidebar-foreground);
+    background-color: var(--primary);
+    color: white;
   }
 
   .sidebar-link-active {
-    background-color: var(--sidebar-active);
-    color: var(--sidebar-active-foreground);
+    background-color: white;
+    color: var(--sidebar-foreground);
     border-color: transparent;
     box-shadow: 0 12px 32px -18px rgba(0, 0, 0, 0.45);
   }
