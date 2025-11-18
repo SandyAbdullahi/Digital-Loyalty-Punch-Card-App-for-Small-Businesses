@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react'
-import { ArrowRight, Ban, ClipboardPen, Play, UserCircle2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import axios from 'axios'
+import { Ban, Play } from 'lucide-react'
 
 type MerchantRow = {
   id: string
   name: string
-  owner: string
-  plan: 'free' | 'growth' | 'enterprise'
+  owner_email: string
+  plan: string
   mrr: number
   status: 'active' | 'suspended'
 }
@@ -26,54 +27,87 @@ type LeadRow = {
   source: string
 }
 
+type Overview = {
+  mrr: number
+  merchants: number
+  active_merchants: number
+  suspended_merchants: number
+  customers: number
+  lead_pipeline: number
+}
+
 const currency = (value: number) => `KES ${value.toLocaleString()}`
 
 const DeveloperDashboard = () => {
-  const [merchants, setMerchants] = useState<MerchantRow[]>([
-    { id: 'm-1', name: 'Amber & Oak Café', owner: 'lena@amberoak.com', plan: 'growth', mrr: 12900, status: 'active' },
-    { id: 'm-2', name: 'Atelier Beauty', owner: 'coo@atelier.com', plan: 'enterprise', mrr: 28900, status: 'active' },
-    { id: 'm-3', name: 'Farm & Pantry', owner: 'hello@farmandpantry.com', plan: 'free', mrr: 0, status: 'suspended' },
-  ])
-  const [customers] = useState<CustomerRow[]>([
-    { id: 'c-1', name: 'Yazmin Obiero', email: 'yazmin@example.com', merchants: 4, rewards: 8 },
-    { id: 'c-2', name: 'Ken Mwangi', email: 'ken@example.com', merchants: 2, rewards: 3 },
-    { id: 'c-3', name: 'Fatma Abdalla', email: 'fatma@example.com', merchants: 3, rewards: 6 },
-  ])
-  const [leads, setLeads] = useState<LeadRow[]>([
-    { id: 'l-1', company: 'Beanline Roasters', contact: 'hello@beanline.com', status: 'contacted', source: 'Landing' },
-    { id: 'l-2', company: 'Glow & Co. Spa', contact: 'ops@glowco.com', status: 'new', source: 'Sales form' },
-    { id: 'l-3', company: 'Crust Bakery', contact: 'hi@crust.bakery', status: 'qualified', source: 'Referral' },
-  ])
+  const [merchants, setMerchants] = useState<MerchantRow[]>([])
+  const [customers, setCustomers] = useState<CustomerRow[]>([])
+  const [leads, setLeads] = useState<LeadRow[]>([])
+  const [overview, setOverview] = useState<Overview | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const totals = useMemo(() => {
+    if (overview) {
+      return {
+        mrr: overview.mrr,
+        activeMerchants: overview.active_merchants,
+        suspended: overview.suspended_merchants,
+        merchants: overview.merchants,
+        customers: overview.customers,
+        leads: overview.lead_pipeline,
+      }
+    }
     const mrr = merchants.reduce((sum, m) => sum + m.mrr, 0)
     const activeMerchants = merchants.filter((m) => m.status === 'active').length
     const suspended = merchants.length - activeMerchants
-    return { mrr, activeMerchants, suspended, merchants: merchants.length, customers: customers.length }
-  }, [merchants, customers.length])
+    return { mrr, activeMerchants, suspended, merchants: merchants.length, customers: customers.length, leads: leads.length }
+  }, [overview, merchants, customers.length, leads.length])
 
-  const toggleMerchantStatus = (id: string) => {
-    setMerchants((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, status: m.status === 'active' ? 'suspended' : 'active' } : m))
-    )
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const [overviewRes, merchantsRes, customersRes, leadsRes] = await Promise.all([
+          axios.get('/api/v1/developer/overview'),
+          axios.get('/api/v1/developer/merchants'),
+          axios.get('/api/v1/developer/customers'),
+          axios.get('/api/v1/developer/leads'),
+        ])
+        setOverview(overviewRes.data)
+        setMerchants(merchantsRes.data)
+        setCustomers(customersRes.data)
+        setLeads(leadsRes.data)
+      } catch (err: any) {
+        setError(err?.response?.data?.detail || 'Failed to load developer data.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  const toggleMerchantStatus = async (id: string, nextStatus: 'active' | 'suspended') => {
+    try {
+      const res = await axios.patch(`/api/v1/developer/merchants/${id}/status`, null, {
+        params: { status: nextStatus },
+      })
+      setMerchants((prev) => prev.map((m) => (m.id === id ? res.data : m)))
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Failed to update merchant status.')
+    }
   }
 
-  const impersonateMerchant = (id: string) => {
-    console.log('Impersonate merchant', id)
+  const impersonateMerchant = async (id: string) => {
+    try {
+      await axios.post(`/api/v1/developer/merchants/${id}/impersonate`)
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Failed to impersonate merchant.')
+    }
   }
 
-  const promoteLeadStage = (id: string) => {
-    setLeads((prev) =>
-      prev.map((lead) =>
-        lead.id === id
-          ? {
-              ...lead,
-              status:
-                lead.status === 'new' ? 'contacted' : lead.status === 'contacted' ? 'qualified' : 'qualified',
-            }
-          : lead
-      )
-    )
+  const promoteLeadStage = async (_id: string) => {
+    setError('Lead management not yet implemented on backend.')
   }
 
   return (
@@ -83,11 +117,13 @@ const DeveloperDashboard = () => {
         <p className="text-sm text-muted-foreground">
           Manage merchants, customers, subscriptions, revenue, and lead generation with full platform controls.
         </p>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        {loading && <p className="text-sm text-muted-foreground">Loading developer data…</p>}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="surface-card rounded-2xl p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">MRR (mock)</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">MRR</p>
           <p className="mt-2 text-2xl font-bold text-foreground">{currency(totals.mrr)}</p>
           <p className="text-xs text-muted-foreground">Across all merchant plans</p>
         </div>
@@ -103,7 +139,7 @@ const DeveloperDashboard = () => {
         </div>
         <div className="surface-card rounded-2xl p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lead pipeline</p>
-          <p className="mt-2 text-2xl font-bold text-foreground">{leads.length}</p>
+          <p className="mt-2 text-2xl font-bold text-foreground">{totals.leads}</p>
           <p className="text-xs text-muted-foreground">New + contacted + qualified</p>
         </div>
       </div>
@@ -115,17 +151,16 @@ const DeveloperDashboard = () => {
               <p className="text-sm font-semibold text-foreground">Merchants</p>
               <p className="text-xs text-muted-foreground">View/edit, suspend, impersonate</p>
             </div>
-            <button className="btn-primary px-4">Add merchant</button>
           </div>
           <div className="mt-3 divide-y divide-border">
             {merchants.map((m) => (
               <div key={m.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="flex min-w-[180px] flex-1 flex-col">
                   <span className="font-semibold text-foreground">{m.name}</span>
-                  <span className="text-xs text-muted-foreground">{m.owner}</span>
+                  <span className="text-xs text-muted-foreground">{m.owner_email}</span>
                 </div>
                 <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground">
-                  {m.plan}
+                  {m.plan || 'unassigned'}
                 </span>
                 <span className="text-sm font-semibold text-foreground">{currency(m.mrr)}</span>
                 <span
@@ -144,13 +179,14 @@ const DeveloperDashboard = () => {
                   </button>
                   <button
                     className="rounded-lg border border-border px-3 py-1 text-sm font-semibold text-foreground hover:bg-muted"
-                    onClick={() => toggleMerchantStatus(m.id)}
+                    onClick={() => toggleMerchantStatus(m.id, m.status === 'active' ? 'suspended' : 'active')}
                   >
                     {m.status === 'active' ? 'Suspend' : 'Activate'}
                   </button>
                 </div>
               </div>
             ))}
+            {merchants.length === 0 && <p className="py-6 text-sm text-muted-foreground">No merchants found.</p>}
           </div>
         </div>
 
@@ -158,21 +194,21 @@ const DeveloperDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-foreground">Subscriptions</p>
-              <p className="text-xs text-muted-foreground">Plan mix & renewals (mock)</p>
+              <p className="text-xs text-muted-foreground">Plan mix & renewals (live)</p>
             </div>
           </div>
           <div className="mt-4 space-y-3 text-sm text-foreground">
             <div className="flex items-center justify-between rounded-xl bg-surface-muted px-3 py-2">
-              <span>Free → Growth</span>
-              <span className="font-semibold text-green-700">+12 this week</span>
+              <span>Free → Paid</span>
+              <span className="font-semibold text-foreground">—</span>
             </div>
             <div className="flex items-center justify-between rounded-xl bg-surface-muted px-3 py-2">
-              <span>Growth → Enterprise</span>
-              <span className="font-semibold text-foreground">+3 this week</span>
+              <span>Upgrades</span>
+              <span className="font-semibold text-foreground">—</span>
             </div>
             <div className="flex items-center justify-between rounded-xl bg-surface-muted px-3 py-2">
-              <span>Churn (mock)</span>
-              <span className="font-semibold text-red-600">-1 this week</span>
+              <span>Churn</span>
+              <span className="font-semibold text-foreground">—</span>
             </div>
           </div>
         </div>
@@ -208,6 +244,9 @@ const DeveloperDashboard = () => {
                 </div>
               </div>
             ))}
+            {customers.length === 0 && (
+              <p className="py-4 text-sm text-muted-foreground">No customers found.</p>
+            )}
           </div>
         </div>
 
@@ -239,6 +278,9 @@ const DeveloperDashboard = () => {
                 </div>
               </div>
             ))}
+            {leads.length === 0 && (
+              <p className="py-4 text-sm text-muted-foreground">Leads coming soon (no data yet).</p>
+            )}
           </div>
         </div>
       </div>
@@ -254,7 +296,7 @@ const DeveloperDashboard = () => {
           {merchants.map((m) => (
             <div key={m.id} className="rounded-xl border border-border bg-surface p-3 shadow-sm">
               <p className="font-semibold text-foreground">{m.name}</p>
-              <p className="text-xs text-muted-foreground">{m.owner}</p>
+              <p className="text-xs text-muted-foreground">{m.owner_email}</p>
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 <button
                   className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 font-semibold text-foreground hover:bg-muted"
@@ -264,13 +306,16 @@ const DeveloperDashboard = () => {
                 </button>
                 <button
                   className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 font-semibold text-foreground hover:bg-muted"
-                  onClick={() => toggleMerchantStatus(m.id)}
+                  onClick={() => toggleMerchantStatus(m.id, m.status === 'active' ? 'suspended' : 'active')}
                 >
                   <Ban className="h-3.5 w-3.5" /> {m.status === 'active' ? 'Suspend' : 'Unsuspend'}
                 </button>
               </div>
             </div>
           ))}
+          {merchants.length === 0 && (
+            <p className="py-4 text-sm text-muted-foreground">No merchants available.</p>
+          )}
         </div>
       </div>
     </div>

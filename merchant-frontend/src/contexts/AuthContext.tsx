@@ -200,14 +200,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (email !== DEV_EMAIL || password !== DEV_PASSWORD) {
       throw new Error('Invalid developer credentials')
     }
-    const devUser = { id: 'dev-1', email: DEV_EMAIL, role: 'developer' }
-    const devToken = 'developer-mock-token'
-    setUser(devUser)
+    const response = await axios.post('/api/v1/auth/login', {
+      email: DEV_EMAIL,
+      password: DEV_PASSWORD,
+      role: 'developer',
+    })
+    const { access_token, user: userData } = response.data
+    setUser(userData)
     setMerchant(null)
-    setToken(devToken)
-    localStorage.setItem('user', JSON.stringify(devUser))
-    localStorage.setItem('token', devToken)
-    delete axios.defaults.headers.common['Authorization']
+    setToken(access_token)
+    localStorage.setItem('user', JSON.stringify(userData))
+    localStorage.setItem('token', access_token)
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
   }, [])
 
   const logout = useCallback(() => {
