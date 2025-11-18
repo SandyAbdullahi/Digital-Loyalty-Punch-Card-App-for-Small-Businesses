@@ -23,6 +23,7 @@ interface AuthContextType {
   merchant: Merchant | null
   token: string | null
   login: (email: string, password: string) => Promise<void>
+  loginDeveloperWithCredentials: (email: string, password: string) => Promise<void>
   register: (
     email: string,
     password: string,
@@ -192,6 +193,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.setItem('merchant', JSON.stringify(newMerchant))
   }, [])
 
+  // Dev-only helper to gate the developer portal until backend support exists.
+  const DEV_EMAIL = 'ab2d222@gmail.com'
+  const DEV_PASSWORD = 'mypassword101'
+  const loginDeveloperWithCredentials = useCallback(async (email: string, password: string) => {
+    if (email !== DEV_EMAIL || password !== DEV_PASSWORD) {
+      throw new Error('Invalid developer credentials')
+    }
+    const devUser = { id: 'dev-1', email: DEV_EMAIL, role: 'developer' }
+    const devToken = 'developer-mock-token'
+    setUser(devUser)
+    setMerchant(null)
+    setToken(devToken)
+    localStorage.setItem('user', JSON.stringify(devUser))
+    localStorage.setItem('token', devToken)
+    delete axios.defaults.headers.common['Authorization']
+  }, [])
+
   const logout = useCallback(() => {
     setUser(null)
     setMerchant(null)
@@ -203,7 +221,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, merchant, token, login, register, logout, updateUser, updateMerchant, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        merchant,
+        token,
+        login,
+        register,
+        logout,
+        updateUser,
+        updateMerchant,
+        loading,
+        loginDeveloperWithCredentials,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

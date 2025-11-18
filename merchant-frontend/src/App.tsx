@@ -26,6 +26,8 @@ import DemoAnalytics from './pages/DemoAnalytics'
 import DemoSettings from './pages/DemoSettings'
 import HowItWorks from './pages/HowItWorks'
 import ForMerchants from './pages/ForMerchants'
+import DeveloperLayout from './components/DeveloperLayout'
+import DeveloperDashboard from './pages/DeveloperDashboard'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -73,6 +75,15 @@ function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/locations" element={<Locations />} />
+        </Route>
+        <Route element={<DeveloperLayout />}>
+          <Route path="/dev" element={<DeveloperDashboard />} />
+          <Route path="/dev/merchants" element={<DeveloperDashboard />} />
+          <Route path="/dev/customers" element={<DeveloperDashboard />} />
+          <Route path="/dev/subscriptions" element={<DeveloperDashboard />} />
+          <Route path="/dev/revenue" element={<DeveloperDashboard />} />
+          <Route path="/dev/leads" element={<DeveloperDashboard />} />
+          <Route path="/dev/controls" element={<DeveloperDashboard />} />
         </Route>
       </Routes>
     </HashRouter>
