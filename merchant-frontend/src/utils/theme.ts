@@ -21,143 +21,45 @@ export type ThemePreset = PresetTheme
 
 export const PRESET_THEMES: PresetTheme[] = [
   {
-    id: 'neo-mint-flow',
-    label: 'Neo Mint Flow',
-    description: 'Balanced teal + cobalt base with a vibrant coral accent.',
-    source: 'Adobe Color UI/UX · Neo Mint Flow',
-    swatches: ['#00C896', '#2196F3', '#FF5252', '#F5F5F5'],
+    id: 'rudi-brand',
+    label: 'Rudi Brand',
+    description: 'Teal primary, espresso neutrals, and sand backdrop from the landing page.',
+    source: 'Rudi design system',
+    swatches: ['#009688', '#3B1F1E', '#FFB300', '#FDF6EC'],
     values: {
-      theme_primary_color: '#00C896',
-      theme_secondary_color: '#2196F3',
-      theme_accent_color: '#FF5252',
-      theme_background_color: '#F5F5F5',
+      theme_primary_color: '#009688',
+      theme_secondary_color: '#3B1F1E',
+      theme_accent_color: '#FFB300',
+      theme_background_color: '#FDF6EC',
       theme_mode: 'light'
     }
   },
   {
-    id: 'digital-bloom',
-    label: 'Digital Bloom',
-    description: 'Playful magenta and lavender with a warm gold highlight.',
-    source: 'Adobe Color UI/UX · Digital Bloom',
-    swatches: ['#FF7A8A', '#8B5CF6', '#FFC75F', '#FFF6F4'],
+    id: 'rudi-soft',
+    label: 'Rudi Soft',
+    description: 'Calmer latte background with deeper teal contrast for dense dashboards.',
+    source: 'Rudi design system',
+    swatches: ['#007F73', '#2B1A19', '#FF9F43', '#F7EFE2'],
     values: {
-      theme_primary_color: '#FF7A8A',
-      theme_secondary_color: '#8B5CF6',
-      theme_accent_color: '#FFC75F',
-      theme_background_color: '#FFF6F4',
+      theme_primary_color: '#007F73',
+      theme_secondary_color: '#2B1A19',
+      theme_accent_color: '#FF9F43',
+      theme_background_color: '#F7EFE2',
       theme_mode: 'light'
     }
   },
   {
-    id: 'solar-dawn',
-    label: 'Solar Dawn',
-    description: 'Desert sunrise oranges grounded with muted rose.',
-    source: 'Adobe Color UI/UX · Solar Dawn',
-    swatches: ['#FF9770', '#FFC75F', '#F45B69', '#FFF4EC'],
+    id: 'rudi-midnight',
+    label: 'Rudi Midnight',
+    description: 'Dark surface for late-night ops with teal and amber highlights.',
+    source: 'Rudi design system',
+    swatches: ['#00BFA5', '#E8DEC9', '#FFB300', '#0B0F14'],
     values: {
-      theme_primary_color: '#FF9770',
-      theme_secondary_color: '#FFC75F',
-      theme_accent_color: '#F45B69',
-      theme_background_color: '#FFF4EC',
-      theme_mode: 'light'
-    }
-  },
-  {
-    id: 'noir-neon',
-    label: 'Noir Neon',
-    description: 'Deep charcoal canvas with electric cyan + amber hits.',
-    source: 'Adobe Color UI/UX · Noir Neon',
-    swatches: ['#82F3FF', '#FF7ED4', '#FFC857', '#050505'],
-    values: {
-      theme_primary_color: '#82F3FF',
-      theme_secondary_color: '#FF7ED4',
-      theme_accent_color: '#FFC857',
-      theme_background_color: '#050505',
+      theme_primary_color: '#00BFA5',
+      theme_secondary_color: '#E8DEC9',
+      theme_accent_color: '#FFB300',
+      theme_background_color: '#0B0F14',
       theme_mode: 'dark'
-    }
-  },
-  {
-    id: 'midnight-grid',
-    label: 'Midnight Grid',
-    description: 'Indigo interface with synthwave teal + cherry accents.',
-    source: 'Adobe Color UI/UX · Midnight Grid',
-    swatches: ['#6C63FF', '#51E5FF', '#FF6584', '#080B1A'],
-    values: {
-      theme_primary_color: '#6C63FF',
-      theme_secondary_color: '#51E5FF',
-      theme_accent_color: '#FF6584',
-      theme_background_color: '#080B1A',
-      theme_mode: 'dark'
-    }
-  },
-  {
-    id: 'coastal-mist',
-    label: 'Coastal Mist',
-    description: 'Ocean blues with a citrus pop on a foggy backdrop.',
-    source: 'Adobe Color UI/UX · Coastal Mist',
-    swatches: ['#2E5A88', '#4FB3BF', '#F1A208', '#EFF4F8'],
-    values: {
-      theme_primary_color: '#2E5A88',
-      theme_secondary_color: '#4FB3BF',
-      theme_accent_color: '#F1A208',
-      theme_background_color: '#EFF4F8',
-      theme_mode: 'light'
-    }
-  },
-  {
-    id: 'aurora-matrix',
-    label: 'Aurora Matrix',
-    description: 'Neo-mint gradients with cobalt UI chrome and amber KPI chips.',
-    source: 'Adobe Color UI/UX · Aurora Matrix',
-    swatches: ['#00CBA9', '#0B84F3', '#F4B400', '#EAF9FF'],
-    values: {
-      theme_primary_color: '#00CBA9',
-      theme_secondary_color: '#0B84F3',
-      theme_accent_color: '#F4B400',
-      theme_background_color: '#EAF9FF',
-      theme_mode: 'light'
-    }
-  },
-  {
-    id: 'velvet-ember',
-    label: 'Velvet Ember',
-    description: 'Cinematic crimson + honey gradient on twilight plum.',
-    source: 'Adobe Color UI/UX · Velvet Ember',
-    swatches: ['#FF5F6D', '#FFC371', '#7F96FF', '#120F16'],
-    values: {
-      theme_primary_color: '#FF5F6D',
-      theme_secondary_color: '#FFC371',
-      theme_accent_color: '#7F96FF',
-      theme_background_color: '#120F16',
-      theme_mode: 'dark'
-    }
-  },
-  {
-    id: 'cyber-lime',
-    label: 'Cyber Lime',
-    description: 'High-contrast lime + aqua cues for futuristic dashboards.',
-    source: 'Adobe Color UI/UX · Cyber Lime',
-    swatches: ['#B5FF00', '#00F5D4', '#FF3F81', '#040C0E'],
-    values: {
-      theme_primary_color: '#B5FF00',
-      theme_secondary_color: '#00F5D4',
-      theme_accent_color: '#FF3F81',
-      theme_background_color: '#040C0E',
-      theme_mode: 'dark'
-    }
-  },
-  {
-    id: 'nordic-hush',
-    label: 'Nordic Hush',
-    description: 'Calming sage neutrals with amber highlights.',
-    source: 'Adobe Color UI/UX · Nordic Hush',
-    swatches: ['#6B9080', '#A4C3B2', '#F6BD60', '#F7F4ED'],
-    values: {
-      theme_primary_color: '#6B9080',
-      theme_secondary_color: '#A4C3B2',
-      theme_accent_color: '#F6BD60',
-      theme_background_color: '#F7F4ED',
-      theme_mode: 'light'
     }
   }
 ]
@@ -216,16 +118,28 @@ const contrastRatio = (backgroundHex: string, foregroundHex: string) => {
   return (Lmax + 0.05) / (Lmin + 0.05)
 }
 
-const getContrastColor = (hex: string) => {
+const MIN_CONTRAST_RATIO = 4.5
+const HIGH_CONTRAST_LIGHT = '#FFFFFF'
+const HIGH_CONTRAST_DARK = '#0B1220'
+
+const getContrastColor = (hex: string, minRatio = MIN_CONTRAST_RATIO) => {
   const bg = normalizeHex(hex, '#000000')
-  const darkText = '#0B1120' // near slate-900
-  const lightText = '#F9FAFB' // near slate-50
+  const options = [
+    { color: HIGH_CONTRAST_DARK, ratio: contrastRatio(bg, HIGH_CONTRAST_DARK) },
+    { color: HIGH_CONTRAST_LIGHT, ratio: contrastRatio(bg, HIGH_CONTRAST_LIGHT) },
+  ]
 
-  const ratioDark = contrastRatio(bg, darkText)
-  const ratioLight = contrastRatio(bg, lightText)
+  options.sort((a, b) => b.ratio - a.ratio)
+  const best = options[0]
+  if (best.ratio >= minRatio) return best.color
 
-  // Prefer the color with better contrast; both exceed 4.5:1 in typical cases
-  return ratioDark >= ratioLight ? darkText : lightText
+  // If neither meets the threshold (rare), push the better option closer to pure black/white.
+  let candidate = best.color
+  const target = best.color === HIGH_CONTRAST_DARK ? '#000000' : '#FFFFFF'
+  for (let i = 0; i < 3 && contrastRatio(bg, candidate) < minRatio; i++) {
+    candidate = blendColors(candidate, target, 0.75)
+  }
+  return candidate
 }
 
 const adjustColor = (hex: string, amount: number) => {
@@ -290,34 +204,38 @@ export const applyTheme = (theme?: Partial<ThemeSettingsPayload>) => {
   const root = document.documentElement
 
   const isDark = normalized.theme_mode === 'dark'
-  const background = isDark ? '#05060A' : normalized.theme_background_color
-  const foreground = isDark ? '#F7F9FC' : '#1A1A1A'
-  const card = isDark ? '#101322' : '#FFFFFF'
-  const cardForeground = isDark ? '#F7F9FC' : '#1A1A1A'
-  const surface = isDark ? '#0B0E19' : '#FFFFFF'
-  const surfaceMuted = isDark ? '#161A2C' : '#F5F6FA'
-  const surfaceContrast = isDark ? '#05060A' : '#FDFDFD'
+  const baseLightBackground = '#FDF6EC'
+  const baseDarkBackground = '#0B0F14'
+  const background = isDark
+    ? blendColors(normalized.theme_background_color, baseDarkBackground, 0.55)
+    : blendColors(normalized.theme_background_color, baseLightBackground, 0.65)
+  const foreground = isDark ? '#E8ECF5' : '#0B1220'
+  const card = isDark ? '#0F1424' : '#FFFFFF'
+  const cardForeground = isDark ? '#F3F6FD' : '#0B1220'
+  const surface = isDark ? '#0B101D' : blendColors('#FFFFFF', background, 0.6)
+  const surfaceMuted = isDark ? '#11172A' : '#E8EDF5'
+  const surfaceContrast = isDark ? '#070A14' : '#DDE4F0'
   const popover = card
   const popoverForeground = cardForeground
-  const muted = isDark ? '#1F2334' : '#EDEDED'
-  const mutedForeground = isDark ? '#D7DBE7' : '#5A5A5A'
-  const border = isDark ? '#2B3044' : '#E6E6E6'
-  const input = isDark ? '#15192A' : '#E6E6E6'
-  const inputForeground = isDark ? '#F7F9FC' : '#1A1A1A'
-  const sidebarBlend = isDark ? 0.35 : 0.65
+  const muted = isDark ? '#151B2D' : '#E4E9F2'
+  const mutedForeground = isDark ? '#BAC4D8' : '#4B5565'
+  const border = isDark ? '#1E2538' : '#D5DEEA'
+  const input = isDark ? '#151C2E' : '#DCE3EF'
+  const inputForeground = isDark ? '#F3F6FD' : '#0B1220'
+  const sidebarBlend = isDark ? 0.45 : 0.5
   let sidebar = blendColors(normalized.theme_primary_color, background, sidebarBlend)
   sidebar = ensureSidebarShade(sidebar, isDark)
   const sidebarForeground = getContrastColor(sidebar)
-  const sidebarHover = ensureSidebarShade(blendColors(sidebar, sidebarForeground, isDark ? 0.15 : 0.1), isDark)
+  const sidebarHover = ensureSidebarShade(blendColors(sidebar, sidebarForeground, isDark ? 0.18 : 0.12), isDark)
   const sidebarActive = ensureSidebarShade(
-    blendColors(normalized.theme_secondary_color, sidebar, isDark ? 0.55 : 0.45),
+    blendColors(normalized.theme_secondary_color, sidebar, isDark ? 0.5 : 0.42),
     isDark
   )
   const sidebarActiveForeground = getContrastColor(sidebarActive)
   const sidebarBorder = blendColors(
     sidebar,
     sidebarForeground === '#FFFFFF' ? '#000000' : '#FFFFFF',
-    isDark ? 0.25 : 0.15
+    isDark ? 0.35 : 0.2
   )
   const destructive = normalized.theme_accent_color
   const destructiveForeground = getContrastColor(destructive)

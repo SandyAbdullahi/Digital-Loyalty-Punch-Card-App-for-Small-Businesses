@@ -579,7 +579,7 @@ const Settings = () => {
               <div>
                 <Text fw={600} size="lg">Theme Customization</Text>
                 <Text size="sm" c="dimmed">
-                  Choose one of Adobe Color's UI/UX trend palettes to style your merchant mission control.
+                  Choose from the Rudi brand themes used on the landing page so your dashboard matches your marketing.
                 </Text>
               </div>
               <Button variant="subtle" size="xs" onClick={handleResetTheme} disabled={savingSettings}>
@@ -594,9 +594,50 @@ const Settings = () => {
             <Text size="xs" c="dimmed">
               {activePreset
                 ? `Currently previewing: ${activePreset.label} (${activePreset.source}).`
-                : 'Currently previewing a legacy custom palette. Pick a preset to standardize your dashboard.'}
+                : 'Currently previewing a legacy custom palette. Pick a Rudi preset to standardize your dashboard.'}
             </Text>
           </Stack>
+          <div className="grid gap-3 sm:grid-cols-3 mb-4">
+            <div className="rounded-xl border border-border bg-surface p-3 shadow-sm">
+              <Text size="xs" c="dimmed" mb={6}>Primary action contrast</Text>
+              <div
+                className="rounded-xl px-3 py-2 text-sm font-semibold shadow-sm"
+                style={{
+                  backgroundColor: 'var(--primary)',
+                  color: 'var(--primary-foreground)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                Buttons & badges
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-surface p-3 shadow-sm">
+              <Text size="xs" c="dimmed" mb={6}>Secondary elements</Text>
+              <div
+                className="rounded-xl px-3 py-2 text-sm font-semibold shadow-sm"
+                style={{
+                  backgroundColor: 'var(--secondary)',
+                  color: 'var(--secondary-foreground)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                Tabs & pills
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-surface p-3 shadow-sm">
+              <Text size="xs" c="dimmed" mb={6}>Sidebar readability</Text>
+              <div
+                className="rounded-xl px-3 py-2 text-sm font-semibold shadow-sm"
+                style={{
+                  backgroundColor: 'var(--sidebar)',
+                  color: 'var(--sidebar-foreground)',
+                  border: '1px solid var(--sidebar-border)',
+                }}
+              >
+                Navigation text
+              </div>
+            </div>
+          </div>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg" mb="lg">
             {PRESET_THEMES.map((theme) => {
               const isActive = theme.id === selectedThemeId
