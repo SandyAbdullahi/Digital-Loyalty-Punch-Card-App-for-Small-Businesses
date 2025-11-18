@@ -15,7 +15,11 @@ def _normalize_role(role: str | UserRole | None) -> UserRole:
     try:
         return UserRole(role)
     except ValueError:
-        return UserRole(role.lower())
+        normalized = str(role).lower()
+        try:
+            return UserRole(normalized)
+        except ValueError:
+            return UserRole.CUSTOMER
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:

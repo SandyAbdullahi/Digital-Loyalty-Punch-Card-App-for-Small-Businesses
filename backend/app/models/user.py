@@ -13,6 +13,7 @@ class UserRole(str, Enum):
     MERCHANT = "merchant"
     CUSTOMER = "customer"
     ADMIN = "admin"
+    DEVELOPER = "developer"
 
 
 class User(Base):

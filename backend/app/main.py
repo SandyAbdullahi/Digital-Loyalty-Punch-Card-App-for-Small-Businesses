@@ -12,7 +12,12 @@ from .api.v1.analytics import router as analytics_router
 from .api.v1.merchant_analytics import router as merchant_analytics_router
 from .api.v1.websocket import router as websocket_router
 from .api.v1.reward_logic import router as reward_logic_router
+from .api.v1.developer import router as developer_router
 from .core.config import settings
+from .db.session import SessionLocal
+from .services.auth import get_user_by_email, create_user
+from .schemas.user import UserCreate
+from .models.user import UserRole
 # from .core.limiter import limiter
 
 app = FastAPI(
@@ -42,6 +47,29 @@ app.include_router(qr_router, prefix=f"{settings.API_V1_STR}/qr", tags=["qr"])
 app.include_router(analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])
 app.include_router(websocket_router, prefix=f"{settings.API_V1_STR}/ws", tags=["websocket"])
 app.include_router(reward_logic_router, prefix=f"{settings.API_V1_STR}", tags=["rewards"])
+app.include_router(developer_router, prefix=f"{settings.API_V1_STR}/developer", tags=["developer"])
+
+
+@app.on_event("startup")
+def ensure_developer_user():
+    """
+    Seed a developer user for portal access (email/password: ab2d222@gmail.com / mypassword101).
+    This should be replaced by proper provisioning in production.
+    """
+    db = SessionLocal()
+    try:
+        existing = get_user_by_email(db, "ab2d222@gmail.com")
+        if not existing:
+            create_user(
+                db,
+                UserCreate(
+                    email="ab2d222@gmail.com",
+                    password="mypassword101",
+                    role=UserRole.DEVELOPER,
+                ),
+            )
+    finally:
+        db.close()
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
