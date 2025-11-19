@@ -30,6 +30,14 @@ jobs:
           cache: npm
           cache-dependency-path: merchant-frontend/package-lock.json
 
+      - name: Install shared UI dependencies
+        working-directory: packages/ui
+        run: npm ci
+
+      - name: Build shared UI package
+        working-directory: packages/ui
+        run: npm run build
+
       - name: Install dependencies
         working-directory: merchant-frontend
         run: npm ci
