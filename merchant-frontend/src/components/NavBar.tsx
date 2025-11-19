@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 import { Burger, Drawer, Button, Group, Stack, Anchor, Divider } from '@mantine/core';
@@ -6,6 +6,7 @@ import { Burger, Drawer, Button, Group, Stack, Anchor, Divider } from '@mantine/
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [drawerOpened, setDrawerOpened] = useState(false);
+  const logoSrc = useMemo(() => `${import.meta.env.BASE_URL}logo-1.png`, []);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,7 +33,7 @@ const NavBar = () => {
              <div className="flex items-center">
                 <div className="flex-shrink-0 flex items-center gap-2">
                   <a href="/" className="flex items-center gap-2">
-                    <img src="/logo-1.png" alt="Rudi" className="h-8 w-auto" />
+                    <img src={logoSrc} alt="Rudi" className="h-8 w-auto" />
                     <span className="font-heading text-xl font-bold text-foreground">rudi</span>
                   </a>
                 </div>
@@ -105,7 +106,7 @@ const NavBar = () => {
         padding="md"
         title={
           <Group>
-            <img src="/logo-1.png" alt="Rudi" style={{ height: 32, width: 'auto' }} />
+            <img src={logoSrc} alt="Rudi" style={{ height: 32, width: 'auto' }} />
             <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>rudi</span>
           </Group>
         }
