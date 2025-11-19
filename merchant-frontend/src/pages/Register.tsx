@@ -1,6 +1,6 @@
 import { Button, TextInput } from '@mantine/core';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,6 +18,7 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const logoSrc = useMemo(() => `${import.meta.env.BASE_URL}logo-1.png`, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -61,7 +62,7 @@ export default function Register() {
         </div>
         <div className="text-center">
           <img
-            src="/logo-1.png"
+            src={logoSrc}
             alt="Rudi"
             className="mx-auto mb-6 h-20 w-auto"
           />

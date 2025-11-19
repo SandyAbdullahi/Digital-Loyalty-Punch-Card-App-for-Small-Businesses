@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Button, TextInput } from '@mantine/core'
@@ -10,6 +10,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const { login } = useAuth()
+  const logoSrc = useMemo(() => `${import.meta.env.BASE_URL}logo-1.png`, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,7 +36,7 @@ export default function Login() {
         </div>
         <div className="text-center">
           <img
-            src="/logo-1.png"
+            src={logoSrc}
             alt="Rudi"
             className="mx-auto mb-6 h-20 w-auto"
           />

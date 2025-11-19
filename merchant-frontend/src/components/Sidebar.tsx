@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
 import { BarChart3, Gift, LayoutDashboard, QrCode, Settings2, Stamp, Users } from 'lucide-react'
@@ -100,6 +100,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const location = useLocation()
   const isDemo = location.pathname.startsWith('/demo')
   const [currentTip] = useState(() => merchantTips[Math.floor(Math.random() * merchantTips.length)])
+  const logoSrc = useMemo(() => `${import.meta.env.BASE_URL}logo-1.png`, [])
 
   return (
     <div
@@ -113,7 +114,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         }}
       >
         <div className="flex flex-col items-center gap-3">
-          <img src="/logo-1.png" alt="Rudi Logo" className="h-10 w-10 rounded-xl border border-[var(--sidebar-border)] bg-white object-cover" />
+          <img src={logoSrc} alt="Rudi Logo" className="h-10 w-10 rounded-xl border border-[var(--sidebar-border)] bg-white object-cover" />
           <div className="text-center" style={{ color: 'var(--sidebar-foreground)' }}>
             <p className="text-[11px] uppercase tracking-wide opacity-70">Rudi Merchant</p>
             <p className="text-lg font-heading font-semibold">Mission Control</p>
