@@ -200,12 +200,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (email !== DEV_EMAIL || password !== DEV_PASSWORD) {
       throw new Error('Invalid developer credentials')
     }
-    const response = await axios.post('/api/v1/auth/login', {
-      email: DEV_EMAIL,
-      password: DEV_PASSWORD,
-      role: 'developer',
-    })
-    const { access_token, user: userData } = response.data
+    let access_token: string
+    let userData: any
+    try {
+      const response = await axios.post('/api/v1/auth/login', {
+        email: DEV_EMAIL,
+        password: DEV_PASSWORD,
+        role: 'developer',
+      })
+      access_token = response.data.access_token
+      userData = response.data.user
+    } catch (err: any) {
+      // Auto-provision developer if not present
+      const status = err?.response?.status
+      if (status !== 401 && status !== 404) {
+        throw err
+      }
+      const registerRes = await axios.post('/api/v1/auth/register', {
+        email: DEV_EMAIL,
+        password: DEV_PASSWORD,
+        confirm_password: DEV_PASSWORD,
+        role: 'developer',
+      })
+      access_token = registerRes.data.access_token
+      userData = registerRes.data.user
+    }
     setUser(userData)
     setMerchant(null)
     setToken(access_token)
