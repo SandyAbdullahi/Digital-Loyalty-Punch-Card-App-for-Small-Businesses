@@ -1,8 +1,11 @@
 import { Button } from '@mantine/core';
 import { Smartphone, Apple } from 'lucide-react';
 import NavBar from '../components/NavBar';
+import { useMemo } from 'react';
 
 const GetApp = () => {
+  const googlePlay = useMemo(() => `${import.meta.env.BASE_URL}Google_Play_logo.png`, []);
+  const appStore = useMemo(() => `${import.meta.env.BASE_URL}App_store_logo.png`, []);
   return (
     <div className="min-h-screen bg-background">
       <NavBar />
@@ -21,7 +24,7 @@ const GetApp = () => {
               href="#"
               className="w-96 h-64 flex items-center justify-center p-4 hover:bg-[#00C896] hover:border-[#00C896]"
             >
-              <img src="/Google_Play_logo.png" alt="Google Play" style={{ width: '384px', height: 'auto' }} />
+              <img src={googlePlay} alt="Google Play" style={{ width: '384px', height: 'auto' }} />
             </Button>
             <Button
               size="xl"
@@ -31,7 +34,7 @@ const GetApp = () => {
               href="#"
               className="w-96 h-64 flex items-center justify-center p-4 hover:bg-[#00C896] hover:border-[#00C896]"
             >
-              <img src="/App_store_logo.png" alt="App Store" style={{ width: '384px', height: 'auto' }} />
+              <img src={appStore} alt="App Store" style={{ width: '384px', height: 'auto' }} />
             </Button>
           </div>
         </div>
