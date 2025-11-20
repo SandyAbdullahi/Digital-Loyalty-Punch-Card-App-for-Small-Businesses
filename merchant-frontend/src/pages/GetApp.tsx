@@ -1,11 +1,17 @@
 import { Button } from '@mantine/core';
-import { Smartphone, Apple } from 'lucide-react';
-import NavBar from '../components/NavBar';
 import { useMemo } from 'react';
+import NavBar from '../components/NavBar';
 
 const GetApp = () => {
-  const googlePlay = useMemo(() => `${import.meta.env.BASE_URL}Google_Play_logo.png`, []);
-  const appStore = useMemo(() => `${import.meta.env.BASE_URL}App_store_logo.png`, []);
+  const prefix = useMemo(() => {
+    const base = import.meta.env.BASE_URL || '/'
+    if (base !== '/' && !base.endsWith('/')) return `${base}/`
+    // Fallback to repo path when Vite base is '/' (common in GH Pages misconfig)
+    return '/Digital-Loyalty-Punch-Card-App-for-Small-Businesses/'
+  }, [])
+
+  const googlePlay = useMemo(() => `${prefix}Google_Play_logo.png`, [prefix]);
+  const appStore = useMemo(() => `${prefix}App_store_logo.png`, [prefix]);
   return (
     <div className="min-h-screen bg-background">
       <NavBar />
