@@ -4,10 +4,11 @@ import NavBar from '../components/NavBar';
 
 const GetApp = () => {
   const prefix = useMemo(() => {
-    const base = import.meta.env.BASE_URL || '/'
-    if (base !== '/' && !base.endsWith('/')) return `${base}/`
-    // Fallback to repo path when Vite base is '/' (common in GH Pages misconfig)
-    return '/Digital-Loyalty-Punch-Card-App-for-Small-Businesses/'
+    const repoPath = '/Digital-Loyalty-Punch-Card-App-for-Small-Businesses/'
+    const base = import.meta.env.BASE_URL
+    // If BASE_URL is root-like or './', force the repo path; otherwise use the configured base with a trailing slash.
+    if (!base || base === '/' || base === './') return repoPath
+    return base.endsWith('/') ? base : `${base}/`
   }, [])
 
   const googlePlay = useMemo(() => `${prefix}Google_Play_logo.png`, [prefix]);
