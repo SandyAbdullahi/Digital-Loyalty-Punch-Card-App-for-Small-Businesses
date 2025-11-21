@@ -78,11 +78,10 @@ const Dashboard = () => {
   const [redeemConfetti, setRedeemConfetti] = useState(false);
   const bannerImages = useMemo(
     () => [
-      'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=1200',
-      'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1200',
-      'https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=1200',
-      'https://images.pexels.com/photos/3184174/pexels-photo-3184174.jpeg?auto=compress&cs=tinysrgb&w=1200',
-      'https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      '/banners/banner-1.png',
+      '/banners/banner-2.png',
+      '/banners/banner-3.png',
+      '/banners/banner-4.png',
     ],
     []
   );

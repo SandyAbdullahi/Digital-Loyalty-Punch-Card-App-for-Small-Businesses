@@ -50,6 +50,13 @@ app.include_router(reward_logic_router, prefix=f"{settings.API_V1_STR}", tags=["
 app.include_router(developer_router, prefix=f"{settings.API_V1_STR}/developer", tags=["developer"])
 
 
+@app.get("/r2-test")
+def r2_test():
+    from .services.r2_client import R2_BUCKET_NAME, R2_ENDPOINT
+
+    return {"bucket": R2_BUCKET_NAME, "endpoint": R2_ENDPOINT}
+
+
 @app.on_event("startup")
 def ensure_developer_user():
     """

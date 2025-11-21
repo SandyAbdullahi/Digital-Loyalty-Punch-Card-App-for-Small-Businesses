@@ -1,7 +1,5 @@
 import json
 import os
-import shutil
-from pathlib import Path
 from typing import List
 from uuid import UUID, uuid4
 from datetime import datetime, timedelta
@@ -98,7 +96,7 @@ def _broadcast_reward_snapshot(ws_manager, customer_id: UUID, reward: RewardMode
 
 # Merchant profile
 @router.put("/profile")
-def update_merchant_profile(
+async def update_merchant_profile(
     name: str = Form(None),
     description: str = Form(None),
     website: str = Form(None),
@@ -131,24 +129,17 @@ def update_merchant_profile(
         update_data["phone"] = phone
 
     if logo and logo.filename:
-        # Create uploads directory if it doesn't exist
-        upload_dir = Path("uploads/logos")
-        upload_dir.mkdir(parents=True, exist_ok=True)
+        contents = await logo.read()
+        if not logo.content_type or not logo.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Only images are allowed")
+        from ...services.r2_client import upload_bytes
 
-        # Generate unique filename
-        import time
-        file_extension = Path(logo.filename).suffix or ".png"
-        filename = f"{merchant.id}_{int(time.time())}{file_extension}"
-        file_path = upload_dir / filename
-
-        # Save the file
-        try:
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(logo.file, buffer)
-            update_data["logo_url"] = f"/uploads/logos/{filename}"
-        except Exception as e:
-            print(f"Error saving logo: {e}")
-            # Continue without logo
+        update_data["logo_url"] = upload_bytes(
+            prefix=f"merchants/{merchant.id}/logos",
+            filename=logo.filename,
+            data=contents,
+            content_type=logo.content_type,
+        )
 
     if update_data:
         merchant_update = MerchantUpdate(**update_data)

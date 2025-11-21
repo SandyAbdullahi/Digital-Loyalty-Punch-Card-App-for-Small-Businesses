@@ -1,7 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 import os
-import shutil
 from typing import List
 from uuid import UUID
 
@@ -148,7 +146,7 @@ def get_my_rewards(
 
 
 @router.put("/profile")
-def update_profile(
+async def update_profile(
     name: str = Form(None),
     email: str = Form(...),
     avatar: UploadFile = File(None),
@@ -163,24 +161,17 @@ def update_profile(
         update_data = {"name": name, "email": email}
 
         if avatar and avatar.filename:
-            # Create uploads directory if it doesn't exist
-            upload_dir = Path("uploads/avatars")
-            upload_dir.mkdir(parents=True, exist_ok=True)
+            contents = await avatar.read()
+            if not avatar.content_type or not avatar.content_type.startswith("image/"):
+                raise HTTPException(status_code=400, detail="Only images are allowed")
+            from ...services.r2_client import upload_bytes
 
-            # Generate unique filename
-            import time
-            file_extension = Path(avatar.filename).suffix or ".jpg"
-            filename = f"{user.id}_{int(time.time())}{file_extension}"
-            file_path = upload_dir / filename
-
-            # Save the file
-            try:
-                with open(file_path, "wb") as buffer:
-                    shutil.copyfileobj(avatar.file, buffer)
-                update_data["avatar_url"] = f"/uploads/avatars/{filename}"
-            except Exception as e:
-                print(f"Error saving avatar: {e}")
-                # Continue without avatar
+            update_data["avatar_url"] = upload_bytes(
+                prefix=f"customers/{user.id}/avatars",
+                filename=avatar.filename,
+                data=contents,
+                content_type=avatar.content_type,
+            )
 
         profile = UserUpdate(**update_data)
         return update_user(db, user, profile)
