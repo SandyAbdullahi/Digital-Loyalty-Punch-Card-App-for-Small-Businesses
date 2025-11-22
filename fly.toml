@@ -4,6 +4,7 @@ app = "rudi-app-backend"
 primary_region = "ams"
 
 [build]
+  context = "."
   dockerfile = "backend/Dockerfile"
 
 [env]
