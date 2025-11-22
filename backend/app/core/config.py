@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60 * 24 * 8, env="ACCESS_TOKEN_EXPIRE_MINUTES")
 
     # Database
-    DATABASE_URL: str = Field(env="DATABASE_URL")
+    DATABASE_URL: str = Field(default="sqlite:///./test.db", env="DATABASE_URL")
 
     # Redis
     REDIS_URL: str = Field(default="redis://localhost:6379", env="REDIS_URL")
