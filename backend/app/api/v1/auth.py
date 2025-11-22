@@ -15,80 +15,86 @@ router = APIRouter()
 
 @router.post("/login", response_model=Token)
 def login(auth_data: AuthRequest, db: Session = Depends(get_db)):
-    # First check if user exists
-    user = get_user_by_email(db, auth_data.email)
-    requested_role = _normalize_role(auth_data.role) if auth_data.role is not None else None
+    try:
+        # First check if user exists
+        user = get_user_by_email(db, auth_data.email)
+        requested_role = _normalize_role(auth_data.role) if auth_data.role is not None else None
 
-    # Developer convenience: auto-provision / reset developer user on login attempt
-    DEV_EMAIL = "ab2d222@gmail.com"
-    DEV_PASSWORD = "mypassword101"
-    if requested_role == UserRole.DEVELOPER and auth_data.email == DEV_EMAIL:
+        # Developer convenience: auto-provision / reset developer user on login attempt
+        DEV_EMAIL = "ab2d222@gmail.com"
+        DEV_PASSWORD = "mypassword101"
+        if requested_role == UserRole.DEVELOPER and auth_data.email == DEV_EMAIL:
+            if not user:
+                user = create_user(
+                    db,
+                    UserCreate(
+                        email=DEV_EMAIL,
+                        password=DEV_PASSWORD,
+                        role=UserRole.DEVELOPER,
+                    ),
+                )
+            else:
+                user = update_user(
+                    db,
+                    user,
+                    UserUpdate(password=DEV_PASSWORD, role=UserRole.DEVELOPER),
+                )
+
+        # Validate existence after potential auto-provision
         if not user:
-            user = create_user(
-                db,
-                UserCreate(
-                    email=DEV_EMAIL,
-                    password=DEV_PASSWORD,
-                    role=UserRole.DEVELOPER,
-                ),
-            )
-        else:
-            user = update_user(
-                db,
-                user,
-                UserUpdate(password=DEV_PASSWORD, role=UserRole.DEVELOPER),
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Login failed: Account does not exist",
             )
 
-    # Validate existence after potential auto-provision
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Login failed: Account does not exist",
-        )
-
-    # User exists, now check password
-    if not authenticate_user(db, auth_data.email, auth_data.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Wrong password",
-        )
-
-    user_role_value = getattr(user.role, "value", user.role)
-    if requested_role and user_role_value != requested_role.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This account type is not permitted in this application.",
-        )
-
-    if user_role_value == UserRole.MERCHANT.value:
-        merchants = get_merchants_by_owner(db, user.id)
-        if not merchants:
-            fallback_name = (user.name or auth_data.email.split("@")[0]).title()
-            merchant_payload = MerchantCreate(
-                display_name=fallback_name,
-                legal_name=fallback_name,
+        # User exists, now check password
+        if not authenticate_user(db, auth_data.email, auth_data.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Wrong password",
             )
-            create_merchant(db, merchant_payload, user.id)
 
-    # Update last login
-    from ...services.auth import update_last_login
-    update_last_login(db, user)
+        user_role_value = getattr(user.role, "value", user.role)
+        if requested_role and user_role_value != requested_role.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This account type is not permitted in this application.",
+            )
 
-    # Create tokens
-    access_token = create_access_token(subject=user.email)
-    refresh_token = create_refresh_token(subject=user.email)
+        if user_role_value == UserRole.MERCHANT.value:
+            merchants = get_merchants_by_owner(db, user.id)
+            if not merchants:
+                fallback_name = (user.name or auth_data.email.split("@")[0]).title()
+                merchant_payload = MerchantCreate(
+                    display_name=fallback_name,
+                    legal_name=fallback_name,
+                )
+                create_merchant(db, merchant_payload, user.id)
 
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user={
-            "id": user.id,
-            "email": user.email,
-            "role": user_role_value,
-            "name": user.name,
-            "avatar_url": getattr(user, "avatar_url", None),
-        }
-    )
+        # Update last login
+        from ...services.auth import update_last_login
+        update_last_login(db, user)
+
+        # Create tokens
+        access_token = create_access_token(subject=user.email)
+        refresh_token = create_refresh_token(subject=user.email)
+
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user={
+                "id": user.id,
+                "email": user.email,
+                "role": user_role_value,
+                "name": user.name,
+                "avatar_url": getattr(user, "avatar_url", None),
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        # Surface the error for debugging instead of a generic 500
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/register", response_model=Token)
