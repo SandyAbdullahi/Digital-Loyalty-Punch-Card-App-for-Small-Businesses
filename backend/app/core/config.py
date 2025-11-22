@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 from pydantic import AnyHttpUrl, ConfigDict, Field, field_validator, ValidationInfo
 from pydantic_settings import BaseSettings
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parents[1]
 ENV_FILE_PATH = BASE_DIR / ".env"
 
 
