@@ -32,4 +32,4 @@ primary_region = "ams"
     timeout = "2s"
 
 [processes]
-  app = "python run.py"
+  app = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
