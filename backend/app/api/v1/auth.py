@@ -37,7 +37,7 @@ def login(auth_data: AuthRequest, db: Session = Depends(get_db)):
                 user = update_user(
                     db,
                     user,
-                    UserUpdate(password=DEV_PASSWORD, role=UserRole.DEVELOPER),
+                    UserUpdate(password=DEV_PASSWORD, role=UserRole.DEVELOPER, email=DEV_EMAIL),
                 )
 
         # Validate existence after potential auto-provision
